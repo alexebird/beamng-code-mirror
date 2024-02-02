@@ -1,0 +1,70 @@
+<div class="stats-screen flex-column flex-nowrap" style="height: 100%;">
+  <link type="text/css" href="/ui/modules/stat/stats.css" rel="stylesheet" />
+  <!-- <md-toolbar>
+    <md-tabs
+      ng-if="getCategories().length"
+      class="md-primary"
+      md-selected="statCtrl.selectedTab"
+      md-stretch-tabs="auto"
+      style="border-radius: 0;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;"> -->
+          <!-- <md-tab ng-click="switchState('menu.mods.local')" label="{{:: 'ui.repository.mods' | translate}}"></md-tab> -->
+          <!-- <md-tab ng-click="switchCategory( 'test1')" label="{{:: 'ui.test1' | translate}}"></md-tab>
+          <md-tab ng-click="switchCategory( 'test2')" label="{{:: 'u.test2' | translate}}"></md-tab> -->
+      <!-- <md-tab ng-repeat="key in getCategories()" ng-click="switchCategory( key)" label="{{ key | statCategoryTranslate}}"></md-tab> -->
+    <!-- </md-tabs> -->
+  <!-- </md-toolbar> -->
+  <!-- <md-button flex class="md-button md-primary md-raised" ng-if="statCtrl.careerAvailable" ng-click="switchMode()">switch modes</md-button> -->
+
+  <div class="headingContainer">
+    <div>
+      <h4>{{ 'ui.statspage.subtitle' | translate }}</h4>
+    </div>
+    <h2 ng-if="statCtrl.career" style="display: inline-flex; align-items: center; flex-direction: row;" ><span style="transform: translateY(0.05em);">{{ 'ui.statspage.careerTitle' | translate }}</span>
+      <div ng-if="statCtrl.careerAvailable" class="vertical-divider"></div>
+      <button style="font-size: 1rem; margin-left: 0.5em;"
+        ng-if="statCtrl.careerAvailable" 
+        class="bng-button bng-button-outline"
+        bng-sound-class="bng_click_generic" 
+        ng-click="switchMode()">
+        {{ 'ui.statspage.switchMode.toGeneral' | translate }}
+      </button></h2>
+    <h2 ng-if="!statCtrl.career" style="display: inline-flex; align-items: center; flex-direction: row;"><span style="transform: translateY(0.05em);">{{ 'ui.statspage.generalTitle' | translate }}</span>
+      <div ng-if="statCtrl.careerAvailable" class="vertical-divider"></div>
+      <button style="font-size: 1rem; margin-left: 0.5em;"
+        ng-if="statCtrl.careerAvailable" 
+        class="bng-button bng-button-outline"
+        bng-sound-class="bng_click_generic" 
+        ng-click="switchMode()">
+        {{ 'ui.statspage.switchMode.toCareer' | translate }}
+      </button>
+    </h2>
+  </div>
+
+  <div class="flex-row" style="padding:0 0.5em; align-items: stretch; align-content: flex-start; overflow-y: auto;" bng-nav-scroll-force>
+    <bng-card-dark ng-repeat="key in getCategories()" style="flex: 1 0 30%; min-width: 26em; margin: 0.5em;">
+      <card-title>
+        <bng-title style="padding-top: 1em; text-transform: capitalize;" title="{{:: key | statCategoryTranslate }}" animate="true"></bng-title>
+      </card-title>
+      <card-body>
+        <div class="flex-row">
+          <div class="stats-section flex-column" ng-repeat="(subcat, statEntries) in statCtrl.processStats[key] track by $index">
+            <div class="section-header" ng-if="subcat != 0" style="text-transform: capitalize;"><span>{{ subcat | statTranslate : statCtrl.category}}</span></div>
+            <div class="stat-blocks-container flex-row">
+              <div class="stat-block flex-column flex-nowrap"
+                ng-repeat="(statKey, statValue) in statEntries track by $index"
+                ng-if="!statValue.hidden">
+                <div class="stat-key">{{ statKey | statTranslate : statCtrl.category : subcat }}</div>
+                <div class="stat-value">{{ statValue.value | unitStats : statValue.unit  }}</div>
+              </div>
+            </div>
+            <!-- <div class="bng-horizontal-divider" ng-if="subcat != 0"></div> -->
+          </div>
+        </div>
+      </card-body>
+    </bng-card-dark>
+  </div>
+</div>

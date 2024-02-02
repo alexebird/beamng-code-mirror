@@ -1,0 +1,28 @@
+<div style="max-height:100%; width:100%; background:rgba(0, 0, 0, 0.43);color:white;" >
+  <div ng-disabled="!exportRunning || !vulkan" layout="column" layout-align="center center" style="max-height:100%; width:100%;">
+    <div layout="row" layout-align="begin center" style="max-height:100%; width:100%;">
+      <md-checkbox ng-model="exportNormals" aria-label="__">{{:: "ui.apps.threedexport.Normals" | translate}}</md-checkbox>
+      <md-checkbox ng-model="exportTangents" aria-label="__">{{:: "ui.apps.threedexport.Tangents" | translate}}</md-checkbox>
+    </div>
+    <div layout="row" layout-align="begin center" style="max-height:100%; width:100%;">
+      <md-checkbox ng-model="exportTexCoords" aria-label="__">{{:: "ui.apps.threedexport.TexCoords" | translate}}</md-checkbox>
+      <md-checkbox ng-model="exportColors" aria-label="__">{{:: "ui.apps.threedexport.VertexColors" | translate}}</md-checkbox>
+      <md-checkbox ng-model="exportBeams" aria-label="__">{{:: "ui.apps.threedexport.JBeam" | translate}}</md-checkbox>
+    </div>
+
+    <div layout="row" layout-align="center center" style="max-height:100%; width:100%;">
+      <label style="padding-left: 8px; padding-right: 8px" flex>{{:: "ui.apps.threedexport.Filename" | translate}}:</label>
+      <input style="width:100%" placeholder="(no file)" class="bng-hidden-input" ng-model="filename"></input>
+      <md-button md-no-ink class="md-raised" ng-click="doExport()" >{{:: "ui.apps.threedexport.Export" | translate}}</md-button>
+    </div>
+
+  </div>
+
+  <div ng-disabled="" layout="column" layout-align="center center" style="max-height:100%; width:100%; padding: 0.5em;" ng-if="vulkan">
+    <div layout="row" layout-align="start center" layout-wrap>
+      <span style="color: red" class="md-title">{{:: 'ui.options.graphics.Warning' | translate}}</span>
+      <span class="md-body-2">{{:: 'ui.apps.threedexport.vulkanIncompatible' | translate}}</span><br/>
+    </div>
+  </div>
+
+</div>

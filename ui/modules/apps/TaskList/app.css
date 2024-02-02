@@ -1,0 +1,739 @@
+.root {
+    height: 400px;
+    padding: 16px;
+}
+
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    height: 100%;
+    box-sizing: border-box !important;
+    font-family: 'Overpass';
+    color: #FFFFFF;
+}
+
+.tasks-container > * {
+    box-sizing: border-box !important;
+}
+
+.task-card-wrapper {
+    border-radius: 0.25em;
+    overflow: hidden;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.task-card-wrapper.hide {
+    white-space: nowrap;
+    animation: linear hide 5s forwards;
+}
+
+.task-card {
+    width: unset; /* Override main.css style */
+    padding: 0.5em 2em;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.header-wrapper {
+    border-radius: 0.25em 0.25em 0 0 !important;
+    width: calc(100% - 1em);
+    margin-bottom: 0.09em;
+    margin-left: 1em;
+    overflow: hidden;
+    flex-shrink: 0;
+    transform-origin: right;
+}
+
+.header-wrapper.show {
+    transform: scaleX(1.0);
+    animation: cubic-bezier(0.2, 0, 0.1, 1) show 0.4s;
+    -webkit-animation: cubic-bezier(0.2, 0, 0.1, 1) show 0.4s;
+    animation-iteration-count: 1;
+    -webkit-animation-iteration-count: 1;
+}
+
+.header-wrapper.show > .header-card {
+    transform: scaleX(1.0);
+    animation: cubic-bezier(0.2, 0, 0.1, 1) showChildMaintainScale 0.4s;
+    -webkit-animation: cubic-bezier(0.2, 0, 0.1, 1) showChildMaintainScale 0.4s;
+}
+
+.header-wrapper.hide {
+    transform: scaleX(0);
+    animation: cubic-bezier(0.76, 0, 0.24, 1) hide 0.4s;
+    -webkit-animation: cubic-bezier(0.76, 0, 0.24, 1) hide 0.4s;
+}
+
+.header-wrapper.hide > .header-card {
+    transform: scaleX(0);
+    animation: cubic-bezier(0.76, 0, 0.24, 1) hideChildMaintainScale 0.4s;
+    -webkit-animation: cubic-bezier(0.76, 0, 0.24, 1) hideChildMaintainScale 0.4s;
+}
+
+.header-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.625em;
+    padding-left: 1.25em;
+    padding-right: 1.25em;
+    padding-bottom: 0.5em;
+    border-bottom: 0.17em solid #FF6600;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 1.5em;
+    line-height: 110%;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.6);
+    width: 100%;
+    transform-origin: left;
+}
+
+.header-card::before {
+    content: '';
+    position: absolute;
+    display: block;
+    width: 2em;
+    height: 1em;
+    left: -1em;
+    top: 0.41em;
+    transform: matrix(0.94, 0, -0.38, 1, 0, 0);
+    background: #FF6600;
+}
+
+.header-card > .subheader {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 0.83em;
+    line-height: 1em;
+    /* or 120% */
+    letter-spacing: 0.01em;
+}
+
+.tasks-scroller {
+    width: 100%;
+    padding-left: 1em;
+    padding-right: 0.25em;
+    padding-bottom: 0.4em;
+    overflow: scroll;
+}
+
+.tasks-scroller::-webkit-scrollbar {
+    display: none;
+}
+
+.tasks-scroller > * {
+    margin-bottom: 0.2em;
+}
+
+.goal-card-wrapper,
+.message-card-wrapper {
+    border-radius: 0.25em;
+    overflow: hidden;
+    flex-shrink: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 0.125em solid transparent;
+}
+
+.message-card-wrapper {
+    transform-origin: top right;
+}
+
+.message-card-wrapper.show {
+    animation: showBlock 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.message-card-wrapper.show > .message-card {
+    animation: showBlockChild 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.message-card-wrapper.hide {
+    animation: hideBlock 0.6s linear forwards;
+}
+
+.message-card-wrapper.hide > .message-card {
+    animation: hideBlockChild 0.6s linear forwards;
+}
+
+.message-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5em 2em;
+    transform-origin: left;
+}
+
+.message-card::before {
+    content: '';
+    position: absolute;
+    display: block;
+    top: 0.5em;
+    bottom: 0.5em;
+    left: 0.75em;
+    width: 0.25em;
+    background: #FF6600;
+}
+
+.goal-card-wrapper {
+    transform-origin: right;
+}
+
+.goal-card-wrapper.show {
+    animation: showBlock 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.goal-card-wrapper.show > .goal-card {
+    animation: showBlockChild 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.goal-card-wrapper.hide {
+    animation: hideBlock 0.6s linear forwards;
+}
+
+.goal-card-wrapper.hide > .goal-card {
+    animation: hideBlockChild 0.6s linear forwards;
+}
+
+.goal-card-wrapper.complete {
+    /* animation: complete 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards; */
+    background: #40444f;
+}
+
+.goal-card-wrapper.complete.animated {
+    animation: complete 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.goal-card-wrapper.complete.animated > .goal-card > .label > .checkbox {
+    animation: completeCheckbox 0.6s linear 0.4s forwards;
+}
+
+.goal-card-wrapper.complete > .goal-card > .label > .checkbox {
+    /* animation: completeCheckbox 0.6s linear 0.4s forwards; */
+    -webkit-mask-image: url(checkbox-ok.svg);
+    mask-image: url(checkbox-ok.svg);
+}
+
+.goal-card-wrapper.fail {
+    /* animation: fail 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards; */
+    background: #6c1313;
+}
+
+.goal-card-wrapper.fail.animated {
+    animation: fail 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.goal-card-wrapper.fail > .goal-card > .label > .checkbox {
+    /* animation: failCheckbox 0.6s linear 0.4s forwards ; */
+    -webkit-mask-image: url(checkbox-nope.svg);
+    mask-image: url(checkbox-nope.svg);
+}
+
+.goal-card-wrapper.fail.animated > .goal-card > .label > .checkbox {
+    animation: failCheckbox 0.6s linear 0.4s forwards ;
+}
+
+.goal-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5em 2em;
+    padding-left: 0.5em;
+}
+
+.goal-card > .label {
+    display: flex;
+    align-items: center;
+}
+
+.goal-card > .label > .checkbox {
+    flex-shrink: 0;
+    transition: mask-image;
+}
+
+.goal-card > .label > .text {
+    margin-left: 0.55em;
+}
+
+.goal-card > .description {
+    margin-left: 1.8em;
+}
+
+.label, .label > .text {
+    font-size: 1.12em;
+    line-height: 1.2em;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.05em;
+}
+
+.description {
+    font-family: 'Noto Sans';
+    font-size: 1em;
+    font-weight: 400;
+    line-height: 1.5em;
+    /* identical to box height, or 150% */
+    letter-spacing: 0.01em;
+}
+
+.checkbox {
+    display: inline-block;
+    width: 0.89em;
+    height: 0.94em;
+    margin-top: 0.1em;
+    -webkit-mask-image: url(checkbox-empty.svg);
+    mask-image: url(checkbox-empty.svg);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    background: white;
+}
+
+@keyframes show {
+    0% {
+        transform: scaleX(0);
+    }
+
+    2.5% {
+        transform: scaleX(0.025);
+    }
+
+    5% {
+        transform: scaleX(0.05);
+    }
+
+    10% {
+        transform: scaleX(0.1);
+    }
+
+    20% {
+        transform: scaleX(0.2);
+
+    }
+
+    30% {
+        transform: scaleX(0.3);
+
+    }
+
+    40% {
+        transform: scaleX(0.4);
+
+    }
+
+    50% {
+        transform: scaleX(0.5);
+
+    }
+
+    60% {
+        transform: scaleX(0.6);
+
+    }
+
+    70% {
+        transform: scaleX(0.7);
+
+    }
+
+    80% {
+        transform: scaleX(0.8);
+
+    }
+
+    90% {
+        transform: scaleX(0.9);
+    }
+
+    100% {
+        transform: scaleX(1.0);
+    }
+}
+
+@keyframes hide {
+    0% {
+        transform: scaleX(1.0);
+    }
+
+    10% {
+        transform: scaleX(0.9);
+    }
+
+    20% {
+        transform: scaleX(0.8);
+    }
+
+    30% {
+        transform: scaleX(0.7);
+    }
+
+    40% {
+        transform: scaleX(0.6);
+
+    }
+
+    50% {
+        transform: scaleX(0.5);
+
+    }
+
+    60% {
+        transform: scaleX(0.4);
+
+    }
+
+    70% {
+        transform: scaleX(0.3);
+
+    }
+
+    80% {
+        transform: scaleX(0.2);
+
+    }
+
+    90% {
+        transform: scaleX(0.1);
+    }
+
+    100% {
+        transform: scaleX(0);
+    }
+}
+
+@keyframes showChildMaintainScale {
+    0% {
+        transform: scaleX(0);
+    }
+
+    2.5% {
+        transform: scaleX(40);
+    }
+
+    5% {
+        transform: scaleX(20);
+    }
+
+    10% {
+        transform: scaleX(10);
+    }
+
+    20% {
+        transform: scaleX(5);
+
+    }
+
+    30% {
+        transform: scaleX(3.33);
+
+    }
+
+    40% {
+        transform: scaleX(2.5);
+
+    }
+
+    50% {
+        transform: scaleX(2);
+
+    }
+
+    60% {
+        transform: scaleX(1.67);
+
+    }
+
+    70% {
+        transform: scaleX(1.43);
+
+    }
+
+    80% {
+        transform: scaleX(1.25);
+
+    }
+
+    90% {
+        transform: scaleX(1.11);
+    }
+
+    100% {
+        transform: scaleX(1.0);
+    }
+}
+
+@keyframes hideChildMaintainScale {
+    0% {
+        transform: scaleX(1.0);
+    }
+
+    10% {
+        transform: scaleX(1.11);
+    }
+
+    20% {
+        transform: scaleX(1.25);
+
+    }
+
+    30% {
+        transform: scaleX(1.43);
+
+    }
+
+    40% {
+        transform: scaleX(1.67);
+
+    }
+
+    50% {
+        transform: scaleX(2);
+
+    }
+
+    60% {
+        transform: scaleX(2.5);
+    }
+
+    70% {
+        transform: scaleX(3.33);
+
+    }
+
+    80% {
+        transform: scaleX(5);
+
+    }
+
+    90% {
+        transform: scaleX(10);
+    }
+
+    100% {
+        transform: scaleX(0);
+    }
+}
+
+@keyframes showBlock {
+    0% {
+        transform: scale(0.025, 0);
+    }
+
+    50% {
+        transform: scale(0.025, 1.0);
+    }
+
+    52.5% {
+        transform: scale(0.074, 1.0); 
+    }
+
+    55% {
+        transform: scale(0.123, 1.0);
+    }
+
+    60% {
+        transform: scale(0.22, 1.0);
+    }
+
+    70% {
+        transform: scale(0.415, 1.0);
+    }
+
+    80% {
+        transform: scale(0.61, 1.0);
+    }
+
+    90% {
+        transform: scale(0.805, 1.0);
+    }
+
+    100% {
+        transform: scale(1.0, 1.0);
+    }
+}
+
+@keyframes showBlockChild {
+    0%, 50% {
+        transform: scaleX(40);
+    }
+
+    52.5% {
+        transform: scaleX(13.51); 
+    }
+
+    55% {
+        transform: scaleX(8.13);
+    }
+
+    60% {
+        transform: scaleX(4.55);
+    }
+
+    70% {
+        transform: scaleX(2.4);
+    }
+
+    80% {
+        transform: scaleX(1.63);
+    }
+
+    90% {
+        transform: scaleX(1.24);
+    }
+
+    100% {
+        transform: scaleX(1.0);
+    }
+}
+
+@keyframes hideBlock {
+    0% {
+        transform: scale(1.0, 1.0);
+    }
+
+    10% {
+        transform: scale(0.805, 1.0);
+    }
+
+    20% {
+        transform: scale(0.61, 1.0);
+    }
+
+    30% {
+        transform: scale(0.415, 1.0);
+    }
+
+    40% {
+        transform: scale(0.22, 1.0);
+    }
+
+    50% {
+        transform: scale(0.025, 1.0);
+    }
+
+    100% {
+        transform: scale(0.025, 0);
+    }
+}
+
+@keyframes hideBlockChild {
+    0% {
+        transform: scaleX(1.0);
+    }
+
+    10% {
+        transform: scaleX(1.24);
+    }
+
+    20% {
+        transform: scaleX(1.63);
+    }
+
+    30% {
+        transform: scaleX(2.4);
+    }
+
+    40% {
+        transform: scaleX(4.55);
+    }
+
+    45% {
+        transform: scaleX(8.13);
+    }
+
+    47.5% {
+        transform: scaleX(13.51); 
+    }
+
+    50%, 100% {
+        transform: scaleX(40);
+    }
+}
+
+@keyframes complete {
+    0% {
+        transform: scale(1.0);
+    }
+
+    10% {
+        transform: scale(1.02);
+    }
+
+    33% {
+        background: #cbcbcb;
+    }
+
+    40% {
+        border-color: #ff6600;
+    }
+
+    80% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1.0);
+        background: #40444f;
+        border-color: transparent;
+    }
+}
+
+@keyframes completeCheckbox {
+    0% {
+        -webkit-mask-image: url(checkbox-ok.svg);
+        mask-image: url(checkbox-ok.svg);
+        transform: scale(1.0);
+    }
+    
+    30% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        -webkit-mask-image: url(checkbox-ok.svg);
+        mask-image: url(checkbox-ok.svg);
+        transform: scale(1.0);
+    }
+}
+
+@keyframes fail {
+    0% {
+        transform: scale(1.0);
+    }
+
+    10% {
+        transform: scale(1.02);
+    }
+
+    17% {
+        background: #ac0000;
+    }
+
+    80% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        background: #6c1313;
+        transform: scale(1.0);
+    }
+}
+
+@keyframes failCheckbox {
+    0% {
+        -webkit-mask-image: url(checkbox-nope.svg);
+        mask-image: url(checkbox-nope.svg);
+        transform: scale(1.0);
+    }
+    
+    30% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        -webkit-mask-image: url(checkbox-nope.svg);
+        mask-image: url(checkbox-nope.svg);
+        transform: scale(1.0);
+    }
+}

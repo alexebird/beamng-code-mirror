@@ -1,0 +1,78 @@
+
+<md-content class="filler" style="position: relative; background-color: rgb(125, 125, 125);" layout="row">
+  <style>
+  .iconsDemo {
+    height: 100%;
+    position: relative;
+    overflow: auto;
+    color: white;
+  }
+  .iconsDemo .gridItem {
+    width: 6rem;
+    padding: 0 1.4rem 2.8rem 1.4rem;
+    overflow: hidden;
+  }
+  .iconsDemo .gridItem:hover {
+    overflow: visible;
+  }
+
+  .iconsDemo .gridItem:hover .text {
+    background-color: #000000;
+    padding: 5px;
+    z-index: var(--zorder_iconview_iconsdemo);
+  }
+  .iconsDemo .gridItem .text {
+    text-align: center;
+  }
+  .iconsDemo .gridItem:hover bng-icon {
+    color: #ff6600;
+  }
+
+  .bng-input-box {
+    border: 0;
+    padding: 0.3em;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .bng-input-box::-webkit-input-placeholder {
+    color: inherit;
+    opacity: 0.5;
+  }
+
+
+</style>
+
+  <!-- Search bar -->
+  <md-list layout="column" style="margin: 16px; width: 10%; min-width: 250px;">
+    <md-input-container style="width: 100%">
+      <md-select aria-label="Select subset" ng-model="iconCtrl.config.only" ng-change="iconCtrl.sort()">
+        <md-option value="all">All Icons</md-option>
+        <md-option value="fill">Color only</md-option>
+        <md-option value="base64">base64 only</md-option>
+      </md-select>
+    </md-input-container>
+
+    <bng-input-box ng-model="iconCtrl.config.query" ng-change="iconCtrl.sort()" nav-item placeholder="Search" style="width: 100%;"></bng-input-box>
+
+    <md-list-item layout="column">
+      <md-button aria-label="Clear Input" md-raised ng-click="iconCtrl.config.query = ''; iconCtrl.sort()" style="width: 100%;">Clear Input</md-button>
+      <md-button aria-label="{{value}}" md-raised ng-click="iconCtrl.config.query = value + '_'; iconCtrl.sort()" style="width: 100%;" ng-repeat="value in iconCtrl.categories">{{value}}</md-button>
+    </md-list-item>
+  </md-list>
+
+  <!-- Icon select -->
+  <div layout flex class="iconsDemo">
+    <div flex bng-v-list class="container" bng-v-repeat="item in iconCtrl.list">
+      <div class="gridItem">
+         <bng-box1x1>
+           <div class="container" layout="column" layout-align="center center">
+              <div style="position: relative; width: 50%; height: 50%;">
+                <bng-icon src="item.src" type="{{:: item.type}}" class="container"></bng-icon>
+              </div>
+              <div class="text">{{:: item.src}}</div>
+           </div>
+         </bng-box1x1>
+      </div>
+    </div>
+  </div>
+</md-content>

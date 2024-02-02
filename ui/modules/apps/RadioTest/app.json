@@ -1,0 +1,10 @@
+{
+  "name" : "RadioTest",
+  "author": "BeamNG",
+  "version": "0.1",
+  "description": "Radio-Test-v2",
+  "directive": "radioTest",
+  "domElement": "<radio-test></radio-test>",
+  "css": { "width": "300px", "height": "150px", "top": "200px", "left": "200px" },
+  "preserveAspectRatio": false
+}

@@ -1,0 +1,59 @@
+<md-content style="box-sizing:border-box; height: 100%;" layout="column">
+  <div class="md-padding" ng-if="vehConf_save.configList">
+    <div layout="row" layout-align="center center">
+        <md-input-container flex style="margin-right: 6px;">
+        <label>{{:: 'ui.vehicleconfig.filename' | translate}}</label>
+        <input ng-model="vehConf_save.saveName" ng-model-options="{debounce: 50}">
+      </md-input-container>
+      <div>
+        <md-button style="margin: auto 0px;" md-no-ink class="md-icon-button md-warn" ng-click="vehConf_save.saveName = ''" ng-disabled="!vehConf_save.saveName">
+          <md-icon class="material-icons">close</md-icon>
+        </md-button>
+        <md-button ng-disabled="!vehConf_save.saveName" ng-click="vehConf_save.save(vehConf_save.saveName)" ng-class="{'md-warn': vehConf_save.configExists(vehConf_save.saveName), 'md-primary': !vehConf_save.configExists(vehConf_save.saveName)}" class="md-raised" md-no-ink>
+        {{ vehConf_save.configExists(vehConf_save.saveName) ? 'overwrite' : 'save' | translate}}
+        </md-button>
+      </div>
+    </div>
+    <md-list-item layout style="margin: 0px 16px; text-align: center;" class="md-caption md-whiteframe-z1 md-padding" ng-if="vehConf_save.saveName">
+      <p>{{:: 'ui.vehicleconfig.mouseOverUi' | translate}}</p>
+    </md-list-item>
+
+  </div>
+
+  <md-list layout="column" style="overflow: auto; height: 100%;">
+    <div ng-repeat="item in vehConf_save.configList | filter : vehConf_save.saveName track by $index" layout="row" layout-align="center center" style="padding: 5px 15px; outline:none; cursor: pointer; min-height: 50px;" ng-click="vehConf_save.saveName = item.name" class="markEveryOddChild">
+
+      <md-button style="margin-right: 20px;" md-no-ink class="md-raised md-primary" ng-click="vehConf_save.load($event, item.name)">
+        <md-icon style="margin-right: 6px;" class="material-icons">folder_open</md-icon>
+        {{:: 'ui.vehicleconfig.load' | translate}}
+        <md-tooltip>{{:: 'ui.vehicleconfig.loadTooltip' | translate}}</md-tooltip>
+      </md-button>
+
+      <div style="width: 1em; margin: 0 6px;">
+        <div><bng-icon style="color: rgba(255, 255, 255, 0.8);" src="'general_beamng_logo_color'" type="sprite" ng-if="item.official"></bng-icon><md-tooltip>{{:: 'ui.vehicleconfig.sourceOfficial' | translate}}</md-tooltip></div>
+        <md-icon style="color: rgba(255, 255, 255, 0.8); font-size: 1.4em; margin: 0 -6px;" class="material-icons" ng-if="!item.official && !item.player"><md-tooltip>{{:: 'ui.vehicleconfig.sourceMod' | translate}}</md-tooltip>build</md-icon>
+        <md-icon style="color: rgba(255, 255, 255, 0.8); font-size: 1.4em; margin: 0 -6px;" class="material-icons" ng-if="item.player"><md-tooltip>{{:: 'ui.vehicleconfig.sourceUser' | translate}}</md-tooltip>person</md-icon>
+      </div>
+
+      <div flex>{{item.name}}</div>
+      <md-button md-no-ink class="md-icon-button md-warn" style="margin:0px; width: 24px" ng-if="item.player" bng-all-clicks single="" double="vehConf_save.remove($event, item.name)" ng-click="$event.stopPropagation()">
+        <md-icon class="material-icons">delete_forever</md-icon>
+        <md-tooltip md-delay="0" style="padding: 6px; font-weight: bold;"><md-icon style="color: white;" class="material-icons">warning</md-icon> {{:: 'ui.vehicleconfig.deleteTooltip' | translate}}</md-tooltip>
+      </md-button>
+    </div>
+  </md-list>
+
+  <div layout="row" layout-align="start center" class="md-whiteframe-z1" style="min-height: fit-content;">
+    <div flex>
+      <md-checkbox md-no-ink ng-model="vehConf_save.saveThumbnail" >
+        {{:: 'ui.vehicleconfig.saveThumbnail' | translate}}
+      </md-checkbox>
+    </div>
+
+    <div>
+      <md-button ng-click="vehConf_save.openConfigFolderInExplorer()" class="md-raised md-primary">{{:: 'ui.vehicleconfig.openConfigFolder' | translate}}</md-button>
+    </div>
+  </div>
+
+
+</md-content>

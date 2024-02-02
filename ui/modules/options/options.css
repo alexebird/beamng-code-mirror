@@ -1,0 +1,57 @@
+
+.optionsSideBarFullscreen {
+  width:100%;
+}
+
+.optionsSideBarControls {
+  width:100%;
+  max-width: 1472px;
+}
+
+.optionsSideBarMinimal {
+  max-width:750px;
+  min-width:750px;
+}
+
+.optionsSideBarCentered {
+  margin: 0 auto;
+}
+
+
+.helpPage a {
+  display: block;
+  border-radius: 4px;
+  border: 1px solid rgb(252, 107, 3);
+  color: var(--bng-orange);
+  margin: 10px;
+  padding: 5px;
+  font-size: 1.25em;
+  letter-spacing: 1px;
+  text-align: center;
+  text-decoration: none;
+  max-width:350px;
+}
+
+.helpPage a:hover {
+  -webkit-animation: helpPageHover 0.25s forwards linear;
+}
+
+.helpPage a:active {
+  text-decoration: underline;
+}
+
+@-webkit-keyframes helpPageHover {
+  0%   {letter-spacing: 1px;}
+  100% {letter-spacing: 2px; background-color: rgba(252, 107, 3, 0.05);}
+}
+
+.performancePage a {
+  color: var(--bng-orange);
+}
+.performancePage a:hover {
+  color: var(--bng-orange);
+}
+.performancePage a:visited {
+  color: var(--bng-orange);
+}
+

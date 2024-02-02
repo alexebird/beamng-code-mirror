@@ -1,0 +1,20 @@
+{
+  "domElement": "<vehicle-vicinity-app></vehicle-vicinity-app>",
+  "name": "ui.apps.vehicle_vicinity_app.name",
+  "types": [
+    "ui.apps.categories.vehicle_info"
+  ],
+  "description": "",
+  "css": {
+    "left": "0px",
+    "height": "420px",
+    "width": "420px",
+    "min-width": "60px",
+    "min-height": "60px",
+    "top": "0px",
+    "margin": "0px"
+  },
+  "author": "BeamNG",
+  "version": "0.1",
+  "directive": "vehicleVicinityApp"
+}

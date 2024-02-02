@@ -1,0 +1,514 @@
+<md-content>
+  <md-list>
+    <md-subheader>{{:: 'ui.debug.vehicle' | translate}}</md-subheader>
+
+    <md-list-item md-no-ink ng-repeat="toggle in ::vehConf_debug.controls.vehicle.toggleGroup_1">
+      <p>{{toggle.label | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.geState[toggle.key]"
+                    ng-change="toggle.onChange()"
+                    bng-sound-class="bng_checkbox_generic"
+                    >
+      </md-checkbox>
+    </md-list-item>
+
+    <md-list-item layout layout-wrap>
+      <div layout="row" layout-align="center start" layout-wrap>
+        <md-button ng-repeat="btn in vehConf_debug.controls.vehicle.buttonGroup_1" ng-click="btn.action()"
+                    ng-disabled="vehConf_debug.disableVehicleButtons"
+                    class="md-primary md-raised" flex="45" md-no-ink>
+          {{btn.label | translate}}
+        </md-button>
+      </div>
+    </md-list-item>
+
+    <md-divider></md-divider>
+    <md-subheader>{{:: 'ui.debug.vehicle.jbeamVis' | translate}}</md-subheader>
+
+    <md-list-item layout>
+      <md-button ng-repeat="btn in ::vehConf_debug.controls.jbeamvis.buttonGroup_1" ng-click="btn.action()" class="md-primary md-raised" flex md-no-ink>
+        {{btn.label | translate}}
+      </md-button>
+    </md-list-item>
+
+    <!--<div ng-show="vehConf_debug.state.vehicleDebugVisible"></div> -->
+
+    <!-- Part selector -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.partSelected' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.partSelected"
+                ng-change="vehConf_debug.applyState(); vehConf_debug.partSelectedChanged()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.parts" ng-value="$index + 1">{{ mode }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Show Part Mesh Only checkbox -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.partSelected !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.showOnlySelectedPartMesh' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.showOnlySelectedPartMesh"
+            ng-change="vehConf_debug.applyState(); vehConf_debug.showOnlySelectedPartMeshChanged()"
+            bng-sound-class="bng_checkbox_generic" >
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Beam Visualization Mode select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.beamVis' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.beamVisMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.beamVisModes" ng-value="$index + 1">{{ 'vehicle.bdebug.beamVisMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Beam Visualization Min Range slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['usesRange']
+    && vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMin'] !== undefined">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.visRangeMin' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMin']"
+                min="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap']}}"
+                max="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']}}"
+                step="{{(vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap'])
+                / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+      <input ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMin']"
+            min="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap']}}"
+            max="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']}}"
+            step="{{(vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap'])
+                / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
+
+      <!-- prevents clicking md-list-item toggling checkbox https://github.com/angular/material/issues/2819#issuecomment-136321546 -->
+      <div ng-repeat="v in [0]">
+        <md-checkbox ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinEnabled']"
+        ng-change="vehConf_debug.applyState()"
+        bng-sound-class="bng_checkbox_generic" >
+        </md-checkbox>
+      </div>
+    </md-list-item>
+
+    <!-- Beam Visualization Max Range slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['usesRange']
+    && vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMax'] !== undefined">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.visRangeMax' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMax']"
+                min="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap']}}"
+                max="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']}}"
+                step="{{(vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap'])
+                / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex>
+      </md-slider>
+
+      <input ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMax']"
+            min="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap']}}"
+            max="{{vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']}}"
+            step="{{(vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMinCap'])
+                / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
+
+      <!-- prevents clicking md-list-item toggling checkbox https://github.com/angular/material/issues/2819#issuecomment-136321546 -->
+      <div ng-repeat="v in [0]">
+        <md-checkbox ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['rangeMaxEnabled']"
+        ng-change="vehConf_debug.applyState()"
+        bng-sound-class="bng_checkbox_generic" >
+        </md-checkbox>
+      </div>
+    </md-list-item>
+
+    <!-- Beam Visualization use inclusive range checkbox -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.useInclusiveRange' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['usesInclusiveRange']"
+            ng-change="vehConf_debug.applyState()"
+            bng-sound-class="bng_checkbox_generic" >
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Beam Visualization show infinity values checkbox -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.showInf' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['showInfinity']"
+            ng-change="vehConf_debug.applyState()"
+            bng-sound-class="bng_checkbox_generic" >
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Beam Width slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.width' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.beamVisWidthScale" min="0.1" max="5" step="0.1"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Beam Transparency slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.transparency' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.beamVisAlpha" min="0" max="1" step="0.01"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Node Text select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.nodeText' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.nodeTextMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.nodeTextModes" ng-value="$index + 1">{{ 'vehicle.bdebug.nodeTextMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Show Wheels checkbox -->
+    <md-list-item md-no-ink ng-show="vehConf_debug.state.vehicle.nodeTextMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.showWheels' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.nodeTextShowWheels"
+                  ng-change="vehConf_debug.applyState()"
+                  bng-sound-class="bng_checkbox_generic">
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Node Visualization select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.nodeVis' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.nodeVisMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.nodeVisModes" ng-value="$index + 1">{{ 'vehicle.bdebug.nodeVisMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Node Visualization Min Range slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.visRangeMin' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMin']"
+                min="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap']}}"
+                max="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']}}"
+                step="{{(vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap'])
+                / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+      <input ng-model="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMin']"
+            min="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap']}}"
+            max="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']}}"
+            step="{{(vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap'])
+                / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
+    </md-list-item>
+
+    <!-- Node Visualization Max Range slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.visRangeMax' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMax']"
+                min="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap']}}"
+                max="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']}}"
+                step="{{(vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap'])
+                / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex>
+      </md-slider>
+
+      <input ng-model="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMax']"
+            min="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap']}}"
+            max="{{vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']}}"
+            step="{{(vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['rangeMinCap'])
+                / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
+    </md-list-item>
+
+    <!-- Node Visualization show infinity values checkbox -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.showInf' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.nodeVisModes[vehConf_debug.state.vehicle.nodeVisMode - 1]['showInfinity']"
+            ng-change="vehConf_debug.applyState()"
+            bng-sound-class="bng_checkbox_generic" >
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Node Vis Width slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.nodeVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.width' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.nodeVisWidthScale" min="0.3" max="5" step="0.1"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Node Vis Transparency slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.nodeVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.transparency' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.nodeVisAlpha" min="0" max="1" step="0.01"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Node Debug Text select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.nodeDebugText' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.nodeDebugTextMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.nodeDebugTextModes" ng-value="$index + 1">{{ $index == 0 ? ('vehicle.bdebug.nodeTextMode.off' | translate) : mode.name }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Torsion Bar Visualization Mode select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.torsionBarVis' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.torsionBarVisMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.torsionBarVisModes" ng-value="$index + 1">{{ 'vehicle.bdebug.torsionBarVisMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Torsion Bar Visualization Min Range slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.visRangeMin' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMin']"
+                min="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap']}}"
+                max="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']}}"
+                step="{{(vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap'])
+                / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+      <input ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMin']"
+            min="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap']}}"
+            max="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']}}"
+            step="{{(vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap'])
+                / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
+
+      <!-- prevents clicking md-list-item toggling checkbox https://github.com/angular/material/issues/2819#issuecomment-136321546 -->
+      <div ng-repeat="v in [0]">
+        <md-checkbox ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinEnabled']"
+        ng-change="vehConf_debug.applyState()"
+        bng-sound-class="bng_checkbox_generic" >
+        </md-checkbox>
+      </div>
+    </md-list-item>
+
+    <!-- Torsion Bar Visualization Max Range slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.visRangeMax' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMax']"
+                min="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap']}}"
+                max="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']}}"
+                step="{{(vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap'])
+                / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex>
+      </md-slider>
+
+      <input ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMax']"
+            min="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap']}}"
+            max="{{vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']}}"
+            step="{{(vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxCap']
+                - vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMinCap'])
+                / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
+
+      <!-- prevents clicking md-list-item toggling checkbox https://github.com/angular/material/issues/2819#issuecomment-136321546 -->
+      <div ng-repeat="v in [0]">
+        <md-checkbox ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['rangeMaxEnabled']"
+        ng-change="vehConf_debug.applyState()"
+        bng-sound-class="bng_checkbox_generic" >
+        </md-checkbox>
+      </div>
+    </md-list-item>
+
+    <!-- Torsion Bar Visualization use inclusive range checkbox -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.useInclusiveRange' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['usesInclusiveRange']"
+            ng-change="vehConf_debug.applyState()"
+            bng-sound-class="bng_checkbox_generic" >
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Torsion Bar Visualization show infinity values checkbox -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['usesRange']">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.showInf' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.torsionBarVisModes[vehConf_debug.state.vehicle.torsionBarVisMode - 1]['showInfinity']"
+            ng-change="vehConf_debug.applyState()"
+            bng-sound-class="bng_checkbox_generic" >
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Torsion Bar Vis Width slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.torsionBarVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.width' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.torsionBarVisWidthScale" min="0.1" max="5" step="0.1"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Torsion Bar Vis Transparency slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.torsionBarVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.transparency' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.torsionBarVisAlpha" min="0" max="1" step="0.01"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Rails Slidenodes Visualization Mode select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.railsSlideNodesVis' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.railsSlideNodesVisMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.railsSlideNodesVisModes" ng-value="$index + 1">{{ 'vehicle.bdebug.railsSlideNodesVisMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Rails Slidenodes Vis Width slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.railsSlideNodesVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.width' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.railsSlideNodesVisWidthScale" min="0.1" max="5" step="0.1"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Rails Slidenodes Vis Transparency slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.railsSlideNodesVisMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.transparency' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.railsSlideNodesVisAlpha" min="0" max="1" step="0.01"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Center of Gravity select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.centerOfGravity' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.cogMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.cogModes" ng-value="$index + 1">{{ 'vehicle.bdebug.cogMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Collision Triangles checkbox -->
+    <md-list-item md-no-ink>
+      <p>{{:: 'ui.debug.vehicle.collisionTriangle' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.collisionTriangle"
+                  ng-change="vehConf_debug.applyState()"
+                  bng-sound-class="bng_checkbox_generic">
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Collision Triangles Transparency slider -->
+    <md-list-item md-no-ink ng-show="vehConf_debug.state.vehicle.collisionTriangle === true">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.transparency' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.collisionTriangleAlpha" min="0" max="1" step="0.01"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Flexmesh debug Mode select -->
+    <!--
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.flexmeshdebug' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.flexmeshdebug"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.flexmeshdebug_modes">{{ ::mode }}</md-option>
+      </md-select>
+    </md-list-item>
+    -->
+
+    <!-- Aerodynamics Mode select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.aerodynamics' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.aeroMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.aeroModes" ng-value="$index + 1">{{ 'vehicle.bdebug.aeroMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
+    <!-- Aero scale slider -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.aeroMode !== 1">
+      <p flex style="text-indent: 30px;">{{:: 'ui.debug.vehicle.aerodynamicsScale' | translate}}</p>
+      <md-slider ng-model="vehConf_debug.state.vehicle.aerodynamicsScale" min="0" max="0.2" step="0.01"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+    </md-list-item>
+
+    <!-- Tire forces checkbox -->
+    <!--
+    <md-list-item md-no-ink>
+      <p>{{:: 'ui.debug.vehicle.wheelThermals' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.wheelThermals"
+                  ng-change="vehConf_debug.applyState()"
+                  bng-sound-class="bng_checkbox_generic">
+      </md-checkbox>
+    </md-list-item>
+    -->
+
+    <!-- Tire Contact Point checkbox -->
+    <md-list-item md-no-ink>
+      <p>{{:: 'ui.debug.vehicle.tireContactPoint' | translate}}</p>
+      <md-checkbox ng-model="vehConf_debug.state.vehicle.tireContactPoint"
+                  ng-change="vehConf_debug.applyState()"
+                  bng-sound-class="bng_checkbox_generic">
+      </md-checkbox>
+    </md-list-item>
+
+    <!-- Mesh Visibility buttons -->
+    <md-list-item layout class="md-no-proxy">
+      <p flex>{{:: 'ui.debug.vehicle.meshVisibility' | translate}}</p>
+      <md-button ng-repeat="btn in vehConf_debug.controls.jbeamvis.meshVisButtonGroup" ng-click="btn.action()"
+                  ng-disabled="vehConf_debug.disableVehicleButtons"
+                  class="md-primary md-raised" style="min-width: 50px; width: 50px;" md-no-ink>
+        {{btn.label | translate}}
+      </md-button>
+    </md-list-item>
+
+    <md-divider></md-divider>
+    <md-subheader>{{:: 'ui.debug.terrain' | translate}}</md-subheader>
+
+    <md-list-item layout>
+      <md-button ng-repeat="btn in ::vehConf_debug.controls.terrain.buttonGroup_1" ng-click="btn.action()" class="md-primary md-raised" flex md-no-ink>
+        {{btn.label | translate}}
+      </md-button>
+    </md-list-item>
+
+  </md-list>
+</md-content>

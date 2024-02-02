@@ -1,0 +1,18 @@
+<md-content layout="column" class="container" style="max-width:800px;">
+  <md-toolbar style="position: relative;">
+    <md-tabs class="md-primary" style="border-radius: 0; position: absolute; bottom: 0; left: 0; right: 0;" md-stretch-tabs="always" md-no-ink>
+      <md-tab ui-sref="menu.options.controls.bindings"> <div data-fittext data-fittext-max="inherit">{{:: 'ui.controls.bindings' | translate}}</div> </md-tab>
+      <md-tab ui-sref="menu.options.controls.ffb"> <div data-fittext data-fittext-max="inherit">{{:: 'ui.controls.ffb' | translate}}</div> </md-tab>
+      <md-tab ui-sref="menu.options.controls.hardware"> <div data-fittext data-fittext-max="inherit">{{:: 'ui.controls.hardware' | translate}}</div> </md-tab>
+    </md-tabs>
+    <div style="box-shadow: 0 0 40px 50px rgba(35,35,35,0.9); position:absolute; overflow: auto; left:50%; right:0; top:50%; bottom:0; transform: translate(-50%, -50%); max-width:95%; width: fit-content; max-height:90%; height: fit-content; border-style:solid; border-width:2px; border-color: var(--bng-orange); border-radius:10px; background-color: rgba(63,63,63,1.0); padding:10px; padding-top:15px; padding-bottom:15px" ng-if="controls.bngTooltipValueTop">
+      <div style="font-size: medium;"  bng-translate="{{ controls.bngTooltipValueTop }}"></div>
+    </div>
+  </md-toolbar>
+
+  <div ui-view flex style="overflow: auto"></div>
+
+  <md-list-item layout="column" layout-wrap style="box-shadow: 0 0 70px 100px rgba(35,35,35,0.9); position:absolute; overflow: auto; left:50%; right:0; top:50%; bottom:0; transform: translate(-50%, -50%); max-width:95%; width: fit-content; max-height:90%; height: fit-content; border-style:solid; border-width:2px; border-color: var(--bng-orange); border-radius:10px; background-color: rgba(63,63,63,1.0); padding:10px; padding-top:15px; padding-bottom:15px" ng-if="controls.bngTooltipValue">
+    <div bng-translate="{{ controls.bngTooltipValue }}"></div>
+  </md-list-item>
+</md-content>

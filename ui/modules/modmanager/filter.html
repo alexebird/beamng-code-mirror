@@ -1,0 +1,57 @@
+<div layout="column">
+  <span translate="ui.modmanager.numActive" translate-values="modLoclCtrl.numActiveObj()"></span>
+  <br/>
+
+  <div layout="row" layout-align="center center">
+    <md-input-container flex>
+      <label><md-icon class="material-icons">search</md-icon>{{:: 'ui.repository.search' | translate}}</label>
+      <input ng-model="modLoclCtrl.filter.customFilter.$">
+    </md-input-container>
+    <md-button class="md-icon-button md-warn" ng-click="modLoclCtrl.filter.customFilter.$ = ''" ng-disabled="!modLoclCtrl.filter.customFilter.$">
+      <md-icon class="material-icons">close</md-icon>
+      <md-tooltip md-direction="bottom">{{:: 'ui.repository.searchClear' | translate}}</md-tooltip>
+    </md-button>
+  </div>
+
+  <div style="margin-top: 60px;">
+    <label><md-icon style="margin-right: 5px;" class="material-icons">visibility</md-icon>{{:: 'ui.modmanager.show' | translate}}</label>
+  </div>
+  <md-select ng-model="modLoclCtrl.filter.customFilter.modType" layout="column">
+    <md-option value="" flex="25" >{{:: 'ui.repository.cat_all' | translate}}</md-option>
+    <md-option ng-repeat="type in modLoclCtrl.types | orderBy" value="{{type}}" flex="25">{{type | capitalize}}</md-option>
+  </md-select>
+  <md-divider></md-divider>
+  <br />
+  <div style="margin-top: 30px;">
+    <label><md-icon style="margin-right: 5px;" class="material-icons">sort</md-icon>{{:: 'ui.repository.order_by' | translate}}</label>
+  </div>
+  <md-select ng-model="modLoclCtrl.filter.orderby" aria-label="_" flex ng-change="repo.filterApply();">
+    <md-option value="dateAdded" flex="25" >{{:: 'ui.modmanager.dateAdded' | translate}}</md-option>
+    <md-option value="modname" flex="25" >{{:: 'ui.modmanager.modname' | translate}}</md-option>
+    <md-option value="modType" flex="25" >{{:: 'ui.modmanager.type' | translate}}</md-option>
+    <md-option value="-active" flex="25" >{{:: 'ui.modmanager.active' | translate}}</md-option>
+  </md-select>
+  <md-divider></md-divider>
+  <br />
+
+
+  <div style="margin-top: 60px;">
+    <label><md-icon style="margin-right: 5px;" class="material-icons">build</md-icon>{{:: 'ui.modmanager.actions' | translate}}</label>
+  </div>
+
+  <div layout="column" >
+    <md-button style="text-transform: none;" ng-click="modLoclCtrl.updateAll()" ng-if="online === 'enable'"class="md-button md-raised md-primary">{{:: 'ui.modmanager.updateAll' | translate}}</md-button>
+    <md-button style="text-transform: none;" ng-click="modLoclCtrl.activateAllMods()" class="md-button md-raised md-primary md-hue-1">{{:: 'ui.modmanager.activateAll' | translate}}</md-button>
+    <md-button style="text-transform: none;" ng-click="modLoclCtrl.deactivateAllMods()" class="md-button md-raised md-primary md-hue-1">{{:: 'ui.modmanager.deactivateAll' | translate}}</md-button>
+    <md-button style="text-transform: none;" ng-click="modLoclCtrl.openModFolderInExplorer()" class="md-button md-raised md-primary md-hue-1">{{:: 'ui.modmanager.openModFolderInExplorer' | translate}}</md-button>
+    <br/>
+    <md-button style="text-transform: none;" ng-click="modLoclCtrl.listPossiblyBrokenMods()" class="md-button md-raised md-primary">{{:: 'ui.modmanager.listPossiblyBrokenModsButton' | translate}}
+      <md-icon class="material-icons">find_in_page</md-icon>
+    </md-button>
+    <md-button style="text-transform: none;" bng-all-clicks single="" double="modLoclCtrl.deleteAll()" class="md-button md-raised md-warn">{{:: 'ui.modmanager.deleteAll' | translate}}
+      <md-icon class="material-icons">delete_forever</md-icon>
+      <md-tooltip md-delay="0" style="padding: 6px; font-weight: bold;"><md-icon style="color: white;" class="material-icons">warning</md-icon> {{:: 'ui.modmanager.deleteTooltip' | translate}}</md-tooltip>
+    </md-button>
+  </div>
+
+</div>

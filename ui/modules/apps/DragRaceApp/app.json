@@ -1,0 +1,18 @@
+{
+    "domElement": "<drag-race-debug></drag-race-debug>",
+    "name": "Drag Race App Test",
+    "types": [
+        "ui.apps.categories.debug"
+    ],
+    "description": "Drag Race App Test",
+    "css": {
+        "left": "0px",
+        "height": "270px",
+        "width": "270px",
+        "top": "0px"
+    },
+    "author": "beamng.ui Team",
+    "version": "0.1",
+    "directive": "dragRace",
+    "vue": true
+}

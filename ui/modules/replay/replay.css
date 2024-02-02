@@ -1,0 +1,19 @@
+md-tab-content, md-tab-content > div {
+  height:100%;
+  box-sizing: border-box;
+  overflow:hidden;
+}
+
+.replayList {
+  min-width:500px;
+  max-width:700px;
+  width: 27%;
+  height: 100%;
+}
+
+.replayList .replayListItem {
+  padding: 5px 15px;
+  outline:none;
+  cursor: pointer;
+  min-height: 45px;
+}

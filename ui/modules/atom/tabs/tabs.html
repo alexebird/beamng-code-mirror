@@ -1,0 +1,12 @@
+<div class="tab-container">
+  <link rel="stylesheet" type="text/css" href="/ui/modules/atom/tabs/tabs.css" />
+  <div class="tab-list">
+    <div class="tab-item" ng-repeat="bngTab in bngTabList.tabs" ng-click="bngTabList.selectTab(bngTab)" ng-class="{active: bngTab.active}">
+      <div ng-if="bngTab.iconpath" class="icon-mask" style="-webkit-mask-image: url({{bngTab.iconpath}});"></div>
+      <div ng-if="bngTab.heading"class="tab-label">{{ bngTab.heading }}</div>
+      <div ng-if="bngTab.flagged" class="tab-item-flagged"></div>
+    </div>
+  </div>
+  <div class="tab-content" ng-transclude>
+  </div>
+</div>

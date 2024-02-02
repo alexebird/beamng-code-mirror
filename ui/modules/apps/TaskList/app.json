@@ -1,0 +1,18 @@
+{
+    "domElement": "<tasklist></tasklist>",
+    "name": "tasks",
+    "types": [
+      "ui.apps.categories.goals"
+    ],
+    "description": "Task List",
+    "css": {
+      "bottom": "5px",
+      "height": "300px",
+      "width": "300px",
+      "right": "5px"
+    },
+    "author": "beamng.ui Team",
+    "version": "0.1",
+    "directive": "tasklist",
+    "vue": true
+  }

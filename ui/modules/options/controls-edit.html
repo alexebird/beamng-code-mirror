@@ -1,0 +1,83 @@
+<md-content layout="column" flex class="controls-edit">
+  <md-toolbar>
+  </md-toolbar>
+
+
+  <div class="md-padding controls-edit" flex style="overflow: auto;">
+    <h2 class="md-title" style="margin: 0px 0px 0px 16px;">{{controlsEdit.action.title | translate}}</h2>
+    <div class="md-padding md-subhead">{{controlsEdit.action.desc | translate}}</div>
+    <md-divider></md-divider>
+
+    <div ng-if="controlsEdit.listening.status !== 0" style="margin-top: 12px">
+      <span class="md-title">{{:: 'ui.controls.detectingBinding' | translate }}</span>
+    </div>
+    <div ng-if="controlsEdit.listening.status !== 0" style="margin-top: 12px" ng-repeat="(devName, dev) in controlsEdit.listening.data" flex="33">
+      <div ng-repeat="(control, controlData) in dev.axis" ng-if="controlData.accumulated > 0.1" flex="33" style="margin-top: 12px">
+        <assign-control name="{{devName}}: {{control}}" flex="33" value="{{controlData.accumulated * 100}}"></assign-control>
+      </div>
+    </div>
+
+    <div ng-if="controlsEdit.listening.status === 0">
+      <md-list-item layout class="md-padding">
+        <span flex style="cursor: pointer;" ng-click="controlsEdit.captureBinding()" bng-tooltip="ui.controls.editBinding.reassign">
+          {{:: 'ui.controls.editBinding.assignedControl' | translate }}
+        </span>
+        <span style="cursor: pointer; font-size: 125%; padding-left: 15px;" ng-click="controlsEdit.captureBinding()" bng-tooltip="ui.controls.editBinding.reassign">
+          <binding dark="false" key="controlsEdit.newBinding.details.control" device="controlsEdit.newBinding.device"></binding>
+          <md-icon class="material-icons">mode_edit</md-icon>
+        </span>
+        <md-button class="md-icon-button md-warn" md-no-ink ng-click="controlsEdit.deleteBinding()" bng-sound-class="bng_click_generic" bng-tooltip="ui.controls.removeBinding">
+          <md-icon class="material-icons">delete_forever</md-icon>
+        </md-button>
+      </md-list-item>
+
+
+      <div ng-if="controlsEdit.conflicts.length > 0" class="md-whiteframe-z3 md-padding">
+        <div layout="row" layout-align="start center" layout-wrap>
+            <span style="color: rgb(195,139,74)">{{::'ui.common.info'| translate}}:</span>
+            &nbsp;
+            <span>{{::'ui.controls.editBinding.conflicts' | translate }}</span>
+        </div>
+
+        <md-list-item ng-repeat="conflict in controlsEdit.conflicts" layout="row">
+          <p flex style="text-decoration: {{:: conflict.resolved ? 'line-through' : 'none' }}">{{conflict.title | translate}}</p>
+          <md-button class="md-icon-button md-warn" md-no-ink ng-click="conflict.resolved = !conflict.resolved" bng-sound-class="bng_click_generic" bng-tooltip="{{ (conflict.resolved ? 'ui.controls.editBinding.removeUndo' : 'ui.controls.editBinding.remove') }}">
+            <md-icon class="material-icons">{{ conflict.resolved ? 'delete_sweep' : 'delete_forever' }}</md-icon>
+          </md-button>
+        </md-list-item>
+      </div>
+      <md-divider></md-divider>
+
+      <!-- show how we autoselect Wheel(Direct) filter when an angle is selected in a steering binding -->
+      <md-list-item layout bng-tooltip="ui.controls.filter.tooltip" ng-if="controlsEdit.action.actionName != 'steering' || !(controlsEdit.newBinding.details.angle > 0)">
+        <p>{{:: "ui.controls.filter" | translate}}</p>
+        <md-select flex ng-model="controlsEdit.newBinding.details.filterType" aria-label="_" class="bng-select-fullwidth">
+          <md-option value="-1" md-no-ink>{{:: "ui.controls.filters.-1" | translate}}</md-option>
+          <md-option value="0"  md-no-ink>{{:: "ui.controls.filters.0" | translate}}</md-option>
+          <md-option value="3"  md-no-ink>{{:: "ui.controls.filters.3" | translate}}</md-option>
+          <md-option value="1"  md-no-ink>{{:: "ui.controls.filters.1" | translate}}</md-option>
+          <md-option value="2"  md-no-ink>{{:: "ui.controls.filters.2" | translate}}</md-option>
+        </md-select>
+      </md-list-item>
+      <md-list-item layout bng-tooltip="ui.controls.filter.tooltip" ng-if="controlsEdit.action.actionName == 'steering' && controlsEdit.newBinding.details.angle > 0" ng-disabled="true">
+        <p style="opacity:0.4;">{{:: "ui.controls.filter" | translate}}</p>
+        <md-select ng-model="controlsEdit.hardcodedAutoselectFilter" flex aria-label="_" class="bng-select-fullwidth" ng-disabled="true">
+          <md-option value="2" md-no-ink>{{:: "ui.controls.filters.2" | translate}}</md-option>
+        </md-select>
+      </md-list-item>
+
+      <axis-options ng-if="controlsEdit.newBinding.isAxis" iscentered="controlsEdit.action.isCentered" data="controlsEdit.newBinding" action="controlsEdit.action.actionName"></axis-options>
+      <ffb-options ng-if="controlsEdit.action.actionName == 'steering'" data="controlsEdit.newBinding.details"></ffb-options>
+    </div>
+  </div>
+
+  <div layout="row" ng-if="controlsEdit.listening.status === 0">
+    <md-button flex md-no-ink style="display:block" class="md-button md-warn md-raised" id="binding_edit_cancel"
+      ng-click="controlsEdit.cancel()" ui-sref="^" bng-sound-class="bng_click_generic">Cancel</md-button>
+    <md-button flex md-no-ink style="display:block" class="md-primary md-raised"
+        ng-click="controlsEdit.apply()" ui-sref="^" bng-sound-class="bng_click_generic">Apply</md-button>
+  </div>
+
+  <md-divider></md-divider>
+
+</md-content>

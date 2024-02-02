@@ -1,0 +1,19 @@
+{
+  "domElement": "<pneumatics-debug></pneumatics-debug>",
+  "name": "ui.apps.pneumatics_debug.name",
+  "types": [
+    "ui.apps.categories.debug"
+  ],
+  "description": "Shows information about the pneumatic/air system",
+  "css": {
+    "left": "0px",
+    "height": "auto",
+    "width": "230px",
+    "min-width": "230px",
+    "min-height": "110px",
+    "top": "0px"
+  },
+  "author": "beamng.ui Team",
+  "version": "0.1",
+  "directive": "pneumaticsDebug"
+}

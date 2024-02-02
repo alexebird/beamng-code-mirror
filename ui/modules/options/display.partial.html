@@ -1,0 +1,383 @@
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.general' | translate}}</h3></p></md-list-item>
+<md-list-item layout class="bng-short-select-item" ng-if="options.data.values.runningOnSteamDeck === true" style="margin:20px;">
+  <md-icon class="material-icons">report_problem</md-icon>
+  <p flex>{{:: 'ui.options.steamdeckSupport' | translate}}</p>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item">
+  <p flex="30">{{:: 'ui.options.graphics.displayMode' | translate}}</p>
+  <md-select flex ng-model="options.data.values.GraphicDisplayModes" ng-change="options.refreshGraphicsState()" aria-label="_">
+    <md-select-label style="width:100%"></md-select-label>
+    <md-option md-no-ink ng-repeat="display in options.data.options.GraphicDisplayModes.modes.values"
+                          ng-value="options.data.options.GraphicDisplayModes.modes.keys[$index]">
+      {{display | translate}}
+    </md-option>
+  </md-select>
+</md-list-item>
+<md-list-item layout md-no-ink ng-if="options.data.values.GraphicDisplayModes == 'Window'">
+  <p style="color: rgb(195,139,74)">{{:: 'ui.options.graphics.displayMode.windowWarning' | translate}}</p>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-if="options.data.values.GraphicDisplayModes !== 'Window'">
+  <p flex="30">{{:: 'ui.options.graphics.monitor' | translate}}</p>
+  <md-select flex ng-model="options.data.values.GraphicDisplayDriver"
+                  ng-disabled="options.data.values.GraphicDisplayModes === 'Window'" ng-change="options.refreshGraphicsState()" aria-label="_">
+    <md-select-label style="width:100%"></md-select-label>
+    <md-option md-no-ink ng-repeat="display in ::options.data.options.GraphicDisplayDriver.modes.values"
+                          ng-value="options.data.options.GraphicDisplayDriver.modes.keys[$index]">
+      {{ ::display }}
+    </md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-if="options.data.values.GraphicDisplayModes !== 'Window'">
+  <p flex="30">{{:: 'ui.options.graphics.resolution' | translate}}</p>
+  <md-select flex ng-model="options.data.values.GraphicDisplayResolutions"
+                  ng-disabled="options.data.values.GraphicDisplayModes !== 'Fullscreen'" ng-change="options.refreshGraphicsState()" aria-label="_">
+    <md-select-label style="width:100%"></md-select-label>
+    <md-option md-no-ink ng-repeat="resolution in options.data.options.GraphicDisplayResolutions.modes.values"
+                          ng-value="options.data.options.GraphicDisplayResolutions.modes.keys[$index]">
+      {{ ::resolution }}
+    </md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-if="options.data.values.GraphicDisplayModes !== 'Window'">
+  <p flex="30">{{:: 'ui.options.graphics.refreshRate' | translate}}</p>
+  <md-select flex ng-model="options.data.values.GraphicDisplayRefreshRates"
+                  ng-disabled="options.data.values.GraphicDisplayModes !== 'Fullscreen'" ng-change="options.refreshGraphicsState()" aria-label="_">
+    <md-select-label style="width:100%"></md-select-label>
+    <md-option md-no-ink ng-repeat="refreshRate in options.data.options.GraphicDisplayRefreshRates.modes.values"
+                          ng-value="options.data.options.GraphicDisplayRefreshRates.modes.keys[$index]">
+      {{ ::refreshRate }}
+    </md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item layout class="md-padding" style="padding-top: 0; padding-bottom: 0" >
+  <p flex="20">{{:: 'ui.options.graphics.gamma' | translate}}</p>
+  <md-slider flex
+    ng-model="options.data.values.GraphicGamma" min="0" max="2" step="0.01" aria-label="_"
+    ng-change="options.applyState()">
+  </md-slider>
+  <span style="margin-left:15px">{{ options.data.values.GraphicGamma.toFixed(2) }}</span>
+  <md-button style="width: 40px" class="md-icon-button md-warn" ng-click="opt.resetGamma()" bng-sound-class="bng_click_generic">
+    <md-icon class="material-icons">undo</md-icon>
+  </md-button>
+</md-list-item>
+
+<md-list-item layout md-no-ink class="md-padding">
+  <p>{{:: 'ui.options.graphics.TripleMonitorEnable' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.GraphicTripleMonitorEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item layout style="font-size: 14px; margin: 0px 15px; color: #ff2f3a; border: #ff2f3a 1px solid; border-bottom: 0px; border-radius: 4px 4px 0px 0px; padding: 1em;" class="md-caption md-padding" ng-if="options.data.values.GraphicTripleMonitorEnabled">
+  <strong style="margin: 0px 12px 0px 0px;">{{:: 'ui.options.graphics.Warning' | translate}}</strong>
+  <p>{{:: 'ui.options.graphics.Experimental' | translate}}</p>
+</md-list-item>
+
+<md-list-item layout style="font-size: 14px; margin: 0px 15px; color: #ff2f3a; border: #ff2f3a 1px solid; border-top: 0px; border-radius: 0px 0px 4px 4px; padding: 1em; margin-bottom: 1em;" class="md-caption md-padding" ng-if="options.data.values.GraphicTripleMonitorEnabled">
+  <p>{{:: 'ui.options.graphics.TripleMonitorDescription' | translate}}</p>
+</md-list-item>
+
+<md-list-item layout md-no-ink ng-if="options.data.values.GraphicTripleMonitorEnabled" >
+  <p flex="40">{{:: 'ui.options.graphics.GraphicTripleMonitorCenterFovDeg' | translate}}</p>
+  <md-slider flex
+    ng-model="options.data.values.GraphicTripleMonitorCenterFovDeg" min="0" max="90" step="0.05" round="2" aria-label="_"
+    ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+    ng-change="options.applyState()">
+  </md-slider>
+  <md-input-container style="padding:0; flex: 0 0 4.2em; max-width: 4.2em;">
+    <input type="number"
+            ng-model="options.data.values.GraphicTripleMonitorCenterFovDeg" min="0" max="90" step="0.05"
+            ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+            ng-change="options.applyState()" />
+  </md-input-container>
+</md-list-item>
+
+<md-list-item layout md-no-ink ng-if="options.data.values.GraphicTripleMonitorEnabled" >
+  <p flex="40">{{:: 'ui.options.graphics.GraphicTripleMonitorLeftFovDeg' | translate}}</p>
+  <md-slider flex
+    ng-model="options.data.values.GraphicTripleMonitorLeftFovDeg" min="0" max="90" step="0.05" aria-label="_"
+    ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+    ng-change="options.applyState()">
+  </md-slider>
+  <md-input-container style="padding:0; flex: 0 0 4.2em; max-width: 4.2em;">
+    <input type="number"
+            ng-model="options.data.values.GraphicTripleMonitorLeftFovDeg" min="0" max="90" step="0.05"
+            ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+            ng-change="options.applyState()" />
+  </md-input-container>
+</md-list-item>
+
+<md-list-item layout md-no-ink ng-if="options.data.values.GraphicTripleMonitorEnabled" >
+  <p flex="40">{{:: 'ui.options.graphics.GraphicTripleMonitorRightFovDeg' | translate}}</p>
+  <md-slider flex
+    ng-model="options.data.values.GraphicTripleMonitorRightFovDeg" min="0" max="90" step="0.05" aria-label="_"
+    ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+    ng-change="options.applyState()">
+  </md-slider>
+  <md-input-container style="padding:0; flex: 0 0 4.2em; max-width: 4.2em;">
+    <input type="number"
+            ng-model="options.data.values.GraphicTripleMonitorRightFovDeg" min="0" max="90" step="0.05"
+            ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+            ng-change="options.applyState()" />
+  </md-input-container>
+</md-list-item>
+
+<md-list-item layout md-no-ink ng-if="options.data.values.GraphicTripleMonitorEnabled" >
+  <p flex="40">{{:: 'ui.options.graphics.GraphicTripleMonitorBordersFovDeg' | translate}}</p>
+  <md-slider flex
+    ng-model="options.data.values.GraphicTripleMonitorBordersFovDeg" min="0" max="15" step="0.05" aria-label="_"
+    ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+    ng-change="options.applyState()">
+  </md-slider>
+  <md-input-container style="padding:0; flex: 0 0 4.2em; max-width: 4.2em;">
+    <input type="number"
+            ng-model="options.data.values.GraphicTripleMonitorBordersFovDeg" min="0" max="15" step="0.05"
+            ng-disabled="!options.data.values.GraphicTripleMonitorEnabled"
+            ng-change="options.applyState()" aria-label="_" />
+  </md-input-container>
+</md-list-item>
+
+<!-- <md-list-item layout style="margin: 0px 0px 16px 0px;" ng-if="options.data.values.GraphicTripleMonitorEnabled">
+  <md-button flex=50 class="md-primary md-raised" ng-click="options.openMonitorConfiguration()" bng-sound-class="bng_click_generic"> {{monitorWindowAction | translate}} {{:: 'ui.options.graphics.monitorConfiguration' | translate}}</md-button>
+</md-list-item> -->
+
+<md-list-item layout style="margin: 0px 0px 16px 0px;">
+  <md-button flex=50 class="md-primary md-raised" ng-click="options.applyGraphicsState()" bng-sound-class="bng_click_generic">
+    <md-icon class="material-icons">check</md-icon> {{:: 'ui.options.graphics.applyDisplay' | translate}}
+  </md-button>
+</md-list-item>
+
+<!--
+<md-list-item layout md-no-ink>
+  <p ng-if="options.data.values.vulkanEnabled" style="color: red; font-weight: bold">{{:: 'ui.options.graphics.vulkanEnabled' | translate}}</p>
+  <p ng-if="!options.data.values.vulkanEnabled">{{:: 'ui.options.graphics.vulkanEnabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.vulkanEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<md-list-item layout style="font-size: 14px; margin: 0px 16px; color: #ff2f3a; border: #ff2f3a 1px solid; border-radius: 4px;" class="md-caption md-padding" ng-if="options.data.values.vulkanEnabled">
+  <strong style="margin: 0px 12px 0px 0px;">{{:: 'ui.options.graphics.Warning' | translate}}</strong>
+  <p>{{:: 'ui.options.graphics.vulkanEnabled.warning' | translate}}</p>
+</md-list-item>
+-->
+
+<md-divider></md-divider>
+<!-- <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.graphics.timing' | translate}}</h3></p></md-list-item> -->
+
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.vsync' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.vsync" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.fpslimiter' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.FPSLimiterEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.FPSLimiterEnabled && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.FPSLimiterEnabled">
+  <md-list-item layout style="margin: 0px 0px 16px 0px;">
+    <md-button flex=10 class="md-primary md-raised" ng-click="options.applyFramerateLimit(30)" ng-disabled="!options.data.values.FPSLimiterEnabled"
+      bng-sound-class="bng_click_generic" >30 FPS</md-button>
+    <md-button flex=10 class="md-primary md-raised" ng-click="options.applyFramerateLimit(60)" ng-disabled="!options.data.values.FPSLimiterEnabled"
+      bng-sound-class="bng_click_generic" >60 FPS</md-button>
+    <md-button flex=10 class="md-primary md-raised" ng-click="options.applyFramerateLimit(120)" ng-disabled="!options.data.values.FPSLimiterEnabled"
+      bng-sound-class="bng_click_generic" >120 FPS</md-button>
+    <md-button flex=10 class="md-primary md-raised" ng-click="options.applyFramerateLimit(144)" ng-disabled="!options.data.values.FPSLimiterEnabled"
+      bng-sound-class="bng_click_generic" >144 FPS</md-button>
+    <md-button flex=10 class="md-primary md-raised" ng-click="options.applyFramerateLimit(240)" ng-disabled="!options.data.values.FPSLimiterEnabled"
+      bng-sound-class="bng_click_generic" >240 FPS</md-button>
+  </md-list-item>
+
+  <md-list-item layout class="md-padding">
+    <p flex="40">{{:: 'ui.options.graphics.fpslimiterValue'|translate}}</p>
+    <md-slider min="5" max="1000" step="1" aria-label="_" flex ng-disabled="!options.data.values.FPSLimiterEnabled"
+        ng-model="options.data.values.FPSLimiter" ng-change="options.applyState()"></md-slider>
+    <input oninput="if( this.value > 1000)  this.value = 1000" aria-label="_" type="number" min="5" max="1000" step="1" ng-model="options.data.values.FPSLimiter" ng-change="options.applyStateLongDebounce()" ng-disabled="!options.data.values.FPSLimiterEnabled">{{:: 'ui.options.graphics.fps'|translate }}
+  </md-list-item>
+  <md-list-item layout ng-hide="options.shipping" class="md-padding">
+    <p flex="40"><md-icon class="material-icons">bug_report</md-icon>Randomness</p><small ng-style="options.data.values.vsync && {'color': 'rgb(195,61,61)'} || {'color':'grey'}" ng-if="options.data.values.vsync">&nbsp;Requires vsync Off</small>
+    <md-slider min="0" max="90" step="5" aria-label="_" flex ng-disabled="!options.data.values.FPSLimiterEnabled"
+        ng-model="options.data.values.FPSLimiterRandomness" ng-change="options.applyStateLongDebounce()"></md-slider>
+    <input aria-label="_" type="number" min="0" max="90" step="5" ng-model="options.data.values.FPSLimiterRandomness" ng-change="options.applyStateLongDebounce()" ng-disabled="!options.data.values.FPSLimiterEnabled">%
+  </md-list-item>
+</div>
+
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.sleepinbackground' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.SleepInBackground" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.graphics.openXR' | translate}}</h3></p></md-list-item>
+
+<md-list-item layout md-no-ink style="min-height:0px">
+  <p flex="30" style="padding-left: 16px;">
+    {{:: 'ui.options.graphics.openXRcurrentState'|translate}}
+  </p>
+  <p flex style="padding-left: 6px;">
+    <span ng-if="options.openXRenabled" style="color: var(--bng-orange-b400)">{{:: 'ui.options.graphics.openXRdevice.active'|translate}}</span>
+    <span ng-if="!options.openXRenabled">{{:: 'ui.options.graphics.openXRdevice.inactive'|translate}}</span>
+  </p>
+  <p flex style="max-grow: 0;">
+    <md-button md-no-ink class="md-primary md-raised" aria-label="_" ng-click="options.openXRtoggle()" bng-sound-class="bng_click_generic" bng-translate="{{options.openXRenabled && 'ui.options.graphics.openXRtoggleOff' || 'ui.options.graphics.openXRtoggleOn'}}"></md-button>
+  </p>
+</md-list-item>
+<md-list-item layout md-no-ink style="min-height:0px" ng-style="options.openXRenabled && {} || {'opacity':'0.4'}">
+  <p flex="30" style="padding-left: 16px;">
+    {{:: 'ui.options.graphics.openXRdevice.headset'|translate}}:
+  </p>
+  <p flex style="padding-left: 6px;">
+    <span ng-if="options.openXRstate.headsetActive" style="color: var(--bng-orange-b400)">{{:: 'ui.options.graphics.openXRdevice.active'|translate}}</span>
+    <span ng-if="!options.openXRstate.headsetActive">{{:: 'ui.options.graphics.openXRdevice.inactive'|translate}}</span>
+  </p>
+  <p flex style="max-grow: 0;">
+    <md-button md-no-ink class="md-primary md-raised" aria-label="_" ng-click="options.openXRcenter()" ng-disabled="!options.openXRenabled" bng-sound-class="bng_click_generic" bng-translate="ui.options.graphics.openXRcenter"></md-button>
+  </p>
+</md-list-item>
+<md-list-item layout md-no-ink style="min-height:0px" ng-style="options.openXRenabled && {} || {'opacity':'0.4'}">
+  <p flex="30">
+    {{:: 'ui.options.graphics.openXRdevice.controller0'|translate}}:
+  </p>
+  <p flex>
+    <span ng-if="options.openXRstate.controller0Active" style="color: var(--bng-orange-b400)">{{:: 'ui.options.graphics.openXRdevice.active'  |translate}}</span>
+    <span ng-if="!options.openXRstate.controller0Active">{{:: 'ui.options.graphics.openXRdevice.inactive'|translate}}</span>
+    <span ng-if="options.openXRstate.controller0poseValid" ng-style="options.openXRstate.controller0Active && {} || {'opacity':'0.4'}" style="color: var(--bng-orange-b400)">{{:: 'ui.options.graphics.openXRdevice.poseValid.true' |translate}}</span>
+    <span ng-if="!options.openXRstate.controller0poseValid" ng-style="options.openXRstate.controller0Active && {} || {'opacity':'0.4'}">{{:: 'ui.options.graphics.openXRdevice.poseValid.false'|translate}}</span>
+  </p>
+</md-list-item>
+<md-list-item layout md-no-ink style="min-height:0px" ng-style="options.openXRenabled && {} || {'opacity':'0.4'}">
+  <p flex="30">
+    {{:: 'ui.options.graphics.openXRdevice.controller1'|translate}}:
+  </p>
+  <p flex>
+    <span ng-if="options.openXRstate.controller1Active" style="color: var(--bng-orange-b400)">{{:: 'ui.options.graphics.openXRdevice.active'  |translate}}</span>
+    <span ng-if="!options.openXRstate.controller1Active">{{:: 'ui.options.graphics.openXRdevice.inactive'|translate}}</span>
+    <span ng-if="options.openXRstate.controller1poseValid" ng-style="options.openXRstate.controller1Active && {} || {'opacity':'0.4'}" style="color: var(--bng-orange-b400)">{{:: 'ui.options.graphics.openXRdevice.poseValid.true' |translate}}</span>
+    <span ng-if="!options.openXRstate.controller1poseValid" ng-style="options.openXRstate.controller1Active && {} || {'opacity':'0.4'}">{{:: 'ui.options.graphics.openXRdevice.poseValid.false'|translate}}</span>
+  </p>
+</md-list-item>
+<md-list-item layout md-no-ink style="min-height:0px" ng-style="options.openXRenabled && {} || {'opacity':'0.4'}">
+  <p flex="30">{{:: 'ui.options.graphics.openXRsystemName.label'|translate}}:</p>
+  <p flex>{{options.openXRstate.systemName | translate}}</p>
+</md-list-item>
+<md-list-item layout md-no-ink style="min-height:0px" ng-style="(options.openXRstate.lastError || options.openXRenabled) && {} || {'opacity':'0.4'}">
+  <p flex="30">{{:: 'ui.options.graphics.openXRlastError.label'|translate}}:</p>
+  <p flex ng-if="!options.openXRstate.lastError">{{:: 'ui.options.graphics.openXRlastError.no'|translate}}</p>
+  <p flex ng-if="options.openXRstate.lastError" style="color: rgb(195,139,74)">{{:: 'ui.options.graphics.openXRlastError.yes'|translate}}</p>
+  <p flex ng-if="options.openXRstate.lastError" style="color: rgb(195,139,74); flex-grow: 0; margin-right:4px;"><md-icon class="material-icons">report_problem</md-icon></p>
+</md-list-item>
+<md-list-item layout md-no-ink style="min-height:0px; margin-bottom: 32px">
+  <p flex="30">{{:: 'ui.mainmenu.help'|translate}}:</p>
+  <p flex bng-translate="ui.options.graphics.openXRhelp"></p>
+</md-list-item>
+
+<md-list-item layout md-no-ink>
+  <p flex="30">{{:: 'ui.options.graphics.openXRresolutionScale'|translate}}</p>
+  <md-slider min="0.25" max="1" step="0.01" aria-label="_" flex ng-model="options.data.values.openXRresolutionScale" ng-change="options.applyOpenXRState()"></md-slider>
+  <p flex="0">{{options.data.values.openXRresolutionScale * 100|number: 0}}%</p>
+</md-list-item>
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="options.openXRenabled && {} || {'opacity':'0.4'}" ng-disabled="!options.data.values.openXRsnapTurnUnicycle">
+  <md-list-item layout>
+      <p>
+        <span ng-if="options.openXRenabled" bng-translate='{ "txt":"ui.options.graphics.openXRresolutionTarget", "context":{{options.openXRdisplay}} }'></span>
+        <span ng-if="!options.openXRenabled" bng-translate='{ "txt":"ui.options.graphics.openXRresolutionTargetUnknown", "context":{{options.openXRdisplay}} }'></span>
+        <br>
+        <span ng-if="options.openXRenabled" bng-translate='{ "txt":"ui.options.graphics.openXRresolutionEquivalent", "context":{{options.openXRdisplay}} }'></span>
+        <span ng-if="!options.openXRenabled" bng-translate='{ "txt":"ui.options.graphics.openXRresolutionEquivalentUnknown", "context":{{options.openXRdisplay}} }'></span>
+      </p>
+  </md-list-item>
+  <md-list-item layout ng-if="options.openXRresolutionScaleChanged && options.openXRenabled">
+      <p style="color: rgb(195,139,74)">{{:: 'ui.options.graphics.openXRresolutionScaleChanged' | translate}}</p>
+  </md-list-item>
+</div>
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.openXRsnapTurnDriver' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRsnapTurnDriver" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.openXRsnapTurnUnicycle' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRsnapTurnUnicycle" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.openXRsnapTurnUnicycle && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.openXRsnapTurnUnicycle">
+  <md-list-item layout class="md-padding">
+    <p flex="30">{{:: 'ui.options.graphics.openXRsnapTurnUnicycleDegrees'|translate}}</p>
+    <md-slider min="15" max="90" step="15" aria-label="_" flex ng-disabled="!options.data.values.openXRsnapTurnUnicycle" ng-model="options.data.values.openXRsnapTurnUnicycleDegrees" ng-change="options.applyOpenXRState()"></md-slider>
+    <p flex="0">{{options.data.values.openXRsnapTurnUnicycleDegrees |number: 0}}</p>
+  </md-list-item>
+</div>
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.openXRfreeCenter' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRfreeCenter" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<md-list-item layout md-no-ink>
+  <p flex="60">{{:: 'ui.options.graphics.openXRhandPoseDirectionDegrees'|translate}}</p>
+  <md-slider min="-45" max="45" step="5" aria-label="_" flex ng-model="options.data.values.openXRhandPoseDirectionDegrees" ng-change="options.applyOpenXRState()"></md-slider>
+  <p flex="0">{{options.data.values.openXRhandPoseDirectionDegrees|number: 0}}</p>
+</md-list-item>
+<md-list-item layout md-no-ink>
+  <p flex="60">{{:: 'ui.options.graphics.openXRhandPoseMultiplier'|translate}}</p>
+  <md-slider min="1" max="3" step="0.25" aria-label="_" flex ng-model="options.data.values.openXRhandPoseMultiplier" ng-change="options.applyOpenXRState()"></md-slider>
+  <p flex="0">{{options.data.values.openXRhandPoseMultiplier|number: 2}}x</p>
+</md-list-item>
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.openXRuiEnabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRuiEnabled" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.openXRuiEnabled && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.openXRuiEnabled">
+  <md-list-item layout class="bng-short-select-item">
+    <p flex="30">{{:: 'ui.options.graphics.openXRuiMode' | translate}}</p>
+    <md-select flex ng-model="options.data.values.openXRuiMode" ng-change="options.applyOpenXRState()" aria-label="_">
+      <md-select-label style="width:100%"></md-select-label>
+      <!--<md-option md-no-ink ng-repeat="mode in [0,1,2,3]" ng-value="mode"> hide not implemented modes for now -->
+      <md-option md-no-ink ng-repeat="mode in [0,1]" ng-value="mode">
+        {{ 'ui.options.graphics.openXRuiMode.'+mode | translate}}
+      </md-option>
+    </md-select>
+  </md-list-item>
+  <md-list-item layout class="md-padding">
+    <p flex="30">{{:: 'ui.options.graphics.openXRuiCurve'|translate}}</p>
+    <md-slider min="1" max="20" step="0.01" aria-label="_" flex ng-disabled="!options.data.values.openXRuiEnabled" ng-model="options.data.values.openXRuiCurve" ng-change="options.applyOpenXRState()"></md-slider>
+    <p flex="0">{{options.data.values.openXRuiCurve |number: 2}}</p>
+  </md-list-item>
+  <md-list-item layout class="md-padding">
+    <p flex="30">{{:: 'ui.options.graphics.openXRuiDepth'|translate}}</p>
+    <md-slider min="0" max="3" step="0.01" aria-label="_" flex ng-disabled="!options.data.values.openXRuiEnabled" ng-model="options.data.values.openXRuiDepth" ng-change="options.applyOpenXRState()"></md-slider>
+    <p flex="0">{{options.data.values.openXRuiDepth |number: 2}}</p>
+  </md-list-item>
+  <md-list-item layout class="md-padding">
+    <p flex="30">{{:: 'ui.options.graphics.openXRuiWidth'|translate}}</p>
+    <md-slider min="0" max="5" step="0.01" aria-label="_" flex ng-disabled="!options.data.values.openXRuiEnabled" ng-model="options.data.values.openXRuiWidth" ng-change="options.applyOpenXRState()"></md-slider>
+    <p flex="0">{{options.data.values.openXRuiWidth |number: 2}}</p>
+  </md-list-item>
+  <md-list-item layout class="md-padding">
+    <p flex="30">{{:: 'ui.options.graphics.openXRuiHeight'|translate}}</p>
+    <md-slider min="-2" max="2" step="0.01" aria-label="_" flex ng-disabled="!options.data.values.openXRuiEnabled" ng-model="options.data.values.openXRuiHeight" ng-change="options.applyOpenXRState()"></md-slider>
+    <p flex="0">{{options.data.values.openXRuiHeight |number: 2}}</p>
+  </md-list-item>
+</div>
+<md-list-item layout class="md-padding">
+  <p flex="30">{{:: 'ui.options.graphics.openXRnearPlaneDist'|translate}}</p>
+  <md-slider min="0.05" max="10" step="0.01" aria-label="_" flex ng-model="options.data.values.openXRnearPlaneDist" ng-change="options.applyOpenXRState()"></md-slider>
+  <p flex="0">{{options.data.values.openXRnearPlaneDist |number: 2}}m</p>
+</md-list-item>
+<md-list-item layout class="bng-short-select-item">
+  <p flex="30">{{:: 'ui.options.graphics.openXRwindowViewMode' | translate}}</p>
+  <md-select flex ng-model="options.data.values.openXRwindowViewMode" ng-change="options.applyOpenXRState()" aria-label="_">
+    <md-select-label style="width:100%"></md-select-label>
+    <md-option md-no-ink ng-repeat="mode in [0,1,2,3]" ng-value="mode">
+      {{ 'ui.options.graphics.openXRwindowViewMode.'+mode | translate}}
+    </md-option>
+  </md-select>
+</md-list-item>
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.openXRimguiEnabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRimguiEnabled" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<md-list-item layout md-no-ink>
+  <p>{{:: 'ui.options.graphics.openXRdebugEnabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRdebugEnabled" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+<md-list-item layout md-no-ink ng-hide="options.shipping">
+  <p><md-icon class="material-icons">bug_report</md-icon>{{:: 'ui.options.graphics.openXRapidumpEnabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.openXRapidumpEnabled" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>

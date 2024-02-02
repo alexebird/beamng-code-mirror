@@ -1,0 +1,119 @@
+{
+  //Generic UI click and hover
+  "bng_click_hover_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Click_Tonal_01"
+    },
+    "mouseenter": {
+      "sfx": "event:>UI>Main>Hover"
+    },
+    "focus": {
+      "sfx": "event:>UI>Main>Hover"
+    }
+  },
+  //Generic UI click only
+  "bng_click_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Click_Tonal_01"
+    }
+  },
+  //Click set toute
+  "bng_click_set_route": {
+    "click": {
+      "sfx": "event:>UI>Bigmap>Route"
+    }
+  },
+  //Generic UI click only (small)
+  "bng_click_generic_small": {
+    "click": {
+      "sfx": "event:>UI>Main>Click_Tonal_02"
+    }
+  },
+  //Generic UI hover only
+  "bng_hover_generic": {
+    "mouseenter": {
+      "sfx": "event:>UI>Main>Hover"
+    },
+    "focus": {
+      "sfx": "event:>UI>Main>Hover"
+    }
+  },
+  //Generic UI checkbox
+  "bng_checkbox_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Checkbox"
+    }
+  },
+  //Generic UI back and hover
+  "bng_back_hover_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Back"
+    },
+    "mouseenter": {
+      "sfx": "event:>UI>Main>Hover"
+    },
+    "focus": {
+      "sfx": "event:>UI>Main>Hover"
+    }
+  },
+  //Generic UI back only
+  "bng_back_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Back"
+    }
+  },
+  //Generic UI cancel
+  "bng_cancel_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Cancel"
+    }
+  },
+  //Generic UI cancel and hover
+  "bng_cancel_hover_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Cancel"
+    },
+    "mouseenter": {
+      "sfx": "event:>UI>Main>Hover"
+    },
+    "focus": {
+      "sfx": "event:>UI>Main>Hover"
+    }
+  },
+  //Generic UI pause
+  "bng_pause_generic": {
+    "click": {
+      "sfx": "event:>UI>Main>Pause"
+    }
+  },
+  //Bigmap UI click and hover  
+  "bng_click_hover_bigmap": {
+    "click": {
+      "sfx": "event:>UI>Bigmap>Select_Entry"
+    },
+    "mouseenter": {
+      "sfx": "event:>UI>Bigmap>Hover_Entry"
+    },
+    "focus": {
+      "sfx": "event:>UI>Bigmap>Hover_Entry"
+    }
+  },
+  //Empty sound class to use in recoveryPrompt
+  "bng_click_empty": {
+  },
+}
+// mouse events = "focus", "mouseenter", "click", "dblclick"
+
+// bng-sound-class="bng_click_hover_generic" - Generic tonal click and hover sound. Used for main menu.
+// bng-sound-class="bng_click_generic" - Generic tonal click sound. Without hover.
+// bng-sound-class="bng_click_generic_small" - Generic tonal click sound. Similar as above, but more subtle. Without hover. Used for options menu.
+// bng-sound-class="bng_hover_generic" - Generic tonal hover sound. Without click. Used for main menu.
+// bng-sound-class="bng_checkbox_generic" - Generic checkbox sound. Used for all checkboxes.
+// bng-sound-class="bng_back_hover_generic" - Generic back and hover sound. Used for return buttons.
+// bng-sound-class="bng_back_generic" - Generic back sound. Without hover. Used for return buttons.
+// bng-sound-class="bng_cancel_generic" - Generic cancel sound. Without hover.
+// bng-sound-class="bng_pause_generic" - Generic pause sound. Without hover.
+
+// bng-sound-class="bng_click_hover_bigmap" - Click and hover sound. Used for bigmnap.
+
+// no sound

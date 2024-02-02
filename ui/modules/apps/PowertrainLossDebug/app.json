@@ -1,0 +1,19 @@
+{
+  "domElement": "<powertrain-loss-debug></powertrain-loss-debug>",
+  "name": "Powertrain Loss Debug",
+  "types": [
+    "ui.apps.categories.debug"
+  ],
+  "description": "Shows some powertrain loss statistics",
+  "css": {
+    "left": "0px",
+    "height": "80",
+    "width": "200px",
+    "min-width": "150px",
+    "min-height": "50px",
+    "top": "0px"
+  },
+  "author": "beamng.ui Team",
+  "version": "0.1",
+  "directive": "powertrainLossDebug"
+}

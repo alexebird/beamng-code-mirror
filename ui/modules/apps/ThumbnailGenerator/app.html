@@ -1,0 +1,21 @@
+<div style="width:100%; height:100%; background-color: rgba(0,0,0,0.6)" class="bngApp" layout="column">
+  <md-content flex layout-padding>
+    <h4>{{:: "ui.apps.thumbnail_generator.name" | translate}}</h4>
+
+    <md-list-item layout style="font-size: 14px; margin: 0px 16px; color: #ff2f3a; border: #ff2f3a 1px solid; border-radius: 4px;" class="md-caption md-padding">
+      <strong style="margin: 0px 12px 0px 0px;">{{:: 'ui.options.graphics.Warning' | translate}}</strong>
+      <p style="margin: 6px 0px;">This app has been deprecated and will be removed.</p>
+    </md-list-item>
+
+      <p>This feature is still available in the map `Showroom` or on any map using the editor.</p>
+      <p>To open the thunbnail generator manually on any map follow those instructions : </p>
+
+      <ul>
+        <li>Open the editor [F11]</li>
+        <li>On the menu bar, go to `Window` > `Expirimental` > `Vehicle Thumbnail`</li>
+      </ul>
+
+    <md-button style="color: white; background-color: #ff6600" flex style="margin: 2px; min-width: 198px" md-no-ink class="md-raised"
+      ng-click="openThumbs()">Open Thumbnail Generator</md-button>
+  </md-content>
+</div>

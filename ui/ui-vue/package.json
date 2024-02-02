@@ -1,0 +1,94 @@
+{
+  "name": "ui-vue",
+  "version": "0.1.0",
+  "private": true,
+  "watch": {
+    "update_locale": {
+      "patterns": [
+        "../../locales/en-US.json"
+      ]
+    },
+    "update_locale_cp": {
+      "patterns": [
+        "../../locales/en-US.json"
+      ]
+    }
+  },
+  "scripts": {
+    "serve": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "update_locale": "xcopy \"..\\..\\locales\\en-US.json\" \".\\devutils\\locales\\en-US.json*\" /y",
+    "update_locale_cp": "cp ../../locales/en-US.json ./devutils/locales/en-US.json",
+    "dev": "conc \"npm run watch\" \"npm run serve\"",
+    "devtools": "conc \"vue-devtools\" \"npm run watch\" \"npm run serve\"",
+    "dev_cp": "npm run watch_cp & npm run serve",
+    "devtools_cp": "vue-devtools & npm run watch_cp & npm run serve",
+    "watch": "npm-watch update_locale",
+    "watch_cp": "npm-watch update_locale_cp",
+    "vue-devtools": "vue-devtools &"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",
+    "core-js": "^3.8.3",
+    "json5": "^2.2.1",
+    "lottie-web": "^5.12.2",
+    "pinia": "^2.0.11",
+    "tiny-emitter": "^2.1.0",
+    "vue": "^3.2.45",
+    "vue-i18n": "^9.2.2",
+    "vue-router": "^4.1.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@originjs/vite-plugin-commonjs": "^1.0.1",
+    "@vitejs/plugin-vue": "^2.0.1",
+    "@vitejs/plugin-vue-jsx": "^1.3.2",
+    "@vitest/coverage-c8": "^0.28.3",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-plugin-router": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "@vue/compiler-sfc": "^3.2.26",
+    "@vue/devtools": "^6.5.1",
+    "@vue/test-utils": "^2.2.8",
+    "concurrently": "^8.2.1",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
+    "jsdom": "^21.1.0",
+    "npm-watch": "^0.11.0",
+    "sass": "^1.55.0",
+    "sass-loader": "^13.1.0",
+    "vite": "^2.7.2",
+    "vite-plugin-env-compatible": "^1.1.1",
+    "vite-plugin-html": "3.2.0",
+    "vite-plugin-replace": "^0.1.1",
+    "vitest": "^0.28.3"
+  },
+  "eslintConfig": {
+    "globals": {
+      "bngApi": "readonly"
+    },
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

@@ -1,0 +1,37 @@
+<style>.career-veh-select { display: none; }</style><!-- hides content until styles are loaded -->
+<link rel="stylesheet" type="text/css" href="/ui/modules/career/career.css" />
+<link rel="stylesheet" type="text/css" href="/ui/modules/careerVehicleSelect/careerVehicleSelect.css" />
+
+<div bng-blur="true" class="career-veh-select career-veh-select-size">
+  <div class="career-veh-select-container">
+    <div class="veh-card-container">
+      <div class="career-veh-select-veh-card" ng-repeat="veh in data.vehicles">
+        <div class="veh-image" ng-if=veh.image style='background-image:url({{veh.image}})'></div>
+          <div class="veh-image unknown" ng-if=!veh.image >?</div>
+          <div class="veh-description">
+            <div layout="row">
+              {{veh.brand | translate}}
+            </div>
+            <div layout="row" class="veh-name">
+              {{veh.name | translate}}
+            </div>
+            <div>
+              {{veh.desc | translate}}
+            </div>
+          </div>
+          <div class="veh-description" style="position:absolute; bottom:0px; width:100%">
+            <button class="bng-button-outline" ng-click="click(veh.testButtonCode)" bng-sound-class="bng_back_hover_generic" ng-disabled="veh.testDisabled" style="margin-right: 25px;">
+              Test Drive
+            </button>
+            <button class="bng-button-outline" ng-click="click(veh.pickButtonCode)" bng-sound-class="bng_back_hover_generic" style="margin-right: 25px;">
+              Purchase Car
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="career-vehicle-select-description">
+      {{data.description | translate}}
+    </div>
+  </div>
+</div>

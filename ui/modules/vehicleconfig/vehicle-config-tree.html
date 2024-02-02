@@ -1,0 +1,51 @@
+<div ng-mouseover="vehConf_parts.selectParts($event, entry)" style="position:relative">
+  <bng-accordion ng-if="entry.parts && entry.val !== ''" class="vAccordion--default" multiple>
+    <bng-accordion-pane default-open='false'>
+      <bng-pane-header class="bottomBorder">
+        <div layout="row" layout-align="space-between center" ng-class="{'highlightChanged': entry.changed}">
+          <div flex class="inputName" ng-click="vehConf_parts.toggleOpenSlot(entry.name)">
+            <span ng-if="vehConf_parts.displayNames">{{ ::entry.name }}</span>
+            <span ng-if="!vehConf_parts.displayNames">{{ ::entry.description }}</span>
+          </div>
+          <md-select ng-model="entry.val" ng-change="vehConf_parts.partConfigChanged(entry)" aria-label="_" ng-click="vehConf_parts.stopPropagation($event);" ng-focus="vehConf_parts.selectParts($event, entry)" style="width:48%;">
+            <md-select-label style="width:100%"></md-select-label>
+            <md-option md-no-ink ng-if="!opt.isAuxiliary || vehConf_parts.showAuxiliary || entry.val == opt.val" ng-repeat="opt in entry.options | orderBy : [vehConf_parts.emptyFront, 'description', 'name'] track by $index" ng-value="opt.val">
+                <span ng-if="opt.isAuxiliary">[!]</span>
+                {{ ::opt.description }} <span ng-if="vehConf_parts.displayNames && opt.name != ''">- [{{ ::opt.name }}]</span>
+              </md-option>
+          </md-select>
+          <!-- visibility toggle -->
+          <input ng-attr-id="{{:: entry}}" style="display: none" type="checkbox" ng-model="entry.highlight" ng-click="vehConf_parts.stopPropagation($event)" ng-change="vehConf_parts.highlightParts(entry)"></input>
+          <label ng-click="vehConf_parts.stopPropagation($event)" ng-attr-for="{{:: entry}}" ng-style="entry.val === '' && {'opacity': 0.7}">
+            <md-icon class="material-icons md-default-theme" style="cursor: pointer">{{ (entry.highlight) ? "remove_red_eye" : "visibility_off"}}</md-icon>
+          </label>
+        </div>
+      </bng-pane-header>
+      <bng-pane-body style="padding-left:2em;">
+        <div ng-repeat="entry in entry.parts track by entry.name" ng-include="'vehicle-config-tree'">
+        </div>
+      </bng-pane-body>
+    </bng-accordion-pane>
+  </bng-accordion>
+
+  <div ng-if="(!entry.parts || entry.val === '') && entry.options.length > 0" layout="row" layout-align="space-between center" ng-class="{'highlightChanged': entry.changed}">
+    <div flex class="inputName">
+      <span ng-if="vehConf_parts.displayNames">{{ ::entry.name }}</span>
+      <span ng-if="!vehConf_parts.displayNames">{{ ::entry.description }}</span>
+    </div>
+    <md-select flex ng-model="entry.val" ng-change="vehConf_parts.partConfigChanged(entry)" ng-focus="vehConf_parts.selectParts($event, entry)"
+            class="height32" style="width:100%;" aria-label="_">
+      <md-select-label style="width:100%; justify-content: space-between;"></md-select-label>
+      <md-option md-no-ink ng-if="!opt.isAuxiliary || vehConf_parts.showAuxiliary || entry.val == opt.val" ng-value="opt.val" ng-repeat="opt in entry.options | orderBy : [vehConf_parts.emptyFront, 'description', 'name'] track by $index">
+        <span ng-if="opt.isAuxiliary">[!]</span>
+        {{ ::opt.description }} <span ng-if="vehConf_parts.displayNames && opt.name != ''">- [{{ ::opt.name }}]</span>
+      </md-option>
+    </md-select>
+    <!-- visibility toggle -->
+    <input ng-attr-id="{{:: entry}}" style="display: none" type="checkbox" ng-model="entry.highlight" ng-click="vehConf_parts.stopPropagation($event)" ng-change="vehConf_parts.highlightParts(entry)"></input>
+    <label ng-click="vehConf_parts.stopPropagation($event)" ng-attr-for="{{:: entry}}" ng-style="entry.val === '' && {'opacity': 0.7}">
+        <md-icon class="material-icons md-default-theme" style="cursor: pointer">{{ (entry.highlight) ? "remove_red_eye" : "visibility_off"}}</md-icon>
+    </label>
+
+  </div>
+</div>

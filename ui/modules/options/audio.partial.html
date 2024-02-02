@@ -1,0 +1,57 @@
+<md-list-item layout="column" class="md-padding">
+  <div layout="row" layout-align="center center" style="width: 100%">
+    <p flex="40">{{:: 'ui.options.audio.maxVoices' | translate}}</p>
+      <md-select flex class="bng-select-fullwidth"
+                  ng-model="options.data.values.AudioMaxVoices" ng-change="options.applyState()" aria-label="_" bng-sound-class="bng_click_hover_generic">
+        <md-option md-no-ink ng-repeat="label in options.data.options.AudioMaxVoices.modes.values"
+                              ng-value="options.data.options.AudioMaxVoices.modes.keys[$index]">
+          {{label | translate}}
+        </md-option>
+      </md-select>
+  </div>
+  <div layout="row" layout-align="left center" style="width: 100%; color: red;">
+    <p ng-if="options.data.values.AudioMaxVoices !== opt.lastMaxChannels">
+      {{:: 'ui.options.audio.maxVoicesChanged.warning' | translate}}
+    </p>
+  </div>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.audio.useStereoHeadphones' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.AudioEnableStereoHeadphones" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.audio.AudioMuteOnWindowLoseFocus' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.AudioMuteOnWindowLoseFocus" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item ng-hide="options.shipping" md-no-ink>
+  <p><md-icon class="material-icons">bug_report</md-icon>{{:: 'ui.options.audio.AudioFmodLiveUpdate' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.AudioFmodLiveUpdate" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item ng-hide="options.shipping" md-no-ink layout layout-align="center center">
+  <p flex="30"><md-icon class="material-icons">bug_report</md-icon>Window rolled up</p>
+  <md-slider flex ng-model="options.data.values.AudioInsideModifier" min=0 max=1 step=0.05 aria-label="_" ng-change="options.applyStateDebounce()">
+  </md-slider>
+  <span flex="20" style="text-align: right">{{ options.data.values.AudioInsideModifier * 100 | number: 0 }}%</span>
+</md-list-item>
+
+<md-divider></md-divider>
+
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.audio.volume' | translate}}</h3></p></md-list-item>
+
+<md-list-item layout layout-align="center center" ng-repeat="param in ::options.uiElements.audio.volumeSliders">
+  <md-tooltip ng-if="param.tooltip" md-direction="top">{{param.tooltip | translate}}</md-tooltip>
+  <p flex="30">{{param.name | translate}}</p>
+  <md-slider flex ng-model="options.data.values[param.key]" min={{param.min}} max={{param.max}} step={{param.step}} aria-label="_" ng-change="options.applyStateDebounce()">
+  </md-slider>
+  <span flex="20" style="text-align: right">{{ options.data.values[param.key] * 100 | number: 0 }}</span>
+</md-list-item>
+
+<md-list-item>
+  <md-button style="min-width: 150px" md-no-ink class="md-raised md-accent" ng-click="opt.restoreDefaults()" bng-sound-class="bng_click_generic">
+  <span>{{:: 'ui.options.audio.resetAll' | translate}}</span>
+  </md-button>
+</md-list-item>

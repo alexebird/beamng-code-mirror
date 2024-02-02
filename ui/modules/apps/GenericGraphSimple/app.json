@@ -1,0 +1,17 @@
+{
+  "domElement": "<generic-graph-simple></generic-graph-simple>",
+  "name": "ui.apps.generic_graph_simple.name",
+  "types": [
+    "ui.apps.categories.debug"
+  ],
+  "description": "This app can be used to display generic graphs using guihooks.graph() lua function",
+  "css": {
+    "left": "0px",
+    "height": "160px",
+    "top": "0px",
+    "width": "450px"
+  },
+  "author": "stenyak",
+  "version": "1.0",
+  "directive": "genericGraphSimple"
+}

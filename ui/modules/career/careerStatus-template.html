@@ -1,0 +1,67 @@
+<div class="career-status">
+
+  <div class="career-status-progress">
+    <div class="career-status-value">
+      <div class="icon-mask icon-beamxp-large"></div>
+      <div>{{ profile.beamXP.value | numShort:1 }}</div>
+    </div>
+    <div class="vertical-divider"></div>
+    <div class="career-status-value">
+      <div class="icon-mask icon-bonus-stars"></div>
+      <div>{{ profile.bonusStars.value | numShort:1 }}</div>
+    </div>
+    <div class="vertical-divider"></div>
+    <div class="career-status-value">
+      <div class="icon-mask icon-beambucks"></div>
+      <div>{{ profile.money.value | numShort:1 }}</div>
+    </div>
+  </div>
+
+  <div class="career-status-stars">
+    <div class="label">
+      {{:: "ui.career.progress" | translate }}:
+    </div>
+    <div class="career-status-value">
+      <div>999</div>
+      <div class="career-main-star"></div>
+    </div>
+    <div class="vertical-divider"></div>
+    <div class="career-status-value">
+      <div>999</div>
+      <div class="career-bonus-star"></div>
+    </div>
+  </div>
+
+  <div class="career-status-date" ng-if="showdate">
+    <!-- {{ profile.creationDate | formattedDate }}
+    &ndash;
+    {{ profile.date | formattedDate }}
+    &ndash; -->
+    {{:: "ui.career.lastplayed" | translate }}:
+    {{ profile.date | timeSpan : null : 2 : true }}
+    <!-- timeSpan : <start date> : <number of values to display (play with it to see!)> : <should it add "ago" or "later" at the end> -->
+  </div>
+
+  <div class="career-status-levels" ng-class="{ 'unwrapped': expanded}">
+    <div ng-repeat="branch in branches" class="levels-progress" ng-class="{ 'inactive': profile[career].curLvlProgress === 0 && profile[career].level === 1 }">
+      <div bng-branch-icon="{{ branch }}"></div>
+      <div class="levels-progressbar-wrapper">
+        <div class="progressbar-labels">
+          <div>{{:: "ui.career." + branch | translate }}</div>
+          <span class="progressbar-value" ng-if="profile.showXPNumbers && profile[branch].curLvlProgress != -1">
+            {{ profile[branch].curLvlProgress }} / {{ profile[branch].neededForNext }}
+          </span>
+          <div>{{:: "ui.career.lvl" | translate }} {{ profile[branch].level }}</div>
+        </div>
+        <div class="progressbar-background">
+
+          <div class="progressbar-fill"
+            style="width: {{ profile[branch].curLvlProgress === 0 ? 0 : profile[branch].curLvlProgress / profile[branch].neededForNext * 100 }}%; {{ branchStyles[branch].color }}"
+          >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

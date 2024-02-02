@@ -1,0 +1,89 @@
+<md-content class="md-padding controls-ffb">
+
+  <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.controls.configuration' | translate}}</h3></p></md-list-item>
+  <md-list-item layout="row">
+    <div flex layout="row" layout-align="start center" layout-wrap>
+      <div layout layout-wrap ng-if="!controlsFfb.ffbBound" style="cursor:pointer;" ng-click="controlsFfb.select('steering', null, null)">
+        <span class="md-padding"><md-icon style="color: rgb(195,139,74)">warning</md-icon> {{:: 'ui.controls.ffbConfigMissing' | translate}}</span>
+      </div>
+      <div ng-repeat="device in controls.data.bindings" layout layout-wrap>
+        <div class="bng-binding"
+             ng-repeat="binding in device.contents.bindings | filter: {'action': 'steering'}"
+             ng-click="controlsFfb.select('steering', device.devname, binding.control)"
+             style="font-size: 125%; position: relative;" >
+          <binding class="hoverable" key="binding.control" device=":: device.devname">
+        </div>
+      </div>
+    </div>
+    <div class="hoverable" style="cursor:pointer; position: relative;" ng-click="controlsFfb.select('steering', null, null)">
+      <span style="border-radius: var(--bng-corners-1); background-color: var(--white-2); color: var(--bng-black-8); padding-left: 5px; padding-right: 5px" ng-if="!controls.data.bindingsFilled['steering']">{{::'ui.controls.unassignedBinding'|translate}}</span>
+      <span style="text-align:center; margin-left: 0.2em; border-radius: var(--bng-corners-2); background-color: white; color: var(--bng-black-8); padding-left: 0.4em; padding-right: 0.4em"><strong>+<strong></span>
+    </div>
+  </md-list-item>
+
+  <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.controls.ffbTips' | translate}}</h3></p></md-list-item>
+  <md-list-item layout layout-wrap>
+
+    <!-- ffb safety info does not exist -->
+    <span ng-if="controlsFfb.ffbCapable && !controlsFfb.FFBSafetyData" class="md-padding">
+      <md-icon style="color: rgb(195,139,74)">warning</md-icon>
+      {{::"ui.controls.ffbSafetyUnknown" | translate}}
+    </span>
+
+    <!-- windows update thrustmaster/gameinput bug warning -->
+    <span class="md-padding" ng-if="controlsFfb.ffbEnabled">
+      <md-icon style="color: rgb(195,139,74)">warning</md-icon>
+      <span>If your wheel has recently started losing force feedback when you alt-tab <a href="http-external://documentation.beamng.com/support/hardware/steering_wheel_common_problems/#forcefeedback-is-lost-when-i-alt-tab-back-to-the-game-after-a-windows-update-from-march-2023">check here for a possible fix</a>.</span>
+    </span>
+
+    <!-- logitech gamepad issues due to configuration -->
+    <span ng-if="controlsFfb.padLogitechIncorrect" class="md-padding">
+      <md-icon style="color: rgb(195,139,74)">warning</md-icon>
+      <span bng-translate="ui.controls.padLogitechIncorrect"></span>
+    </span>
+
+    <!-- logitech pro paddle suggestion -->
+    <span ng-if="controlsFfb.proLogitechFound" class="md-padding">
+      <md-icon>info</md-icon>
+      <span bng-translate="ui.controls.proLogitechPaddles"></span>
+    </span>
+
+    <!-- ffb safety info exists, and update rate looks problematic -->
+    <span ng-if="controlsFfb.FFBSafetyData && !controlsFfb.FFBSafetyData.isSafeUpdateRate" class="md-padding">
+      <md-icon style="color: rgb(195,139,74)">warning</md-icon>
+      "<span translate="ui.controls.ffb.updateRateLimit"></span>":
+      <span translate="ui.controls.ffbUnsafeFrequencyWarning" translate-values="{finalFrequency: controlsFfb.FFBSafetyData.finalFrequency, safeFrequency: controlsFfb.FFBSafetyData.safeFrequency}"></span>
+    </span>
+
+    <!-- ffb safety info exists, and update type looks problematic -->
+    <span ng-if="controlsFfb.FFBSafetyData && !controlsFfb.FFBSafetyData.isSafeUpdateType" class="md-padding">
+      <md-icon style="color: rgb(195,139,74)">warning</md-icon>
+      "<span translate="ui.controls.ffb.updateType"></span>":
+      <span translate="ui.controls.ffbUnsafeTypeWarning"></span>
+    </span>
+
+    <!-- generic help -->
+    <span class="md-padding">
+      <span bng-translate="ui.controls.steering_wiki"></span>
+    </span>
+
+    <!-- generic ffb warning -->
+    <span class="md-padding" ng-if="controlsFfb.ffbEnabled">
+      <span bng-translate="ui.controls.ffbGenericWarning"></span>
+    </span>
+
+  </md-list-item>
+
+  <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.controls.availableHardware' | translate}}</h3></p></md-list-item>
+  <md-list-item layout="column" style="align-items:start;">
+    <div layout layout-wrap ng-if="!controlsFfb.ffbCapable" style="opacity:0.4;">
+      <span class="md-padding">{{:: 'ui.controls.ffbHardwareMissing' | translate}}</span>
+    </div>
+    <span ng-repeat="(_, ctrl) in controls.data.controllers">
+      <span ng-repeat="(name, idx) in ctrl.ffbAxes" class="md-padding">
+        <span style="text-transform: uppercase;">{{:: name }}</span> <span style="color: grey;">(controller: {{:: ctrl.productName }}, control id: {{:: idx }})</span></br>
+      </span>
+    </span>
+  </md-list-item>
+
+</md-content>

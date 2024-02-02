@@ -1,0 +1,21 @@
+<link href="/ui/modules/fadeScreen/fadeScreen.css" rel="stylesheet" />
+
+<div class="fade-screen-element" ng-style="screen" layout="row" layout-align="center center">
+  <div class="content" ng-style="content">
+    <div ng-show="image" class="image-panel" ng-style="imagePanel">
+    </div>
+    <div ng-show="title || text" class="text-panel" ng-style="textPanel">
+      <div class="panel-container">
+        <div ng-show="title" class="headingContainer">
+          <h1>{{title | translate}}</h1>
+          <h4>{{subtitle | translate}}</h4>
+        </div>
+        <p class="text" bng-translate="{{text}}"></p>
+        <h2 ng-if="tips" class="tips">{{'ui.loadingScreen.tips' | translate}}</h2>
+        <ul ng-if="tips" class="text">
+          <li bng-translate="{{tips}}"></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+<html>
+<head>
+  <meta charset=utf-8 http-equiv="Content-Language" content="en"/>
+  <script src="/script.js"></script>
+</head>
+<body>
+  <img src="libwebsockets.org-logo.svg"><br/>
+
+  LWS chat <b>minimal ws server example</b>.<br>
+  Chat is sent to all browsers open on this page.
+  <br>
+  <br>
+  <textarea id="log" readonly cols="85" rows="20"></textarea><br>
+  <form action="#">
+    <input type="text" id="inputText" value="print('Hello world')">
+    <button type="submit" id='execGELua'>execute GE Lua</button>
+  </form>
+  <button id='reloadGELua'>reload GE Lua</button>
+  <button id='reloadCEF'>reload CEF</button>
+  <button id='toggleCEFDevConsole'>toggle CEF Dev console</button>
+  <button id='ping'>ping</button>
+  <button id='bandwidth'>bandwidth test (10 MB)</button>
+
+</body>
+</html>
+

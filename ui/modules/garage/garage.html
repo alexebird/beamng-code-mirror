@@ -1,0 +1,100 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/garage/garage.css" />
+
+<div class="garage-blackscreen" bng-blur="blackscreen"
+  ng-class="{ 'garage-blackscreen-active': blackscreen }"></div>
+
+<div class="garage-view" ng-if="loaded.init">
+
+  <div class="garage-row-title">
+    <div class="headingContainer">
+      <div bng-blur="true">
+        <h4 ng-if="menu.main.current.root">{{:: "ui.mainmenu.garage" | translate }}</h4>
+        <h4 ng-if="!menu.main.current.root">{{ vehicle.name }}</h4>
+      </div>
+      <h2 ng-if="menu.main.current.root" bng-blur="true">{{ vehicle.name }}</h2>
+      <h2 ng-if="!menu.main.current.root" bng-blur="true">{{ menu.main.current.titletext | translate }}</h2>
+    </div>
+  </div>
+
+  <div class="garage-row-main">
+    <div class="garage-menu-container lt-column {{ menu.main.class }} {{ menu.main.current.contclass }}">
+      <div class="garage-menu garage-menu1">
+        <div ng-repeat="item in menu.main.current.items track by $index"
+          class="garage-button {{ item.class }}" bng-blur="true"
+          bng-sound-class="bng_click_hover_generic"
+          bng-sound-class="bng_button_hover"
+          ng-disabled="!loaded.vehicle || item.disabled"
+          ng-click="item.action(menu.main)" bng-nav-item focus-on-hover focus-if="$index === 0">
+          <div class="garage-button-icon" ng-style="{ '-webkit-mask-image': 'url(' + item.icon +')'}"></div>
+          <span class="garage-button-text">{{ item.buttontext | translate }}</span>
+        </div>
+      </div>
+      <div class="garage-menu garage-menu2 {{ menu.main2.class }} {{ menu.main.current.contclass }}">
+        <div ng-repeat="item in menu.main2.current.items"
+          class="garage-button {{ item.class }}" bng-blur="true"
+          bng-sound-class="bng_click_hover_generic"
+          bng-sound-class="bng_button_hover"
+          ng-disabled="!loaded.vehicle"
+          ng-click="item.action(menu.main)" bng-nav-item focus-on-hover>
+          <div class="garage-button-icon" ng-style="{ '-webkit-mask-image': 'url(' + item.icon +')'}"></div>
+          <span class="garage-button-text">{{ item.buttontext | translate }}</span>
+        </div>
+      </div>
+
+      <!-- sub-views -->
+      <div ng-if="!vehctl" class="garage-config"></div>
+      <link ng-if="vehctl" rel="stylesheet" type="text/css" href="/ui/modules/vehicleconfig/vehicleconfig.css"/>
+      <div ng-if="vehctl === 'parts'" class="garage-config" bng-blur="true"
+        ng-include="'/ui/modules/vehicleconfig/partial.parts.html'"
+        ng-controller="Vehicleconfig_parts as vehConf_parts"
+        bng-frustum-mover="left"></div>
+      <div ng-if="vehctl === 'tuning'" class="garage-config" bng-blur="true"
+        ng-include="'/ui/modules/vehicleconfig/partial.tuning.html'"
+        ng-controller="Vehicleconfig_tuning as vehConf_tuning"
+        bng-frustum-mover="left"></div>
+      <div ng-if="vehctl === 'colour'" class="garage-config" bng-blur="true"
+        ng-include="'/ui/modules/vehicleconfig/partial.color.html'"
+        ng-controller="Vehicleconfig_color as vehConf_color"
+        bng-frustum-mover="left"></div>
+      <div ng-if="vehctl === 'save'" class="garage-config" bng-blur="true"
+        ng-include="'/ui/modules/vehicleconfig/partial.save.html'"
+        ng-controller="Vehicleconfig_save as vehConf_save"
+        bng-frustum-mover="left"></div>
+    </div>
+
+    <div class="garage-sidemenu">
+      <div ng-repeat="side in menu.side.items"
+        class="{{ side.contclass }}">
+        <div ng-if="side.sideButtonsVisible" ng-repeat="item in side.items"
+          class="garage-button garage-sidemenu-item {{ item.class }}" bng-blur="true"
+          bng-sound-class="bng_click_hover_generic"
+          bng-sound-class="bng_button_hover"
+          ng-disabled="!loaded.status && side.id === 'side_vehicle'"
+          ng-click="item.action(menu.side)" bng-nav-item focus-on-hover>
+          <div class="garage-button-icon" ng-style="{ '-webkit-mask-image': 'url(' + item.icon +')'}"></div>
+          <span class="garage-button-text">{{ item.buttontext | translate }}</span>
+        </div>
+        <div class="garage-button garage-sidemenu-toggle {{ side.class }}" bng-blur="true"
+        bng-sound-class="bng_click_hover_generic"
+        bng-sound-class="bng_button_hover"
+          ng-click="side.action(menu.side)" bng-nav-item focus-on-hover>
+          <div class="garage-button-icon" ng-style="{ '-webkit-mask-image': 'url(' + side.icon +')'}"></div>
+          <span class="garage-button-text">{{ side.buttontext | translate }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="garage-row-bottom garage-bottom {{ menu.bottom.class }} {{ menu.bottom.current.contclass }}">
+    <div ng-repeat="item in menu.bottom.current.items"
+      class="garage-button {{ item.class }}" bng-blur="true"
+      bng-sound-class="bng_click_hover_generic"
+      bng-sound-class="bng_button_hover"
+      ng-disabled="!loaded.vehicle"
+      ng-click="item.action(menu.side)" bng-nav-item focus-on-hover>
+      <div class="garage-button-icon" ng-style="{ '-webkit-mask-image': 'url(' + item.icon +')'}"></div>
+      <span class="garage-button-text">{{ item.buttontext | translate }}</span>
+    </div>
+  </div>
+
+</div>

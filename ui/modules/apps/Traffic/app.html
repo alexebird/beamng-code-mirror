@@ -1,0 +1,119 @@
+<style>
+  .traffic table {
+    width: 100%;
+  }
+  .traffic td {
+    vertical-align: middle;
+    padding-bottom: 0.125em;
+  }
+  .traffic td:first-child {
+    width: 40%;
+  }
+  .traffic input[type=number] {
+    width: 50px;
+    margin-right: 4px;
+  }
+  .traffic md-select {
+    width: 140px;
+    height: auto;
+  }
+  .traffic .checkbox-alt {
+    display: inline-block;
+    margin: 0px 4px;
+  }
+  .traffic .button-alt {
+    display: inline-block;
+    height: 2em;
+    min-width: 50px;
+    min-height: 2em;
+    margin: 0 4px 0 0;
+    padding: 0 8px;
+    line-height: 1.5em;
+    text-align: center;
+  }
+  .traffic .pad-bottom td {
+    padding-bottom: 0.6em;
+  }
+  .traffic .disabled-option {
+    opacity: 0.8;
+    pointer-events: none;
+  }
+</style>
+
+<div class="bngApp traffic" style="width: 100%; height: 100%">
+  <table>
+    <tr>
+      <td>{{:: "ui.apps.traffic.NumberofCars" | translate}}:</td>
+      <td>
+        <input class="input-light" flex type="number" min="0" max="40" step="1" ng-value="amount" ng-model="ctrl.amount" aria-label="_">
+        <md-button class="md-raised button-alt" ng-click="ctrl.spawn()">{{:: "ui.apps.traffic.Spawn" | translate}}</md-button>
+        <md-button class="md-raised button-alt" ng-click="ctrl.delete()">{{:: "ui.apps.traffic.Delete" | translate}}</md-button>
+      </td>
+    </tr>
+
+    <tr class="pad-bottom">
+      <td></td>
+      <td>
+        <md-button class="md-raised button-alt">
+          <md-icon class="material-icons" ng-click="ctrl.activate()">play_arrow</md-icon>
+        </md-button>
+        <md-button class="md-raised button-alt">
+          <md-icon class="material-icons" ng-click="ctrl.deactivate()">stop</md-icon>
+        </md-button>
+        <md-button class="md-raised button-alt">
+          <md-icon class="material-icons" ng-click="ctrl.refresh()">refresh</md-icon>
+        </md-button>
+      </td>
+    </tr>
+
+    <tr>
+      <td>{{:: "ui.apps.traffic.SpeedLimit" | translate}}:</td>
+      <td>
+        <input class="input-light" ng-class="{'disabled-option': legalSpeed == true}" flex type="number" min="0" max="300" step="5" ng-value="speedLimit" ng-model="ctrl.speedLimit" ng-change="ctrl.setSpeedLimit()" aria-label="_">
+        <md-button class="md-raised button-alt" ng-click="ctrl.toggleUnits()">{{unit}}</md-button>
+        <md-checkbox class="checkbox-alt" ng-model="legalSpeed" ng-change="ctrl.setSpeedLimit()" aria-label="_">{{:: "ui.apps.traffic.Auto" | translate}}</md-checkbox>
+      </td>
+    </tr>
+
+    <tr>
+      <td>{{:: "ui.apps.traffic.RespawnRate" | translate}}:</td>
+      <td>
+        <input class="input-light" flex type="number" min="0" max="3" step="0.1" ng-value="spawnValue" ng-model="ctrl.spawnValue" ng-change="ctrl.setSpawnValue()" aria-label="_">
+      </td>
+    </tr>
+
+    <tr>
+      <td>{{:: "ui.apps.traffic.Risk" | translate}}:</td>
+      <td>
+        <input class="input-light" flex type="number" min="0.2" max="2" step="0.1" ng-value="aggression" ng-model="ctrl.aggression" ng-change="ctrl.setAggression()" aria-label="_">
+      </td>
+    </tr>
+
+    <tr>
+      <td>{{:: "ui.apps.traffic.AIMode" | translate}}:</td>
+      <td>
+        <md-select flex ng-model="ctrl.aiModeOptions" ng-change="ctrl.setAiMode()" aria-label="_">
+          <md-option ng-value="value" ng-repeat="value in aiModeOptions" aria-label="_">{{value}}</md-option>
+        </md-select>
+      </td>
+    </tr>
+
+    <tr>
+      <td>{{:: "ui.apps.traffic.AwarenessMode" | translate}}:</td>
+      <td>
+        <md-select flex ng-model="ctrl.awareOptions" ng-change="ctrl.setAwareMode()" aria-label="_">
+          <md-option ng-value="value" ng-repeat="value in awareOptions" aria-label="_">{{value}}</md-option>
+        </md-select>
+      </td>
+    </tr>
+
+    <tr>
+      <td>{{:: "ui.apps.traffic.DebugMode" | translate}}:</td>
+      <td>
+        <md-select flex ng-model="ctrl.debugOptions" ng-change="ctrl.setDebugMode()" aria-label="_">
+          <md-option ng-value="value" ng-repeat="value in debugOptions" aria-label="_">{{value}}</md-option>
+        </md-select>
+      </td>
+    </tr>
+  </table>
+</div>

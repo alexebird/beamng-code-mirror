@@ -1,0 +1,61 @@
+.bng-card-dark {
+  justify-content: flex-start;
+  align-items: stretch;
+  color: white;
+  background-color: var(--bng-black-6);
+  border-radius: var(--bng-corners-2);
+  text-align: left;
+  text-decoration: none;
+  cursor: default;
+  font-family: var(--fnt-defs) !important;
+  width: 100%;
+  position: relative;
+  font-size: 1em;
+  line-height: 1.25em;
+  box-sizing: border-box;
+}
+
+.card-header-container, .card-content-container, .card-footer-container {
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.card-header-container:first-child, .card-content-container:first-child, .card-footer-container:first-child {
+  border-radius: 0.25em 0.25em 0 0;
+}
+
+.card-header-container:last-child, .card-content-container:last-child, .card-footer-container:last-child {
+  border-radius: 0 0 0.25em 0.25em;
+}
+
+.card-footer-container {
+  padding: 0.5em 0.5em 1em;
+  justify-content: flex-end;
+}
+
+.card-footer-container > * {
+  display: flex;
+  flex-flow: row wrap;
+  flex: 1 0 auto;
+  justify-content: flex-end;
+}
+
+.card-content-container {
+  flex: 1 1 auto;
+  padding: 0 0.5em;
+  overflow: hidden auto;
+}
+
+.card-content-container.nopaddings {
+  flex: 1 0 auto;
+  padding: 0;
+}
+
+.card-footer-container > * > :not(:last-child) {
+  margin-right:0.5em;
+}
+
+card-footer {
+  max-width: 100%;
+  box-sizing: border-box;
+}

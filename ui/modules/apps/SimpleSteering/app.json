@@ -1,0 +1,18 @@
+{
+  "domElement": "<simple-steering></simple-steering>",
+  "name": "ui.apps.steering_position.name",
+  "types": [
+    "ui.apps.categories.vehicle_info"
+  ],
+  "description": "Shows current ingame wheel position along with steering input.",
+  "css": {
+    "left": "0px",
+    "height": "100px",
+    "top": "0px",
+    "width": "160px"
+  },
+  "author": "Metalmuncher",
+  "version": "0.1",
+  "preserveAspectRatio" : true,
+  "directive": "simpleSteering"
+}

@@ -1,0 +1,308 @@
+/* this weird thing is to prevent conflicts inside an embed styles of garage config includes */
+.garage-view,
+.garage-view > *,
+.garage-view > * > *,
+.garage-view > * > * > *,
+.garage-view > * > * > :not(.garage-config) * {
+  position: relative;
+}
+
+.garage-view {
+  font-size: 16px !important;
+}
+
+.garage-view {
+  position: absolute;
+  top: 2em;
+  left: 2em;
+  right: 2em;
+  bottom: 2em;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+.garage-row-title,
+.garage-row-footer {
+  flex: 0 0 auto;
+}
+.garage-row-main {
+  flex: 0 1 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.garage-menu-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  min-height: 0;
+  margin-left: -0.375em;
+}
+
+.garage-menu-container.lt-column {
+  width: 30em;
+}
+
+.garage-menu-container > * {
+  flex: 0 0 auto;
+}
+
+.garage-menu {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 100%;
+  padding-bottom: 0.25em;
+  margin-bottom: 0.5em;
+  /* max-width: 400px; */
+}
+.garage-menu > * {
+  flex: 0 0 10%;
+  width: 10%;
+}
+.garage-menu > * {
+  flex-grow: 1;
+}
+.garage-menu-main .garage-menu::after {
+  content: "";
+  position: absolute;
+  bottom: -0.1em;
+  left: 0.5em;
+  right: 0.5em;
+  border-bottom: 0.2em solid var(--bng-orange);
+}
+:not(.garage-menu-main) > .garage-menu2 {
+  display: none;
+}
+.garage-menu-main .garage-button {
+  max-width: unset !important;
+}
+.garage-menu-hide {
+  display: none !important;
+}
+.garage-button.garage-menu-disabled {
+  pointer-events: none !important;
+  opacity: 0.5;
+}
+
+.garage-config {
+  flex: 1 1 auto;
+  height: 100%;
+  margin: 0.5em;
+  overflow: hidden;
+}
+.garage-config > * {
+  width: 100% !important;
+  height: 100%;
+  overflow: hidden;
+  background-color: rgba(0,0,0, 0.6);
+  pointer-events: auto;
+}
+
+.garage-config md-content > md-content {
+  background-color: transparent;
+}
+
+.garage-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 4em;
+  max-width: 6em;
+  margin: 0.375em;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  font-weight: 800;
+  line-height: 1.2em;
+  color: white;
+  background-color: rgba(0,0,0, 0.6);
+  border-radius: 4px;
+  text-align: center;
+  text-decoration: none;
+  cursor: default;
+  pointer-events: all !important;
+}
+.garage-menu1 .garage-button {
+  padding-left:0.75em;
+  padding-right: 0.75em;
+}
+.garage-button-active {
+  background-color: var(--bng-orange);
+}
+.garage-button-icon {
+  min-width: 3em;
+  min-height: 3em;
+  background-color: #fff;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: 50% 50%;
+  margin-bottom: 0.25em;
+}
+.garage-button-text {
+  font-family: Overpass;
+  font-weight: 600;
+  font-size: 1em;
+  /* letter-spacing: 0.02em; */
+  line-height: 1.2em;
+}
+.garage-button-breadcrumb {
+}
+.garage-button[disabled] {
+  background-color: rgba(0,0,0, 0.5) !important;
+  color: #aaa !important;
+  pointer-events: none !important;
+}
+.garage-button-active[disabled] {
+  background-color: rgba(200,200,200, 0.5) !important;
+}
+.garage-button[disabled] .garage-button-icon {
+  background-color: #aaa !important;
+}
+
+.garage-sidemenu > * {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+.garage-sidemenu-toggle {
+  border-bottom: 0.1em solid transparent; /* to prevent vertical jump on show/hide */
+}
+.garage-sidemenu-item {
+  border-bottom: 0.1em solid #fff;
+}
+.garage-sidemenu-item-active {
+  border-color: var(--bng-orange);
+}
+.garage-sidemenu-item-active .garage-button-icon {
+  background-color: var(--bng-orange);
+}
+.garage-sidemenu-item-active .garage-button-text {
+  color: var(--bng-orange);
+}
+.garage-sidemenu-show > .garage-sidemenu-toggle {
+  background-color: var(--bng-orange);
+}
+/* :not(.garage-sidemenu-show) > .garage-sidemenu-item {
+  display: none;
+} */
+.garage-sidemenu .garage-button {
+  margin-left: 0;
+  margin-right: 0;
+  width: 6em;
+}
+
+.garage-sidemenu .garage-button-icon {
+  min-width: 2em;
+  min-height: 2em;
+}
+
+.garage-sidemenu-show > .garage-button {
+  border-radius: 0;
+}
+.garage-sidemenu-show > .garage-button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.garage-sidemenu-show > .garage-button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.garage-bottom {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-left: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+/* smaller screen */
+@media (max-width: 1280px) {
+  .garage-view {
+    font-size: 1.094vw !important;
+  }
+  .garage-button-text {
+    font-size: 1em;
+  }
+  .garage-menu-container.lt-column {
+    width: 36em;
+  }
+}
+
+/* portrait mode */
+@media (max-width: 1081px) and (orientation: portrait) {
+  .garage-view {
+    font-size: 1.95vw !important;
+  }
+  .garage-button-text {
+    font-size: 1em;
+  }
+  .garage-menu-container.lt-column {
+    width: 80%;
+  }
+  .garage-row-main {
+    flex-direction: column;
+  }
+  .garage-sidemenu {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row-reverse;
+    font-size: 0.75em;
+  }
+  .garage-sidemenu > :not(:last-child) {
+    margin-right: 1em;
+  }
+}
+
+
+.garage-blackscreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0, 0.9);
+  pointer-events: none;
+  opacity: 0;
+  /* transition: opacity 100ms; */
+  z-index: calc(var(--zorder_main_menu_navigation_focus) + 1);
+}
+.garage-blackscreen-active {
+  opacity: 1;
+  pointer-events: all !important;
+}
+
+.garage-view md-pagination-wrapper {
+  padding: 0.4em;
+  overflow: visible;
+  position: relative;
+}
+
+.garage-view md-tabs-wrapper {
+  width: 100%;
+}
+
+.garage-view md-tabs-canvas {
+  height: auto;
+}
+
+.garage-view .md-tab {
+  overflow: visible;
+}
+.garage-view md-tabs-content-wrapper {
+  display: block;
+  position: relative;
+  top: unset;
+  left: unset;
+  right: unset;
+  bottom: unset;
+  flex:1 1 auto;
+}
+

@@ -1,0 +1,318 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/scenariocontrol/scenariocontrol.css" />
+<link rel="stylesheet" type="text/css" href="/ui/modules/careermission/mission.css" />
+<style>
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  .fade-in {
+    opacity:0;
+    -webkit-animation:fadeIn linear 1;
+    animation:fadeIn linear 1;
+    animation-fill-mode:forwards;
+    animation-duration:0.3s;
+  }
+
+  @keyframes slideIn { from { left: -100%; } to { left:0; } }
+
+  .slide-in {
+    left: -100%;
+    -webkit-animation: slideIn linear 2s forwards;
+    -webkit-animation-delay: 1.5s;
+  }
+
+  @keyframes medal {
+    0% {
+      opacity: 1;
+      transform: scale(1.9);
+    }
+    20% {
+      opacity: 1;
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .medal {
+    opacity: 0;
+    transform: scale(1);
+     -webkit-animation:medal 2s ease 0s forwards;
+     -webkit-animation-delay: 3.5s;
+  }
+
+  .medalSmall {
+    opacity: 0;
+    transform: scale(1);
+     -webkit-animation:medal 1.5s ease 0s forwards;
+     -webkit-animation-delay: 1s;
+  }
+
+  .endpanel {
+
+    /*background-color: rgba(0, 0, 0, 0.8);*/
+    /*border: solid 1px white;*/
+    /*background-color: rgba(255, 255, 255, 0.9);*/
+    width: 550px;
+    text-transform: uppercase;
+    /*flex:  auto;*/
+    margin: 10px;
+    /*color: white;*/
+    font-family: Open Sans Bold;
+  }
+
+  .panel {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+  }
+
+  .actionbutton {
+    padding: 10px;
+    font-size: 1.4em;
+    border: solid 2px white;
+    text-transform: uppercase;
+    background: none;
+    font-family: Open Sans Bold;
+    color: orange;
+    margin: 10px;
+    min-width: 100px;
+    cursor: pointer;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .actionbutton:focus, .actionbutton:hover {
+    background: orange;
+    color: white;
+    border-color: orange;
+  }
+
+  .actionbutton.disabled {
+    color: grey;
+    border-color: grey;
+    opacity: 0.2;
+    cursor: not-allowed;
+  }
+
+  .actionbutton.disabled:focus, .actionbutton.disabled:hover {
+    background: transparent;
+    color: grey;
+    border-color: grey;
+  }
+
+  .gold {
+    color: rgb(242,215,50);
+    box-shadow: 0 0 20px 1px rgba(242,215,50,1);
+  }
+
+  .silver {
+    color: rgb(160,160,160);
+    box-shadow: 0 0 20px 1px rgb(160,160,160);
+  }
+
+  .bronze {
+    color: rgb(223,182,103);
+    box-shadow: 0 0 20px 1px rgb(223,182,103);
+  }
+
+  .success { color: rgb(0, 200, 0); }
+  .neutral { color: orange }
+  .fail    { color: rgb(200, 0, 0); }
+
+  .panel [md-ink-ripple-checkbox] {
+    display: none;
+  }
+
+  .panel .md-label {
+    margin: 0;
+  }
+
+  @keyframes flashRecord {
+    0% {
+      background-color: rgba(200, 200, 200, 0.5);
+    }
+    33% {
+      background-color: rgba(200, 200, 200, 0.5);
+    }
+
+    100% {
+      background-color: rgba(000, 000, 00, 0.5);
+    }
+  }
+  .newBest {
+      background-color: rgba(200, 200, 200, 0.5);
+     -webkit-animation: flashRecord 3s infinite;
+  }
+
+  .currentAttempt {
+      background-color: rgba(120, 120, 120, 0.5);
+  }
+
+  .small-star {
+    font-size: 0.8em;
+  }
+
+
+</style>
+
+<div class="fade-in" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; background-color: rgba(0, 0, 0, 0.8); padding: 20px; display: flex; flex-direction: column; overflow: auto; pointer-events: auto;">
+  <div class="scen-title" ng-class="{true: 'fail', false: 'success'}[data.overall.failed]">
+    <span class="scen-name" ng-if="::data.campaigntitle">{{data.campaigntitle | translate}}:</span>
+    <span class="scen-name">{{data.title | translate}}</span>
+
+    <div class="scen-result">{{ (data.overall.failed ? data.customFail : data.customSuccess) | translate}}</div>
+
+    <div class="scen-time">{{data.time}}</div>
+  </div>
+
+
+  <div style="align-self: center; display: flex; flex-direction: column; flex-grow:1; justify-content: center; min-width:1000px" show-in-order>
+
+    <div ng-if="!hasMissionData" style="align-self: center; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; overflow-y: auto; height: 400px; width: 100%; overflow: hidden;" show-at-position="1" show-after-ms="3000">
+
+      <div  class="fade-in endpanel" layout="column" style="width: calc(60% - 20px); height: calc(100% - 20px); overflow: auto;">
+        <div class="panel" flex>
+          <div style="font-family: Roboto Condensed; width: 100%;">
+            <div ng-repeat="stat in data.stats track by $index" style="display: flex; align-items: center; padding: 8px;">
+
+              <div style="flex-basis: 20%">{{stat.label | translate}}</div>
+              <div style="flex-grow: 1; padding: 5px">
+                <div style="height: 18px; width: 100%; position: relative; overflow: hidden;" ng-class="{true: 'fail', false: 'success', undefined: 'neutral'}[stat.failed]">
+                  <div style="position: absolute; top: 0; left: 0; bottom: 0; box-sizing: border-box; width: 100%; border: solid 1px currentcolor"></div>
+                  <div style="position: absolute; top: 0; left: 0; bottom: 0; width: {{ stat.relativePoints !== undefined ? stat.relativePoints : (stat.failed ? 0 : 100) }}%;">
+                    <div style="background-color: currentColor; position: absolute; bottom: 0; top: 0; width: 100%;" class="slide-in" bng-sound="{{:: getBarSound($index)}}"></div>
+                  </div>
+                </div>
+                <!-- <div style="height: 8px; width: 100%; position: relative; overflow: hidden; margin-top: 2px;">
+                  <div style="position: absolute; top: 0; left: 0; bottom: 0; width: {{ stat.community === undefined ? stat.numPassed : stat.community }}%;">
+                    <div style="background-color: #b9b9b9; position: absolute; bottom: 0; top: 0; width: 100%;" class="slide-in"></div>
+                  </div>
+                </div> -->
+              </div>
+
+              <!-- <div style="text-align: right; min-width: 80px; font-size: 1.2em;" ng-if="stat.value !== undefined">{{:: stat.player.toFixed(0) }}%</div>
+              <div style="text-align: right; min-width: 80px; font-size: 1.2em;" ng-if="stat.value === undefined">
+                <md-icon class="material-icons dashboard-icons" style="color: white;" ng-if="stat.failed">close</md-icon>
+                <md-icon class="material-icons dashboard-icons" style="color: white;" ng-if="!stat.failed">check</md-icon>
+              </div> -->
+
+              <points points="stat.points" max-points="stat.maxPoints" style="min-width: 90px;"></points>
+            </div>
+          </div>
+        </div>
+        <div layout="row" ng-if="rewards">
+          <div class="panel" flex="60" style="margin: 10px 10px 0 0; padding: 8px;" layout="column">
+            <div>Choose a vehicle</div>
+            <md-radio-group ng-model="choosenVehicle" ng-change="sendChoosenVehicle(choosenVehicle)" layout="row" layout-align="space-around center">
+              <md-radio-button ng-repeat="vehicle in rewards.choices.vehicles" ng-value="vehicle" layout="row" layout-align="center center" stlye="margin: 5px;" aria-label="_">
+                <div style="position: relative;">
+                  <img ng-src="{{vehicle.preview}}" width="100%">
+                  <md-icon style="position: absolute; bottom: 8%; left: 4.5%; color: rgba(0, 0, 0, 0.8)" ng-if="choosenVehicle === vehicle" class="md-default-theme material-icons">check_circle</md-icon>
+                </div>
+              </md-radio-button>
+            </md-radio-group>
+          </div>
+          <div class="panel" layout="column" flex style="margin: 10px 0 0 10px; padding: 8px;">
+            Other
+            <div flex layout="column">
+              <span ng-repeat="item in rewards.vehicles track by $index">{{item.Name}}<span ng-if="$index < rewards.other.length - 1">,</span></span>
+            </div>
+            <div flex layout="row" layout-wrap>
+              <span ng-repeat="item in rewards.other track by $index">{{item}}<span ng-if="$index < rewards.other.length - 1">,</span></span>
+            </div>
+            <div ng-if="rewards.money !== undefined">
+              {{rewards.money}} $
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fade-in panel" style="align-self: center; width: calc(40% - 20px); height: calc(100% - 20px); display: flex; margin: 10px; position: relative;" ng-if="data.overall.medal && data.overall.medal != 'none'">
+        <img style="width: 80%; padding: 0 10%; align-self: center;" ng-src="{{:: getMedalInfo(data.overall.medal).img}}" class="medal" bng-sound="{{:: getMedalInfo(data.overall.medal).sound}}">
+        <points class="medal" points="data.overall.points" max-points="data.overall.maxPoints" style="position: absolute; bottom: 10px; right: 10px;"></points>
+      </div>
+    </div>
+
+    <div style="height: 200px; width: 100%; padding: 10px; box-sizing: border-box;">
+      <div class="panel" style="height: 100%; width: 100%; padding: 10px; box-sizing: border-box; display: flex; flex-direction: row;">
+        <div ng-if="portraitImg !== undefined && (portraitImg.fail || portraitImg.success)" style="margin-right: 20px; height: 100%;">
+          <img ng-if="data.overall.failed" height="100%" width="auto" ng-src="/{{portraitImg.fail}}">
+          <img ng-if="!data.overall.failed" height="100%" width="auto" ng-src="/{{portraitImg.success}}">
+        </div>
+        <div style="font-size:1.5em;height: 100%; width: 100%; overflow: auto;" bng-translate="{{data.text}}">
+        </div>
+        <div ng-if="data.overall.medal && data.overall.medal != 'none'" style="margin-left: 20px; height: 100%;">
+          <img style="height: 100%; align-self: center;" ng-src="{{:: getMedalInfo(data.overall.medal).img}}" class="medalSmall" bng-sound="{{:: getMedalInfo(data.overall.medal).sound}}">
+        </div>
+      </div>
+    </div>
+    <div ng-if="hasMissionData" style="height: 400px; width: 100%; padding: 10px; box-sizing: border-box; display: flex; flex-direction: row;">
+      <div class="panel" style="height: 100%;  padding: 10px; margin-right: 20px; box-sizing: border-box; flex: 1; overflow: auto;">
+        <div style="font-weight: bold; font-size: 1.17em; margin-bottom: 0.55em;">{{:: 'missions.missions.general.objectives' | translate}}:</div>
+        <div ng-repeat="star in missionData.formattedStars.stars track by $index" ng-class="{'newBest': missionData.aggregateChange.unlockedStarsAttempt[star.key]}">
+          <bng-star-line  data="star" has-content="true" class="mission-rewards mission-content-thin" >
+            <!--<span ng-repeat="reward in star.rewards" class="mission-reward">
+              <span bng-branch-icon="{{reward.attributeKey}}" ng-class="{!star.unlocked}"></span>{{reward.rewardAmount}}
+            </span>-->
+          </bng-star-line>
+        </div>
+      </div>
+      <!---->
+      <div class="panel" ng-if="(missionData && missionData.aggregateChange.starRewards.sumList && missionData.aggregateChange.starRewards.sumList.length > 0) || (missionData && missionData.aggregateChange.unlockedMissions && missionData.aggregateChange.unlockedMissions.length > 0)" style="height: 100%;  padding: 10px; margin-right: 20px; box-sizing: border-box; flex: 1;">
+
+        <div ng-if="missionData && missionData.aggregateChange.starRewards.sumList && missionData.aggregateChange.starRewards.sumList.length > 0">
+          <div style="font-weight: bold; font-size: 1.17em; margin-bottom: 0.55em;">{{:: 'missions.missions.general.rewards' | translate}}:</div>
+          <div style="display:flex; flex-wrap: wrap;">
+            <div ng-repeat="reward in missionData.aggregateChange.starRewards.sumList">
+              <span  class="mission-reward" style="font-weight: 700; font-size:1.5em;">
+                <span bng-branch-icon="{{reward.attributeKey}}" ></span>{{reward.rewardAmount}}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div ng-if="missionData && missionData.aggregateChange.unlockedMissions && missionData.aggregateChange.unlockedMissions.length > 0">
+          <div style="font-weight: bold; font-size: 1.17em; margin-bottom: 0.55em;">{{:: 'missions.missions.general.unlockedMissions' | translate}}:</div>
+          <ul>
+            <li ng-repeat="m in missionData.aggregateChange.unlockedMissions" style="font-weight: 700;">
+              {{m.name | translate}}
+            </li>
+          </ul>
+        </div>
+
+      </div>
+      <div class="panel" style="height: 100%;  padding: 10px; box-sizing: border-box; flex: 1 ;">
+        <div style="width: 100%;">
+          <div style="font-weight: bold; font-size: 1.17em; margin-bottom: 0.55em;">Progress for "{{missionData.progressKeyTranslations[missionData.progressKey] | contextTranslate}}"</div>
+          <table style="width:100%; text-align: center;">
+            <tr>
+              <th ng-repeat="(key, val) in missionData.formattedProgress.ownAggregate.labels track by key">{{:: val | translate}}</th>
+            </tr>
+            <tr ng-repeat="(_, row) in missionData.formattedProgress.ownAggregate.rows">
+              <td ng-repeat="(dataIndex, d) in row" bng-timespan="{{:: d.timestamp }}"
+              ng-class="{newBest: missionData.aggregateChange.aggregateChange.newBestKeysByKey[missionData.formattedProgress.ownAggregate.newBestKeys[dataIndex]]}"
+              >{{:: d.text | translate}}</td>
+            </tr>
+          </table>
+          <hr style="width:100%">
+          <span ng-if="missionData.leaderboardKey === 'recent'">{{::'missions.missions.general.recentAttempts' | translate}}</span>
+          <span ng-if="missionData.leaderboardKey !== 'recent'">{{::'missions.missions.general.leaderboard' | translate}}</span>
+          <table style="width:100%; text-align: center">
+            <tr>
+              <th ng-repeat="(key, val) in missionData.formattedProgress.attempts.labels track by key">{{:: val | translate}}</th>
+            </tr>
+            <tr ng-repeat="(rowIndex, row) in missionData.formattedProgress.attempts.rows|limitTo:6">
+              <td ng-repeat="(_, d) in row" bng-timespan="{{:: d.timestamp }}" bng-simplestars="{{::d.simpleStars}}" ng-class="{currentAttempt: missionData.aggregateChange.aggregateChange.newBestKeysByKey[missionData.leaderboardChangeKeys[missionData.leaderboardKey]] == rowIndex+1}">{{:: d.text | translate}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 100px; display: flex; justify-content: flex-end; align-items: center;">
+    <button nav-item-disabled="{{button.enableOnChooseReward && !rewardChoosen}}" ng-disabled="button.enableOnChooseReward && !rewardChoosen || button.disabled" ng-class="{disabled: button.enableOnChooseReward && !rewardChoosen || button.disabled}" bng-nav-item focus-if="$index === activeButton" class="actionbutton" ng-repeat="button in data.buttons track by $index" ng-click="executeCmd(button.cmd, button.showLoadingScreen);" bng-sound-class="bng_click_hover_generic">
+        {{button.label | translate}}
+    </button>
+  </div>
+
+
+</div>

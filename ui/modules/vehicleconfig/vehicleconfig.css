@@ -1,0 +1,100 @@
+.contentNavVehicleconfig md-select {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+}
+
+.md-select-menu-container md-content {
+  max-height: none;
+  min-height: none;
+}
+
+.md-select-menu-container md-select-menu {
+  max-height: 40vh;
+}
+
+.contentNavVehicleconfig .inputName {
+  font-size: 95%;
+}
+
+.contentNavVehicleconfig .accordionText {
+  background-color:transparent !important;
+  cursor: pointer;
+  padding: 0;
+  margin:0;
+}
+
+.contentNavVehicleconfig .accordionHeader:hover {
+  background-color: rgba(158,158,158,0.2) !important;
+}
+
+
+
+
+.vAccordion--default v-pane-header::after, .vAccordion--default v-pane-header::before {
+  left: 0;
+}
+
+.vAccordion--default v-pane-header{
+  padding:5px 0 5px 15px;
+}
+
+
+/*Override vAccordinons css*/
+.contentNavVehicleconfig .vAccordion--default v-pane-content>div{
+  padding-bottom: 0 !important;
+}
+
+.contentNavVehicleconfig .vAccordion--default v-pane-header {
+  padding: 0 0 0 15px !important;
+  margin-bottom: 0 !important;
+  border-bottom: none !important;
+}
+
+.contentNavVehicleconfig .vAccordion--default v-accordion {
+  margin-top: 0 !important;
+  padding-left: 0 !important;
+}
+
+.contentNavVehicleconfig md-tabs-wrapper md-prev-button {
+  background-image: none;
+}
+
+.contentNavVehicleconfig md-tabs-wrapper md-next-button {
+  background-image: none;
+}
+
+.highlightResults {
+  background: var(--bng-orange-shade2) !important;
+}
+
+.searchHelp {
+  font-family: monospace;
+  font-size:1.1em;
+  font-weight: bold;
+  color:rgb(255,102,0)
+}
+
+.searchHelpUL li {
+  margin-bottom:8px;
+}
+
+.highlightChanged {
+  /* background: rgba(96,125,139,0.3) !important; */
+  background: linear-gradient(90deg, rgba(255, 102, 0, 0.35) 0%, rgba(255,255,255,0) 100%) !important;
+  border-radius: 5px;
+  padding-left: 5px;
+}
+
+.contentNavVehicleconfig md-input-container {
+  padding: 2px 2px 1em;
+}
+
+.contentNavVehicleconfig bng-accordion, .contentNavVehicleconfig bng-accordion bng-accordion-pane {
+  flex-wrap: wrap;
+  padding-right: 0;
+}
+
+.veh-tuning-item:not(:first-child) {
+  padding-top: 1em;
+}

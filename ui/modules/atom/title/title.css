@@ -1,0 +1,76 @@
+.bng-title-wrapper {
+  padding: 0.5em 2em 0.5em 1.75em;
+  position: relative;
+  overflow: hidden;
+}
+
+.bng-title-wrapper::before {
+  content: "";
+  position: absolute;
+  font-size: 1.5em;
+  background-color: var(--bng-orange);
+  transform: skewX(-20deg);
+  left: -1.25em;
+  width: 2em;
+  height: 1.2em;
+  z-index: 1;
+}
+
+/* full line animation */
+/* .bng-title-animate.bng-title-wrapper::before {
+  min-width: 2em;
+  width: 0%;
+  animation: 1s ease-in-out 0s 1 bng-title-line;
+}
+@keyframes bng-title-line {
+  0% { width: 120%; background-color: #fff; }
+  95% { width: 7%; }
+  100% { width: 0%; background-color: var(--bng-orange); }
+}
+.bng-title-animate .bng-title,
+.bng-title-animate .bng-subtitle {
+  animation: 1s ease-out 0s 1 bng-title-text;
+}
+@keyframes bng-title-text {
+  0%, 70% { opacity: 0; }
+  100% { opacity: 1; }
+} */
+
+/* humble animation */
+.bng-title-animate.bng-title-wrapper::before {
+  animation: 1s ease-in-out 0s 1 bng-title-line;
+}
+@keyframes bng-title-line {
+  from { left: -2.25em; }
+  to { left: -1.25em; }
+}
+.bng-title-animate .bng-title,
+.bng-title-animate .bng-subtitle {
+  animation: 1s ease-out 0s 1 bng-title-text;
+}
+@keyframes bng-title-text {
+  0%, 30% { opacity: 0; margin-left: -0.2em; }
+  100% { opacity: 1; margin-left: 0em; }
+}
+
+.bng-title, .bng-subtitle {
+  color:white;
+  letter-spacing: 0.02em;
+  line-height: 1.2em;
+  overflow-wrap: break-word;
+  overflow: hidden;
+}
+
+.bng-title {
+  font-family: "Overpass", var(--fnt-defs);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 1.75em;
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+
+.bng-subtitle {
+  font-size: 1em;
+  font-weight: 650;
+}

@@ -1,0 +1,80 @@
+<md-content style="height:100%; overflow:hidden; box-sizing:border-box" layout="column">
+  <div class="md-padding" flex style="overflow-y:auto">
+    <div ng-repeat="category in vehConf_tuning.d.variable_categories | orderBy track by $index" class="veh-tuning-item">
+      <h3 class="md-title" style="margin:0;">{{:: category }}</h3>
+      <div ng-repeat="var in vehConf_tuning.d.variables | filter: {category: category} | orderBy: 'subCategory' track by var.name" style="padding: 0;">
+        <h5 class="md-subhead" ng-if="::vehConf_tuning.addSpacer(var.subCategory)" style="margin-bottom: 0; margin-top: 1em;">{{ var.subCategory}}</h5>
+        <md-list-item layout="row" layout-align="start center" style="padding: 0 0 0.25em 0;">
+          <md-tooltip ng-if="var.description">{{::var.description}}</md-tooltip>
+          <p class="md-body-2" flex="30">{{::var.title}}</p>
+          <div flex layout="row" layout-align="start center">
+            <md-slider ng-model="var.valDis" ng-change="vehConf_tuning.tuningVariablesChanged()"
+                       min="{{::var.minDis }}" max="{{::var.maxDis }}" step="{{::var.stepDis }}"
+                       aria-label="_" flex style="padding: 0; flex: 1 1 55%;">
+            </md-slider>
+            <div layout="row" layout-align="start center" style="padding-left:5px; flex: 0 0 7.5em; max-width: 7.5em;">
+              <md-input-container style="padding:0; flex: 0 0 4.2em; max-width: 4.2em;">
+                <input ng-model="var.valDis" ng-change="vehConf_tuning.tuningVariablesChanged()"
+                      class="md-body-1" type="number" flex style="text-align: right"
+                      min="{{::var.minDis }}" max="{{::var.maxDis }}" step="{{::var.stepDis }}" aria-label="_" >
+              </md-input-container>
+              <span class="md-body-1" style="padding-left:5px; flex: 1 0 2em; overflow: visible">{{:: var.unit }}</span>
+            </div>
+            <div style="padding-left:2px; width: 24px">
+              <md-button ng-if="!vehConf_tuning.isDisValDefault(var)" ng-click="vehConf_tuning.resetVar(var)" class="md-icon-button md-warn" md-no-ink style="margin:0px; width: 24px">
+                <md-icon class="material-icons">undo</md-icon>
+              </md-button>
+            </div>
+          </div>
+        </md-list-item>
+      </div>
+
+      <md-divider style="margin-top:1em;"></md-divider>
+    </div>
+  </div>
+
+  <div layout="column">
+    <div ng-if="vehConf_tuning.awdShow" class="md-padding" style="border-top: solid 2px var(--bng-orange);">
+      <table style="width:100%">
+        <thead>
+          <tr style="text-align: left;">
+            <th style="width: 20%; text-align: center;">Name</th>
+            <th style="width: 20%">Camber</th>
+            <th style="width: 20%">Toe</th>
+            <th style="width: 20%">Caster</th>
+            <th style="width: 20%">SAI</th>
+          </tr>
+        </thead>
+        <tr ng-repeat="w in vehConf_tuning.awdData | orderBy: 'name' track by $index">
+          <td class="md-body-2" style="text-align: center;">{{ w.name }}</td>
+          <td class="md-body-1">{{ w.camber | number: 3 }}</td>
+          <td class="md-body-1">{{ w.toe | number: 3 }}</td>
+          <td class="md-body-1">{{ w.caster | number: 3 }}</td>
+          <td class="md-body-1">{{ w.sai | number: 3 }}</td>
+        </tr>
+      </table>
+    </div>
+    <div layout="row" layout-align="start center" class="md-padding" style="flex: 0 0 auto; border-top: solid 2px var(--bng-orange);">
+      <md-checkbox ng-if="vehConf_tuning.awdData" bng-sound-class="bng_checkbox_generic" flex ng-model="vehConf_tuning.awdShow">
+        <md-tooltip md-direction="right">
+          Show advanced wheels debug panel
+        </md-tooltip md-no-ink>
+        Wheels debug
+      </md-checkbox>
+      <md-checkbox bng-sound-class="bng_checkbox_generic" flex ng-model="vehConf_tuning.liveVariablesUpdate">
+        <md-tooltip md-direction="right">
+          Automatically applies changes when moving the sliders
+        </md-tooltip md-no-ink>
+        {{:: 'ui.vehicleconfig.applyPartChangesAutomatically' | translate}}
+      </md-checkbox>
+      <md-button ng-click="vehConf_tuning.resetVars()" class="md-warn" md-no-ink >
+        <md-icon class="material-icons">undo</md-icon>
+        {{:: 'ui.common.reset' | translate}}
+      </md-button>
+      <md-button ng-click="vehConf_tuning.write()" ng-disabled="vehConf_tuning.liveVariablesUpdate" class="md-raised md-primary" md-no-ink >
+        <md-icon class="material-icons">check</md-icon>
+        {{:: 'ui.common.apply' | translate}}
+      </md-button>
+    </div>
+  </div>
+</md-content>

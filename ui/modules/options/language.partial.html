@@ -1,0 +1,64 @@
+<md-list-item>
+  <p flex="40">{{:: 'ui.options.userInterface.language' | translate}}</p>
+  <div layout="column">
+    <md-select flex ng-model="options.data.values.userLanguage" aria-label="_" ng-change="options.applyLanguage()">
+      <md-select-header>
+        <h3>{{:: 'ui.options.officialTranslations' | translate}}</h3>
+      </md-select-header>
+      <md-option md-no-ink ng-repeat="lang in options.data.options.userLanguagesAvailable | filter: {isOfficial:true} | orderBy:'name'" ng-value="lang.key">{{ lang.name }}</md-option>
+      <md-select-header md-no-ink style="background:#ddd;border-bottom:1px solid #333;margin:15px;width:100%">
+        <h3>{{:: 'ui.options.communityTranslations' | translate}}</h3>
+      </md-select-header>
+      <md-option md-no-ink ng-repeat="lang in options.data.options.userLanguagesAvailable | filter: {isOfficial:false} | orderBy:'name'" ng-value="lang.key">{{ lang.name }}</md-option>
+  </div>
+</md-list-item>
+
+<md-list-item layout layout-align="start start" ng-show="options.data.values.userLanguage == ''">
+  <p flex="40">{{:: 'ui.options.detectedLanguage' | translate}}</p>
+  <span>{{options.data.values.userLanguageSelectedLong}}</span>
+</md-list-item>
+
+<md-list-item layout layout-align="start start" >
+  <p flex="40">{{:: 'ui.options.officialTranslations' | translate}}</p>
+  <ul>
+    <li md-no-ink ng-repeat="lang in options.data.options.userLanguagesAvailable | filter: {isOfficial:true} | orderBy:'name'" ng-value="lang.key" ng-show="lang.key != ''">{{ lang.name }}</li>
+  </ul>
+</md-list-item>
+
+<md-divider></md-divider>
+
+<md-list-item style="padding:15px;" layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.communityTranslations' | translate}}</h3></p>
+  <p>{{:: 'ui.options.communityTranslationsAckText' | translate}}</p>
+  <md-button flex class="md-accent md-raised" ng-click="opt.enableCommunityTranslations()" style="margin:35px;" ng-show="options.data.values.communityTranslations !== 'enable'" bng-sound-class="bng_click_generic">
+    {{:: 'ui.options.communityTranslationsAgree' | translate}}
+  </md-button>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-show="options.data.values.communityTranslations === 'enable'">
+  <p flex="40"></p>
+  <md-button flex class="md-primary md-raised" ng-click="opt.updateTranslations()" bng-sound-class="bng_click_generic">
+    {{:: 'ui.options.gameplay.updateTranslations' | translate}}
+  </md-button>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-show="options.data.values.communityTranslations === 'enable'">
+  <p flex="40">{{:: 'ui.options.gameplay.helpTranslating' | translate}}</p>
+  <a href="http-external://translate.beamng.com/projects/beamngdrive/game/">{{:: 'ui.options.gameplay.translationProjectPage' | translate}}</a>
+</md-list-item>
+
+<md-list-item layout layout-align="start start">
+  <p flex="40">{{:: 'ui.options.communityTranslations' | translate}}</p>
+  <ul>
+    <li ng-repeat="lang in options.data.options.userLanguagesAvailable | filter: {isOfficial:false} | orderBy:'name'" ng-if="lang.key != ''" ng-value="lang.key">{{ lang.name }}<span ng-show="!$last"></span></li>
+  </ul>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-show="options.data.values.communityTranslations === 'enable'" ng-if="options.data.values.userLanguageSelected !== options.data.values.languageProvider">
+  <p flex="40">{{:: 'ui.options.steamLanguage' | translate}}:</p>
+  <p>{{options.data.values.languageProviderLong}}</p>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-show="options.data.values.communityTranslations === 'enable'" ng-if="options.data.values.userLanguageSelected !== options.data.values.languageOS">
+  <p flex="40">{{:: 'ui.options.operatingSystemLanguage' | translate}}:</p>
+  <p>{{options.data.values.languageOSLong}}</p>
+</md-list-item>

@@ -1,0 +1,192 @@
+.mission-container {
+  display: flex;
+  flex-flow: column;
+  padding: 3em;
+}
+
+.mission-title {
+  flex: 0 0 auto;
+  padding-top: 0.5rem;
+  padding-left: 0.5rem;
+}
+.mission-title > * {
+  margin-bottom: 0;
+  left: 9vw;
+}
+
+.mission-container * {
+  position: relative;
+}
+
+.mission-view {
+  flex: 1 1 auto;
+  max-width: 100%;
+  display: flex;
+  flex-flow: row;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  padding: 1.5rem;
+  left: 9vw;
+}
+
+.mission-screen-card {
+  width: 100%;
+  min-height: 11rem;
+  max-height: 28rem;
+  background-color: rgba(0,0,0, 0.5);
+  color: #fff;
+  overflow-x: auto;
+}
+
+.secondary-cards-wrapper {
+  flex: 1 1 auto;
+  max-width: 100%;
+  display: flex;
+  flex-flow: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 1rem;
+  padding-top: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.mission-details-column {
+  flex: 0 0 40%;
+  width: 40%;
+  min-width: 15rem;
+  display: flex;
+  flex-flow: column;
+  padding: 0 0.5rem;
+}
+
+.mission-details-column:first-child {
+  flex: 0 0 28%;
+  width: 28%;
+  display: flex;
+  flex-flow: column;
+  padding: 0 0.5rem;
+}
+
+.mission-reward {
+  display: flex;
+  align-items: center;
+  margin-right: 1em;
+  margin-top: 0.2em;
+  font-size: 0.7em;
+}
+
+.mission-rewards > .mission-star-container > .mission-star-content {
+  display: flex;
+}
+
+.card {
+  margin-bottom: 1rem;
+}
+
+.mission-pagination {
+  display: flex;
+  padding: 0 !important;
+  background: none !important;
+  margin-top: 0.25em;
+}
+.mission-pagination > .mission-pagination-side-item {
+    background: var(--bng-black-6);
+    padding: 0.1em 0.25em;
+    border-radius: 0.25em;
+    font-size: 2em;
+    width: 1.2em;
+    height: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mission-pagination > .mission-pagination-item {
+  background: var(--bng-black-6);
+  padding: 0.1em 0.25em;
+  border-radius: 0.25em;
+  font-size: 2em;
+  width: 1.8em;
+  height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mission-pagination > .mission-pagination-spacer {
+  width: 0.2em;
+}
+
+.mission-star-label {
+  font-weight: 700;
+}
+.card, .card > * {
+  position: relative;
+}
+
+.mission-content {
+  padding: 0 0.75em 0.75em;
+}
+
+.mission-content-thin {
+  padding: 0 0.5em 0.5em;
+  word-break: break-word;
+}
+
+.disabled {
+  opacity: 0.8;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  /*background-color: rgba(120, 120, 120, 0.8); */
+}
+
+.small-mission-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4.5em;
+  margin: 0.375em;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  font-weight: 800;
+  line-height: 1.2em;
+  color: white;
+  background-color: rgba(0,0,0, 0.6);
+  border-radius: 4px;
+  text-align: center;
+  text-decoration: none;
+  cursor: default;
+  pointer-events: all !important;
+}
+
+.key-label {
+  font-weight: 700;
+  font-size: 1em;
+  flex: 1 1 auto;
+}
+
+.cross-out {
+  opacity: 0.8;
+  cursor: not-allowed !important;
+  text-decoration: line-through;
+}
+
+.locked {
+  opacity: 0.5;
+}
+
+.mission-button-image {
+  width: 90%;
+}
+
+
+.buttons-wrapper {
+  display: flex;
+  height: 8em;
+}
+
+.arrow-centering {
+  margin-left: -0.2em;
+  margin-bottom: -0.2em;
+}

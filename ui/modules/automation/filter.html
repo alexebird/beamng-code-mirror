@@ -1,0 +1,105 @@
+<div flex style="overflow:auto">
+  <style>
+    .repo_category_option[selected] {
+      background-color:#ccc;
+      margin-left:40px;
+    }
+  </style>
+
+  <form ng-submit="automation.filterApply()">
+    <div layout="row" layout-align="center center">
+      <md-input-container flex>
+        <label><md-icon class="material-icons">search</md-icon>{{:: 'ui.repository.search' | translate}}</label>
+        <input ng-model="automation.filter_query">
+      </md-input-container>
+      <md-button class="md-icon-button md-warn" ng-click="automation.filter_query = ''; automation.filterApply()" ng-disabled="!automation.filter_query">
+        <md-icon class="material-icons">close</md-icon>
+        <md-tooltip md-direction="bottom">{{:: 'ui.repository.searchClear' | translate}}</md-tooltip>
+      </md-button>
+    </div>
+    <div layout="row" layout-align="center center" style="position: relative; top: -20px;">
+      <md-button flex class="md-button md-primary md-raised" type="submit" ng-disabled="!automation.filter_query">{{:: 'ui.repository.search' | translate}}</md-button>
+    </div>
+  </form>
+
+  <div style="margin-top: 60px;">
+    <label><md-icon style="margin-right: 5px;" class="material-icons">sort</md-icon>{{:: 'ui.repository.order_by' | translate}}</label>
+  </div>
+
+  <div>
+    <div flex layout="row" layout-align="center center">
+      <md-select ng-model="automation.filter_order_by" aria-label="_" flex ng-change="automation.filterApply();" style="margin-right: 16px;">
+        <md-option value="rating">{{:: 'ui.repository.option_rating' | translate}}</md-option>
+        <md-option value="reviews">{{:: 'ui.repository.option_reviews' | translate}}</md-option>
+        <md-option value="title">{{:: 'ui.repository.option_title' | translate}}</md-option>
+        <md-option value="update">{{:: 'ui.repository.option_update' | translate}}</md-option>
+        <md-option value="size">{{:: 'ui.repository.option_size' | translate}}</md-option>
+        <md-option value="downloads">{{:: 'ui.repository.option_downloads' | translate}}</md-option>
+      </md-select>
+      <span>
+        <span style="cursor: pointer;" ng-switch on="automation.filter_order" layout="row">
+          <md-tooltip md-direction="bottom">{{:: 'ui.repository.order_direction' | translate}}</md-tooltip>
+          <span ng-switch-when="asc" flex ng-click="automation.filter_order='desc';automation.filterApply();">
+            <md-icon class="material-icons dashboard-icons md-default-theme">keyboard_arrow_up</md-icon>
+            <!-- {{:: 'ui.repository.order_ascendant_short' | translate}} -->
+          </span>
+          <span ng-switch-default flex ng-click="automation.filter_order='asc';automation.filterApply();">
+            <md-icon class="material-icons dashboard-icons md-default-theme">keyboard_arrow_down</md-icon>
+            <!-- {{:: 'ui.repository.order_descendant_short' | translate}} -->
+          </span>
+        </span>
+      </span>
+    </div>
+  </div>
+
+   <!-- <div style="margin-top:60px;">
+    {{:: 'ui.repository.categories' | translate}}:
+  </div>
+
+  <div>
+   <md-input-container flex>
+      <md-select ng-model="automation.category" placeholder="{{:: 'ui.repository.cat_all' | translate}}" multiple="true" aria-label="_" ng-change="automation.filterApply();"> -->
+        <!--<md-checkbox name="categories" ng-model="categories"><span display="inline;">{{:: 'ui.repository.cat_vehicles' | translate}}<span></md-checkbox>
+        <md-checkbox name="categories" ng-model="categories"><span display="inline;">{{:: 'ui.repository.cat_vehicles' | translate}}<span></md-checkbox>
+        <md-checkbox name="categories" ng-model="categories"><span display="inline;">{{:: 'ui.repository.cat_vehicles' | translate}}<span></md-checkbox>-->
+        <!-- <md-optgroup label="{{:: 'ui.repository.cat_veh' | translate}}">
+          <md-option class="repo_category_option" ng-value="cat.value" ng-repeat="cat in automation.categories | filter: {category: 'vehicles' }">{{cat.name | translate}}</md-option>
+        </md-optgroup>
+        <md-option class="repo_category_option" ng-value="cat.value" ng-repeat="cat in automation.categories | filter: {category: 'none' }">{{cat.name | translate}}</md-option>
+      </md-select>
+    </md-input-container>
+  </div>-->
+
+<!--
+  <div>
+    <md-checkbox name="subscribed_only" ng-model="repo.subscribed_only" ng-change="repo.filterApply();" ><span display="inline;">{{:: 'ui.repository.filter_subscribed_only' | translate}}<span></md-checkbox>
+  </div> -->
+
+  <div style="margin-top: 60px; margin-bottom: 10px;">
+    <label><md-icon style="margin-right: 5px;" class="material-icons">sort</md-icon>{{:: 'ui.repository.shortcuts' | translate}}</label>
+  </div>
+
+  <div layout="column">
+    <button class="md-button md-raised md-primary md-hue-1" ng-click="automation.setFilters('downloads','1');" style="text-transform: none;">{{:: 'ui.repository.filter_top_downloaded' | translate}}</button>
+    <button class="md-button md-raised md-primary md-hue-1" ng-click="automation.setFilters('rating','1');" style="text-transform: none;">{{:: 'ui.repository.filter_top_rated' | translate}}</button>
+    <button class="md-button md-raised md-primary md-hue-1" ng-click="automation.setFilters('update','1');" style="text-transform: none;">{{:: 'ui.repository.filter_latest' | translate}}</button>
+  </div>
+
+  <div layout="column" style="margin-top: 20px" ng-if="automation.modmgrrdy !== true">
+    <md-icon class="material-icons md-default-theme" style="color:#D60;">warning</md-icon>
+    {{:: 'ui.repository.modmgrnotready' | translate}}
+  </div>
+
+  <div layout="column" style="margin-top: 20px">
+    <div flex  ng-repeat="dState in automation.downState">
+      <div flex>
+          <p style="overflow: hidden; text-overflow: ellipsis; margin-bottom: 0px;">{{dState.filename}}</p>
+          <md-progress-linear md-mode="determinate" value="{{dState.progress}}"></md-progress-linear>
+      </div>
+      <div style="margin-top: 5px">
+        {{dState.progress}}% {{ dState.dlnow | bytes}} / {{ dState.dltotal | bytes}} @ {{ dState.dlspeed | bytes}}/s
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,18 @@
+{
+  "domElement": "<threedexport></threedexport>",
+  "name": "ui.apps.threedexport.name",
+  "types": [
+    "ui.apps.categories.utility"
+  ],
+  "description": "Exports the vehice as 3D .GLTF model",
+  "css": {
+    "left": "200px",
+    "height": "250px",
+    "top": "200px",
+    "width": "450px"
+  },
+  "author": "BeamNG",
+  "version": "1.0",
+  "preserveAspectRatio" : false,
+  "directive": "threedexport"
+}

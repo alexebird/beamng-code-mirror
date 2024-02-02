@@ -1,0 +1,14 @@
+{
+  "domElement": "<generic-mission-data></generic-mission-data>",
+  "name": "generic-mission-data",
+  "description": "generic-mission-data",
+  "css": {
+    "left": "0px",
+    "height": "50px",
+    "top": "0px",
+    "width": "250px"
+  },
+  "author": "BeamNG",
+  "version": "0.1",
+  "directive": "genericMissionData"
+}

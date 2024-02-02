@@ -1,0 +1,17 @@
+{
+  "domElement": "<race-recovery-counter></race-recovery-counter>",
+  "name": "Race Recovery Used",
+  "types": [
+    "ui.apps.categories.racing"
+  ],
+  "description": "Show Race Recoveries Used",
+  "css": {
+    "left": "0px",
+    "height": "50px",
+    "top": "0px",
+    "width": "250px"
+  },
+  "author": "BeamNG",
+  "version": "0.1",
+  "directive": "raceRecoveryCounter"
+}

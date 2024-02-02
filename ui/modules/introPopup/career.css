@@ -1,0 +1,63 @@
+/* NOTE: sizes should utilise em, since we have responsive sizing implemented in intro-popup itself */
+
+.card-content-container {
+  padding: 0;
+  overflow-y:auto;
+}
+
+.career-intro > *, .branch-column {
+  flex: 1 0 22%;
+  margin: 0 0.5em;
+}
+
+.career-intro > :first-child {
+  margin-left: 1em;
+}
+
+.career-intro > :last-child {
+  margin-right: 1em;
+}
+
+.career-intro > :first-child:last-child {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.career-intro > :first-child:last-child {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.career-intro > .flex-column > :not(.cover) {
+  padding: 0 1em;
+}
+
+.career-intro .motorsports {
+  background-image: url(/ui/modules/introPopup/assets/motorsports.jpg);
+}
+
+.career-intro .adventurer {
+  background-image: url(/ui/modules/introPopup/assets/adventurer.jpg);
+}
+
+.career-intro .labourer {
+  background-image: url(/ui/modules/introPopup/assets/labourer.jpg);
+}
+
+.career-intro .specialized {
+  background-image: url(/ui/modules/introPopup/assets/specialized.jpg);
+}
+
+.branch-column h4 {
+  margin: 0.5em 0;
+}
+
+.branch-column p {
+  margin-top: 0;
+}
+
+.career-intro .italic-paragraph {
+  font-style:italic;
+  font-weight:600;
+  letter-spacing:0.05em;
+}

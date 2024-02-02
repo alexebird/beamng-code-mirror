@@ -1,0 +1,341 @@
+.career {
+  display: flex;
+  flex-flow: column;
+}
+
+.career-size {
+  position: relative;
+  margin: 0 auto;
+  padding: 0 2%;
+  width: 100%;
+  height: 100%;
+  font-size: 1rem !important;
+}
+.career-size::before, .career-size::after { /* vertical centering */
+  flex: 1 1 auto;
+  content: "";
+}
+
+/* smaller screen */
+@media (max-width: 1280px) {
+  .career-size {
+    font-size: 1.094vw !important;
+  }
+}
+
+/* portrait mode */
+/* @media (max-width: 1081px) and (orientation: portrait) {
+  .career-size {
+    font-size: 1.95vw !important;
+  }
+} */
+
+
+.career *,
+.career-manage * {
+  position: relative;
+}
+
+.career > *:not(:last-child) {
+  margin-bottom: 2em;
+}
+
+.career > .headingContainer {
+  margin-bottom: 1em !important;
+}
+
+.career-cards {
+  display: flex;
+  flex-wrap: nowrap;
+  margin: -0.5em;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: calc(100% - 2em);
+}
+
+.career-cardholder {
+  flex: 0 0 22em;
+  width: 22em;
+  height: 28em;
+}
+
+.career-card {
+  position: absolute;
+  top: 0.5em;
+  left: 0.5em;
+  right: 0.5em;
+  bottom: 1em;
+  display: flex;
+  flex-flow: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  /* padding: 0.25em; */
+  color: white;
+  background-color: var(--bng-black-6);
+  background: center / cover no-repeat url(/ui/images/noimage.png);
+  border-radius: 4px;
+  text-align: left;
+  text-decoration: none;
+  cursor: default;
+  font-family: "Overpass", var(--fnt-defs) !important;
+}
+
+.career-card-outdated {
+    background-color: #808080 !important;
+    background-blend-mode: luminosity;
+}
+
+.career-card-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0.3em;
+  background-color: var(--bng-orange);
+}
+
+.career-card .career-card-buttons button {
+  font-family: "Overpass", var(--fnt-defs) !important;
+  font-weight: 550;
+  padding: 0.5em 0.75em 0.5em 0.75em;
+}
+
+.career-card,
+.career-manage {
+  display: flex;
+  flex-flow: column;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+/*.career-card > *,
+.career-manage > * {
+  flex: 0 0 auto;
+   width: 100%; 
+}*/
+
+.career-card[disabled] {
+  background-color: var(--bng-black-2);
+  pointer-events: none;
+}
+
+.career-card[disabled] > *:not(.fancy-blur) {
+  opacity: 0.65;
+}
+
+.career-manage {
+  flex: 1 1 auto;
+  justify-content: start;
+  padding: 1em;
+  height:52%;
+}
+
+.career-manage > button {
+  margin-bottom: 1em;
+}
+
+.career-manage-two-buttons {
+  flex-flow: row;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  margin-bottom: 1em;
+}
+
+.career-manage-two-buttons > * {
+  flex: 0 0 calc(50% - 0.5em);
+}
+
+.career-content.unwrapped, .career-card-buttons.unwrapped, .career-manage, .tutorial-onoff-select {
+  background: hsla(217, 22%, 12%, 1);
+}
+
+.career-card-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1em 0;
+  flex: 1 0.0001 auto;
+  border-radius: 0.25em 0.25em 0 0;
+  overflow: hidden;
+}
+
+.career-card-title-block,
+.career-card-text {
+  font-family: "Overpass", var(--fnt-defs);
+}
+
+.career-card-title-block {
+  position: absolute;
+  max-width: 80%;
+  align-items: flex-start;
+}
+
+.career-card-title {
+  font-weight: 900;
+  font-size: 2em;
+  letter-spacing: 0.02em;
+  line-height: 1.2em;
+  padding: 0 0.5em;
+  background-color: var(--bng-black-6);
+  overflow-wrap: break-word;
+}
+
+.career-card-date {
+  letter-spacing: 0.02em;
+    line-height: 1.2em;
+    padding: 0.25em 1em;
+    background-color: var(--bng-black-6);
+}
+
+.career-card-text {
+  letter-spacing: 0.02em;
+  line-height: 1.2em;
+}
+
+.career-card-title.modded {
+  margin-right: 2em;
+}
+
+.career-modded-icon {
+  background: #fff;
+  width: 2em;
+  height: 2em;
+  -webkit-mask-image: url(/ui/assets/SVG/24/puzzle-module.svg);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: 50% 50%;
+}
+
+.career-card-create {
+  background-image: none;
+  background-color: var(--bng-black-6);
+}
+
+.career-card-create .career-card-cover {
+  justify-content: center;
+}
+
+.career-card-create .career-card-title {
+  font-weight: 400;
+  font-size: 13em;
+  line-height: 1em;
+  align-self: stretch;
+  background-color: transparent;
+  flex: 0 0 auto;
+  text-align: center;
+  color: rgba(255,255,255,0.2);
+  position: relative;
+}
+
+.career-card-saveprompt > *:not(.career-saveprompt):not(.fancy-blur) {
+  display: none;
+}
+
+.career-cards button {
+  background-color: #2F4858;
+  border: #2F4858;
+  padding: 0.5em 0.75em 0.65em 0.75em;
+  border-radius: 0.25em;
+  color: #fff;
+}
+.career-cards button:disabled {
+  color: #ccc;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.career-card-buttons {
+  text-align: right;
+  flex: 0.0001 1 0;
+  padding: 0 1em;
+  border-top: 0px solid rgba(255,255,255,0.2);
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.0);
+  overflow: hidden;
+}
+
+.career-card-create .career-card-buttons {
+  flex: 0.0001 1 0%;
+  padding: 0;
+  border-top: 0px solid transparent;
+}
+
+.career-card-buttons > div {
+  /* On small height windows, fix the buttons top is showing at the bottom of the card */
+  padding-top: 1px;
+}
+
+.career-card-buttons button {
+  /* border: 2px solid #f60; */
+  border: 2px solid  #cc5200;
+  background-color: transparent;
+}
+.career-card-buttons button.selected {
+  /* background-color: #f60; */
+  background-color: #cc5200;
+}
+.career-card-buttons button[disabled] {
+  color: #ccc;
+  border: 1px solid #ccc;
+  background-color: transparent;
+}
+
+.career-card-buttons.unwrapped {
+  flex:0.0001 0.0001 2.75em;
+  padding: 0.5em 1em 0.5em 1em;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.career-status-levels {
+  height: 0;
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1.0);
+}
+
+.career-status-levels.unwrapped {
+  height: 11.5em;
+}
+
+.career-status-levels.unwrapped-long {
+  height: 15em;
+}
+
+.fancy-blur {
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0,auto,auto,0);
+  z-index: -1;
+  pointer-events: none;
+}
+.fancy-blur > * {
+  position: fixed;
+}
+.fancy-blur,
+.fancy-blur > * {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.delete-button {
+  position: absolute;
+  top: 100%;
+  right: 5%;
+  height: 35px;
+  width: 75px;
+  z-index: 100;
+}
+
+.tutorial-onoff-select {
+  flex: auto;
+  padding: 1em 1em;
+}
+
+.tutorial-onoff-desc {
+  padding-top: 1.5em;
+}
+.tutorial-onoff-desc.selected {
+  color: var(--bng-cool-gray-400)
+}

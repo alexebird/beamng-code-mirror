@@ -1,0 +1,17 @@
+{
+  "domElement": "<generic-graph-advanced></generic-graph-advanced>",
+  "name": "ui.apps.generic_graph_advanced.name",
+  "types": [
+    "ui.apps.categories.debug"
+  ],
+  "description": "This app can be used to display generic graphs using streams.drawgraph() vlua function",
+  "css": {
+    "left": "0px",
+    "height": "160px",
+    "top": "0px",
+    "width": "450px"
+  },
+  "author": "Diamondback",
+  "version": "0.1",
+  "directive": "genericGraphAdvanced"
+}

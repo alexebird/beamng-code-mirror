@@ -1,0 +1,176 @@
+<!-- Imageslider in this menu is slightly faster -->
+<style>
+  .levelSelectImageSlider .imageslideItem {
+    transition: 0.25s linear opacity;
+  }
+
+  .levelSelectImageSlider .imageslideItem.ng-hide-add, .imageslideItem.ng-hide-remove {
+    transition: 0.25s linear opacity;
+  }
+
+  md-grid-list md-grid-tile md-grid-tile-footer {
+    background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5));
+  }
+
+  md-grid-tile-footer figcaption {
+    text-shadow: rgba(0,0,0,0.25) 0 0.25em 1em;
+  }
+</style>
+
+<md-content flex layout="column">
+  <md-toolbar>
+    <div class="md-toolbar-tools">
+      <span flex>{{:: 'ui.levelselect.title' | translate}}</span>
+
+      <!-- <md-input-container flex="30" style="position: relative; top: 8px;">
+        <label style="color: white"><md-icon class="material-icons">search</md-icon>{{:: 'ui.common.search' | translate}}</label>
+        <input style="color: white" ng-model="query" ng-model-options="{debounce: 100}" ng-change="lsCtrl.updateList(query)">
+      </md-input-container>
+      <md-button style="margin: auto 0px;" md-no-ink class="md-icon-button md-warn" ng-click="query = ''; lsCtrl.updateList(query)" ng-disabled="!query">
+        <md-icon class="material-icons">close</md-icon>
+      </md-button> -->
+
+    </div>
+  </md-toolbar>
+
+  <div flex layout-padding style="overflow-y: auto" bng-nav-scroll>
+    <md-grid-list flex
+          md-cols="1"
+          md-cols-md="1"
+          md-cols-gt-md="3"
+          md-cols-gt-lg="4"
+
+          md-row-height-gt-md="16:9"
+          md-row-height="300px"
+          md-gutter="4px"
+          md-gutter-gt-sm="4px"
+          class="gridMarkSelected">
+      <md-grid-tile ng-repeat="level in lsCtrl.filtered track by $index"
+                    ng-if="!level.isAuxiliary || lsCtrl.showAuxiliary"
+                    bng-all-clicks single="lsCtrl.showDetails(level, app.gameState)"
+                    double="lsCtrl.showDetails(level, app.gameState)"
+                    ng-mouseover="lsCtrl.select(level)"
+                    ng-focus="lsCtrl.select(level)"
+                    bng-sound-class="bng_click_hover_generic"
+                    tabindex="0"
+                    id="level_{{:: level.levelName }}"
+                    ng-class="{ 'gridMarkSelected': lsCtrl.selected && lsCtrl.selected.levelName === level.levelName }"
+                    >
+        <img ng-src="{{ level.previews[0] }}" style="width: 100%; height: 100%; object-fit: cover;">
+        <md-grid-tile-footer class="md-padding" style="pointer-events: none;">
+            <h3 style="position: relative;">
+              <bng-icon ng-if=":: level.official && level.authors !== 'BeamNG & Camshaft Software'" src="'general_beamng_logo_w'" style="left: -2em; top: -0.7em; width: 22px; height: 22px; color: white; position: absolute;" type="sprite"></bng-icon>
+              <bng-icon ng-if=":: level.authors === 'BeamNG & Camshaft Software'"  src="'/ui/assets/Original/camshaft_automation_logo.svg'" type="img" style="margin-right: 4px; left: -2em; top: -0.7em; bottom: 25%; width: 22px; height: 22px; color: white; position: absolute;"></bng-icon>
+              <md-icon ng-if="level.isAuxiliary" class="material-icons" style="margin-right: 0.3em; width: 22px; height: 22px; color: white;">report</md-icon>{{level.title | translate}}
+            </h3>
+          </md-grid-tile-footer>
+      </md-grid-tile>
+      <md-grid-tile ng-click="app.openRepo()" mdx-paint-bg="accent">
+        <span class="material-icons" style="font-size: 2rem; color: white; ">add_to_photos</span>
+        <md-grid-tile-footer><h3>{{:: 'ui.common.downloadMore' | translate}}</h3></md-grid-tile-footer>
+      </md-grid-tile>
+    </md-grid-list>
+  </div>
+</md-content>
+
+<md-content layout="column" flex style="max-width: 400px; height: 100%;">
+  <md-toolbar class="md-primary md-hue-1">
+    <div class="md-toolbar-tools">
+      <h2 flex style="text-align: center;">{{lsCtrl.selected.title | translate}}</h2>
+    </div>
+  </md-toolbar>
+
+  <div layout="row" layout-align="center center" style="z-index: var(--zorder_levelselect_search);" class="md-whiteframe-z1">
+    <md-input-container flex style="margin-left: 16px;">
+      <label><md-icon class="material-icons">search</md-icon>{{:: 'ui.common.search' | translate}}</label>
+      <input ng-model="query" ng-model-options="{debounce: 100}" ng-change="lsCtrl.updateList(query)">
+    </md-input-container>
+    <md-button md-no-ink class="md-icon-button md-warn" ng-click="query = ''; lsCtrl.updateList(query)" ng-disabled="!query">
+      <md-icon class="material-icons">close</md-icon>
+    </md-button>
+  </div>
+
+  <div ng-if="lsCtrl.selected" class="levelSelectImageSlider">
+    <img-carousel delay="1500" nav="true" style="width: 400px; height: 225px;" imageurls="lsCtrl.selected.previews" />
+  </div>
+
+  <div ng-if="lsCtrl.selected" flex layout-padding style="overflow:auto">
+    <md-list>
+
+      <md-list-item class="md-2-line" ng-show="lsCtrl.selected.description">
+        <md-icon class="material-icons" style="font-size: 2em">message</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.description' | translate}}</h3>
+          <p>{{lsCtrl.selected.description | translate}}</p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line" ng-show="(lsCtrl.selected.size[0] || -1) != -1">
+        <md-icon class="material-icons" style="font-size: 2em">settings_overscan</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.size' | translate}}</h3>
+          <p>{{ lsCtrl.selected.size[0] || 0 | unit : 'length' : 3}} x {{ lsCtrl.selected.size[1] || 0 | unit : 'length' : 3}}
+            <span ng-show="(lsCtrl.selected.size[0] || -1) > 0 && (lsCtrl.selected.size[1] || -1) > 0">
+              ({{ lsCtrl.selected.size[0] * lsCtrl.selected.size[1] | unit : 'area' : 1 }})
+            </span>
+          </p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line" ng-show="lsCtrl.selected.biome">
+        <md-icon class="material-icons" style="font-size: 2em">landscape</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.biome' | translate}}</h3>
+          <p>{{lsCtrl.selected.biome | translate}}</p>
+        </div>
+      </md-list-item>
+
+
+      <md-list-item class="md-2-line"  ng-show="lsCtrl.selected.roads">
+        <md-icon class="material-icons" style="font-size: 2em">directions_car</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.roads' | translate}}</h3>
+          <p>{{lsCtrl.selected.roads | translate}}</p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line" ng-show="lsCtrl.selected.suitablefor">
+        <md-icon class="material-icons" style="font-size: 2em">flag</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.suitablefor' | translate}}</h3>
+          <p>{{lsCtrl.selected.suitablefor | translate}}</p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line" ng-show="lsCtrl.selected.features">
+        <md-icon class="material-icons" style="font-size: 2em">place</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.features' | translate}}</h3>
+          <p>{{lsCtrl.selected.features | translate}}</p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line" ng-show="lsCtrl.selected.authors">
+        <md-icon class="material-icons" style="font-size: 2em">people</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.authors' | translate}}</h3>
+          <p>{{lsCtrl.selected.authors | translate}}</p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line" ng-show="lsCtrl.selected.spawnPoints.length > 1">
+        <md-icon class="material-icons" style="font-size: 2em">pin_drop</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.spawnpoints' | translate}}</h3>
+          <p>{{ lsCtrl.selected.spawnPoints.length }}</p>
+        </div>
+      </md-list-item>
+    </md-list>
+  </div>
+
+  <md-list-item md-no-ink style="overflow: hidden;">
+    <p><md-icon class="material-icons">report</md-icon> {{:: "ui.showAuxiliary" | translate}}</p>
+    <md-checkbox ng-model="lsCtrl.showAuxiliary" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+  </md-list-item>
+
+</md-content>

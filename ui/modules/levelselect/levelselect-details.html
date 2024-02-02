@@ -1,0 +1,108 @@
+<style>
+  md-grid-list md-grid-tile md-grid-tile-footer {
+    background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5));
+  }
+  md-grid-list md-grid-tile md-grid-tile-footer figcaption {
+    text-shadow: rgba(0,0,0,0.25) 0 0.25em 1em;
+  }
+</style>
+
+<md-content flex layout="column">
+  <md-toolbar>
+    <div class="md-toolbar-tools">
+      <span flex>{{:: 'ui.levelselect.title' | translate}} - {{:: 'ui.levelselect.chooseSpawnpoint' | translate}}</span>
+
+      <md-icon class="material-icons" md-font-icon="play">play</md-icon>
+    </div>
+  </md-toolbar>
+
+  <div flex layout-padding style="overflow-y: auto">
+    <md-grid-list flex
+          md-cols-sm="1"
+          md-cols-md="1"
+          md-cols-gt-md="3"
+          md-cols-gt-lg="4"
+
+          md-row-height-gt-md="16:9"
+          md-row-height="16:9"
+          md-gutter="4px"
+          md-gutter-gt-sm="4px"
+          class="gridMarkSelected">
+      <md-grid-tile ng-repeat="spawnpoint in levelsDetails.level.spawnPoints track by $index"
+      bng-all-clicks single="levelsDetails.select(spawnpoint, true)" double="levelsDetails.launch(spawnpoint)"
+      ng-focus="levelsDetails.select(spawnpoint)"
+      ng-class="(spawnpoint === levelsDetails.selected) ? 'selectedGridItem' : ''"
+      bng-sound-class="bng_click_hover_generic"
+      focus-if="{{ :: 0 === $index }}"
+      >
+        <!-- <imageslider imageurls="spawnpoint.previews" style="height: 100%; width: 100%"></imageslider> -->
+        <img ng-src="{{ spawnpoint.previews[0] }}" style="width: 100%; height: 100%; object-fit: cover;">
+
+        <md-grid-tile-footer>
+          <div layout="row" layout-align="start center" class="md-padding">
+              <h3>{{ ::(spawnpoint.translationId === undefined ? spawnpoint.name : spawnpoint.translationId) | translate }}
+              <span ng-if="spawnpoint.flag === 'default'">({{:: 'ui.common.default' | translate}})</span></h3>
+            </div>
+          </md-grid-tile-footer>
+      </md-grid-tile>
+  </div>
+</md-content>
+
+<md-content ng-show="levelsDetails.level" layout="column" id="levelspawn-details" flex style="max-width: 400px; height: 100%;">
+  <md-toolbar class="md-primary md-hue-1">
+    <div class="md-toolbar-tools">
+      <span flex>{{levelsDetails.level.title | translate}}</span>
+    </div>
+  </md-toolbar>
+
+  <img ng-src="{{levelsDetails.selected.previews[0]}}" style="width: 100%">
+  <md-divider></md-divider>
+
+  <div flex layout-padding style="overflow:auto">
+  <span flex layout="row" layout-align="center center">{{ (levelsDetails.selected.translationId === undefined ? levelsDetails.selected.name : levelsDetails.selected.translationId) | translate }}</span>
+    <md-list>
+      <md-list-item class="md-2-line" ng-if="levelsDetails.selected.description">
+        <md-icon class="material-icons" style="font-size: 2em">message</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.description' | translate}}</h3>
+          <p ng-if="!levelsDetails.isDefault(levelsDetails.selected)">{{levelsDetails.selected.description | translate}}</p>
+          <p ng-if="levelsDetails.isDefault(levelsDetails.selected)">{{levelsDetails.level.description | translate}}</p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line">
+        <md-icon class="material-icons" style="font-size: 2em">settings_overscan</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.size' | translate}}</h3>
+          <p>{{ levelsDetails.level.size[0] || 0 | unit : 'length' : 3}} x {{ levelsDetails.level.size[1] || 0 | unit : 'length' : 3}}
+            <span ng-show="(levelsDetails.level.size[0] || -1) > 0 && (levelsDetails.level.size[1] || -1) > 0">
+              ({{ levelsDetails.level.size[0] * levelsDetails.level.size[1] | unit : 'area' : 1 }})
+            </span>
+          </p>
+        </div>
+      </md-list-item>
+
+      <md-list-item class="md-2-line">
+        <md-icon class="material-icons" style="font-size: 2em">flag</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.suitablefor' | translate}}</h3>
+          <p>{{levelsDetails.level.suitablefor | translate}}</p>
+        </div>
+      </md-list-item>
+
+
+
+      <md-list-item class="md-2-line">
+        <md-icon class="material-icons" style="font-size: 2em">people</md-icon>
+        <div class="md-list-item-text">
+          <h3>{{:: 'ui.levelselect.authors' | translate}}</h3>
+          <p>{{ levelsDetails.level.authors }}</p>
+        </div>
+      </md-list-item>
+    </md-list>
+  </div>
+
+  <div layout="row" class="md-padding">
+    <button layout-fill bng-sound-class="bng_click_generic" id="levelspawn-default" class="md-button md-primary md-raised md-accent" ng-click="levelsDetails.launch(levelsDetails.selected)" style="text-transform: none;"><b>{{:: 'ui.levelselect.spawn' | translate}}</b></button>
+  </div>
+</md-content>

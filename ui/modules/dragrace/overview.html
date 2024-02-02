@@ -1,0 +1,306 @@
+<style>
+  .quickraceOverview.transparent {
+    background-color: transparent;
+    color: white;
+  }
+
+  .quickraceOverview .color1 {
+    color: white !important;
+  }
+
+  .quickraceOverview .header {
+    min-height: 50px;
+    font-size: 2vh;
+    padding-left: 10px;
+    opacity: 0.8;
+    background-color: rgba(255, 103, 0, 0.8);
+  }
+
+  .quickraceOverview .darkbg {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  .quickraceOverview .title {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background-color: rgb(255, 103, 0);
+    font-size: 3vh;
+    padding: 1% 2.5%;
+  }
+
+  .quickraceOverview .mockedCover {
+    width: 105%;
+    min-height: 105%;
+    -webkit-transform: translate(-50%, -50%);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+  }
+
+  .quickraceOverview .tile {
+    cursor: pointer;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .quickraceOverview .tile:focus .header {
+    opacity: 1;
+    background-color: rgb(255, 103, 0);
+  }
+
+  @-webkit-keyframes zoomIn {
+    100% {
+      width: 100%;
+      min-height: 100%;
+    }
+  }
+
+  .quickraceOverview .tile:focus .mockedCover {
+    -webkit-animation: zoomIn 0.2s forwards;
+  }
+
+  .quickraceOverview .tile:focus::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    box-sizing: border-box;
+    border: 4px solid rgb(255, 103, 0);
+    pointer-events: none;
+  }
+
+  .quickraceOverview .playBtn {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.7);
+
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    -webkit-transform: translate(-50%, 0%);
+  }
+
+  .quickraceOverview .playBtn:focus {
+    background-color: rgb(255, 103, 0);
+  }
+
+  .quickraceOverview .disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    /*background-color: rgba(120, 120, 120, 0.8); */
+  }
+
+  .quickraceOverview .disabled.playBtn {
+    opacity: 0.5;
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  /*
+  .quickraceOverview .menu-navigation:focus {
+    outline: none !important;
+  }*/
+
+  .quickraceOverview md-list-item:focus {
+    background-color: rgba(255, 103, 0, 0.35);
+  }
+
+  .popover {
+    position: absolute;
+    z-index: var(--zorder_dragrace_popover);
+  }
+</style>
+
+<md-content layout-fill style="position: relative;" layout="row" layout-align="center center" class="quickraceOverview transparent filler">
+  <div flex style="max-width: 130vh;">
+    <md-grid-list md-cols="9" md-row-height="18:25" md-gutter="2vh">
+
+      <md-grid-tile md-rowspan="2" md-colspan="9" ng-if="results.length > 0">
+        <div></div>
+      </md-grid-tile>
+
+      <md-grid-tile md-rowspan="2" md-colspan="7">
+        <div class="filler tile" bng-nav-item focus-if="true" layout="row" ui-sref="{{ ::getTargetState(selections.vehicle)}}">
+
+          <div flex="60" layout="column">
+            <div class="header" layout="row" layout-align="start center">
+              <div ng-if=":: selections.vehicle.official" layout="row" layout-align="center center" style="margin: 0 10px;">
+                <img src="/ui/images/beamng_logo_50x50.png" height="22px" style="-webkit-filter: brightness(0) invert(1);" />
+                <md-tooltip md-direction="top">
+                  {{:: "ui.common.official" | translate}}
+                </md-tooltip>
+              </div>
+              {{selections.vehicle.name}}
+            </div>
+
+            <div flex style="overflow: hidden; position: relative;">
+              <imageslider imageurls="selections.vehicle.preview" class="mockedCover"></imageslider>
+            </div>
+          </div>
+
+          <div flex="40" class="darkbg" layout="column" style="overflow: auto;">
+            <md-list>
+              <md-list-item class="md-2-line">
+                <md-icon ng-hide="selections.vehicle.file.Country" class="material-icons color1" style="font-size: 2em">info</md-icon>
+                <country-flag src="selections.vehicle.file.Country" ng-if="selections.vehicle.file.Country != missing" style="margin-top: 16px; margin-bottom: 12px; margin-right: 27px;"></country-flag>
+
+                <div class="md-list-item-text">
+                  <h3 class="color1">{{:: 'ui.quickrace.country' | translate}}</h3>
+                  <p class="color1" ng-if="selections.vehicle.file">{{selections.vehicle.file.Country | translate}}</p>
+                  <p class="color1" ng-if="!selections.vehicle.file">{{:: 'ui.common.unknown' | translate}}</p>
+                </div>
+              </md-list-item>
+
+              <md-list-item class="md-2-line">
+                <md-icon class="material-icons color1" style="font-size: 2em">info</md-icon>
+                <div class="md-list-item-text">
+                  <h3 class="color1">{{:: 'ui.quickrace.brand' | translate}}</h3>
+                  <p class="color1" ng-if="selections.vehicle.file">{{selections.vehicle.file.Brand | translate}}</p>
+                  <p class="color1" ng-if="!selections.vehicle.file">{{:: 'ui.common.unknown' | translate}}</p>
+                </div>
+              </md-list-item>
+
+              <md-list-item class="md-2-line">
+                <md-icon class="material-icons color1" style="font-size: 2em">info</md-icon>
+                <div class="md-list-item-text">
+                  <h3 class="color1">{{ 'Performance Class' | translate }}</h3>
+                  <p class="color1" ng-if="selections.vehicle.file['Performance Class']">{{ selections.vehicle.file['Performance Class'] | translate
+                    }}
+                  </p>
+                  <p class="color1" ng-if="!selections.vehicle.file['Performance Class']">{{:: 'ui.common.unknown' | translate}}</p>
+                </div>
+              </md-list-item>
+
+              <md-list-item class="md-2-line" ng-if="unit == 'metric'">
+                <md-icon class="material-icons color1" style="font-size: 2em">info</md-icon>
+                <div class="md-list-item-text">
+                  <h3 class="color1">{{ '0-100 km/h' | translate }}</h3>
+                  <p class="color1" ng-if="selections.vehicle.file['0-100 km/h']">{{ selections.vehicle.file["0-100 km/h"] | translate }}</p>
+                  <p class="color1" ng-if="!selections.vehicle.file['0-100 km/h']">{{:: 'ui.common.unknown' | translate}}</p>
+                </div>
+              </md-list-item>
+
+              <md-list-item class="md-2-line" ng-if="unit == 'imperial'">
+                <md-icon class="material-icons color1" style="font-size: 2em">info</md-icon>
+                <div class="md-list-item-text">
+                  <h3 class="color1">{{ '0-60 mph' | translate }}</h3>
+                  <p class="color1" ng-if="selections.vehicle.file['0-60 mph']">{{ selections.vehicle.file["0-60 mph"] | translate }}</p>
+                  <p class="color1" ng-if="!selections.vehicle.file['0-60 mph']">{{:: 'ui.common.unknown' | translate}}</p>
+                </div>
+              </md-list-item>
+
+            </md-list>
+          </div>
+
+          <div class="title">
+            {{ :: 'Select Opponent' | translate }}
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <md-grid-tile md-rowspan="2" md-colspan="2">
+        <div class="filler tile" ng-class="{'disabled': false}" layout="column">
+          <div class="header" layout="row" layout-align="start center" style="opacity: 1;">
+            <md-icon class="material-icons color1" style="margin: 0 10px;">tune</md-icon>
+            {{:: 'ui.quickrace.setting' | translate}}
+          </div>
+
+          <div class="filler darkbg" style="overflow: auto;" layout="column" layout-align="start center">
+            <div ng-click="selectRandomOpponent()" class="playBtn"  bng-nav-item style="margin: 5% auto; bottom: 0%; left:0; -webkit-transform: translate(0%, 0%);position:unset; font-size: 1.5vh; padding: 10px; text-align: center; min-width: 150px; width: 90%;">
+              {{:: "ui.dragrace.randomOpponent" | translate}}
+            </div>
+            <div ng-click="selectRandomOpponent(true)" class="playBtn" bng-nav-item style="margin: 5% auto; bottom: 0%; left:0; -webkit-transform: translate(0%, 0%);position:unset; font-size: 1.5vh; padding: 10px; text-align: center; min-width: 150px; width: 90%;">
+              {{:: "ui.dragrace.randomOpponent" | translate}} <br> ({{:: "ui.dragrace.similarOpponent" | translate}})
+            </div>
+
+            <md-list-item layout="row" layout-align="space-between center" bng-nav-item
+              ng-class="{color1: rollingStartFocused}" style="margin: 5% auto; bottom: 0%; left:0; -webkit-transform: translate(0%, 0%); min-width: 150px; width: 90%;" ng-if='cinematicEnabled'>
+              <p flex>{{ :: 'Cinematic Camera' | translate }}</p>
+              <bng-select class="bng-select-checkbox" ng-model="enableCinematicCam" ng-change="updateCinematicCam(enableCinematicCam);" loop
+                options="[{l: 'On', v: true}, {l: 'Off', v: false}]" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+            </md-list-item>
+
+            <md-list-item layout="row" layout-align="space-between center" bng-nav-item
+              ng-class="{color1: rollingStartFocused}" style="margin: 5% auto; bottom: 0%; left:0; -webkit-transform: translate(0%, 0%); min-width: 150px; width: 90%;">
+              <p flex>{{ :: '.400 Pro Tree' | translate }}</p>
+              <bng-select class="bng-select-checkbox" ng-model="enableProTree" ng-change="updateProTree(enableProTree);" loop
+                options="[{l: 'On', v: true}, {l: 'Off', v: false}]" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+            </md-list-item>
+
+            <div ng-click="exit()" layout-align="end center" class="playBtn" bng-nav-item style="margin: 5% auto; bottom: 0%; left:0; -webkit-transform: translate(0%, 0%);position:unset; font-size: 1.5vh; padding: 10px; text-align: center; min-width: 150px; width: 90%;">
+              Exit
+            </div>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <md-grid-tile md-rowspan="1" md-colspan="9" ng-if="false && (results.length > 0)">
+        <div class="filler tile" ng-class="{'disabled': false}" layout="column">
+          <div ng-show="!showLapRecords" class="header" layout="row" layout-align="start center" style="opacity: 1;" ng-click="toggleShowLapRecords();settingsChanged(); ">
+            <md-icon class="material-icons color1" style="margin: 0 10px;">timer</md-icon>
+            {{:: 'Results' | translate}}
+          </div>
+
+          <!-- <div ng-show = "showLapRecords" class="header" layout="row" layout-align="start center" style="opacity: 1;" ng-click="toggleShowLapRecords();settingsChanged(); ">
+          <md-icon class="material-icons color1" style="margin: 0 10px;">timer</md-icon>
+          {{:: 'ui.quickrace.highscoresSingle' | translate}}
+         </div> -->
+
+          <div class="filler darkbg" style="overflow: auto;">
+            <table style="width:100%">
+              <tr>
+                <th>#</th>
+                <th style="text-align:center">{{:: "ui.busRoute.vehicle" | translate}}</th>
+                <th style="text-align:center">{{:: "ui.quickrace.time" | translate}}</th>
+                <th style="text-align:center">{{:: "ui.goals.speed" | translate}}</th>
+              </tr>
+              <tr ng-repeat="result in results">
+                <td style="text-align:center">{{$index + 1}}</td>
+                <td style="text-align:left">{{result.vehicle}}</td>
+                <td style="text-align:center">{{result.time}}</td>
+                <td style="text-align:center">{{result.speed}}</td>
+
+                <!-- <td style="text-align:left">{{record.playerName}}</td>
+
+               <td style="text-align:right" >{{record.formattedTime}}</td> -->
+                <!-- <td ng-show="record.detailed" colspan="2">
+                 <table style="width:100%">
+                   <tr>
+                     <td style="text-align:left">Time</td>
+                     <td style="text-align:right">{{record.formattedTime}}</td>
+                   </tr>
+                   <tr>
+                     <td style="text-align:left">Vehicle Brand</td>
+                     <td style="text-align:right">{{record.vehicleBrand}}</td>
+                   </tr>
+                   <tr>
+                     <td style="text-align:left">Vehicle Name</td>
+                     <td style="text-align:right">{{record.vehicleName}}</td>
+                   </tr>
+                   <tr>
+                     <td style="text-align:left">Recorded at</td>
+                     <td style="text-align:right">{{record.formattedTimestamp}}</td>
+                   </tr>
+                 </table>
+               </td> -->
+              </tr>
+            </table>
+          </div>
+        </div>
+      </md-grid-tile>
+
+
+
+      <md-grid-tile md-colspan="9" md-rowspan="1" layout="row" layout-align="bottom center">
+        <div ng-click="startRace();" class="playBtn" bng-nav-item style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;"
+          ng-class="{'disabled': isDisabled()}">
+          {{:: 'Start' | translate}}
+        </div>
+      </md-grid-tile>
+    </md-grid-list>
+  </div>
+
+  </div>
+
+</md-content>

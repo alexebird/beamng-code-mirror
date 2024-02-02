@@ -1,0 +1,49 @@
+<md-content layout="row" layout-align="start center"style="overflow-y: hidden;position:absolute;width:500px;height:50px;left:150px; z-index: var(--zorder_appedit_bar); padding:5px;border-bottom-right-radius: 15px;border-bottom-left-radius: 15px;">
+  <md-button ng-click="delete()" style="transition:none; min-width:35px" class="md-warn md-raised">
+    <md-icon class="material-icons">settings_backup_restore</md-icon>
+    <md-tooltip>{{:: "ui.appselect.reset" | translate}}</md-tooltip>
+  </md-button>
+
+  <md-input-container style="padding:inherit !important;">
+    <md-select
+    style="width: 150px; margin: 0px;"
+    ng-model="activeLayoutId"
+    ng-change="changeLayout(activeLayoutId)"
+    >
+      <md-optgroup label="Gameplay">
+        <md-option ng-value="layout.filename" ng-repeat="(id, layout) in UIAppStorage.availableLayouts | orderBy:'valueOf()':false:titleSort" ng-if="!layout.devonly">
+          <span ng-switch on="layout.title !== undefined">
+            <span ng-switch-when="true">{{layout.title}}</span>
+            <span ng-switch-default>Type {{layout.type}}</span>
+          </span>
+        </md-option>
+      </md-optgroup>
+      <md-optgroup label="Advanced / dev only" ng-if="!app.shipping">
+        <md-option ng-value="layout.filename" ng-repeat="(id, layout) in UIAppStorage.availableLayouts | orderBy:'valueOf()':false:titleSort" ng-if="layout.devonly">
+          <span ng-switch on="layout.title !== undefined">
+            <span ng-switch-when="true"><md-icon class="material-icons">bug_report</md-icon>{{layout.title}}</span>
+            <span ng-switch-default><md-icon class="material-icons">bug_report</md-icon>Type {{layout.type}}</span>
+          </span>
+        </md-option>
+      </md-optgroup>
+    </md-select>
+
+    <md-tooltip md-direction="bottom">Allows changing the layout</md-tooltip>
+  </md-input-container>
+
+  <md-button class="md-accent md-raised" ng-if="!ctrl.editingLayout" ng-click="ctrl.editLayout()" style="min-width:50px;">
+    <md-icon class="material-icons">border_all</md-icon>
+    {{:: "ui.appselect.edit" | translate}}
+  </md-button>
+
+  <md-button class="md-accent md-raised" ng-if="ctrl.editingLayout" ng-click="ctrl.doneEditLayout()" style="min-width:50px;">
+    <md-icon class="material-icons">border_clear</md-icon>
+    {{:: "ui.appselect.done" | translate}}
+  </md-button>
+
+  <md-button class="md-primary md-raised" ui-sref="menu.appselect" style="background-color:rgba(39, 128, 39, 0.9); min-width:50px;">
+    <md-icon class="material-icons">add</md-icon>
+    {{:: "ui.appselect.add" | translate}}
+  </md-button>
+
+</md-content>

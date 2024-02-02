@@ -1,0 +1,23 @@
+bng-accordion {
+  display: block;
+  padding: 0px;
+  -webkit-user-select: none; }
+  bng-accordion bng-accordion-pane {
+    padding: 0px;
+    display: block; }
+  bng-accordion bng-pane-header .inputName:hover {
+    color: var(--bng-orange);
+    }
+  bng-accordion bng-pane-header div span.paneOpener:hover {
+    color: var(--bng-orange);
+    }
+  bng-accordion bng-pane-header {
+    display: block;
+    cursor: pointer; }
+    bng-accordion bng-pane-header ._root {
+      display: flex;
+      align-items: center;
+      box-sizing: border-box; }
+  bng-accordion bng-pane-body {
+    display: block;
+    padding-left: 0px; }

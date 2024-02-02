@@ -1,0 +1,34 @@
+<div style="height:100%; width:100%; overflow: auto;"  class="bngApp md-padding">
+  <style>
+  .thermal_warning {
+    background-color:#aaaa55;
+    color:#444411;
+  }
+  .thermal_error {
+    background-color: #ff5555;
+    color:#440000;
+  }
+  </style>
+
+  <label layout="row" layout-align="start center">
+    <span flex style="margin-right: 10px">{{:: 'ui.apps.brake_thermal_debug.selectWheels' | translate}}</span>
+    <md-select flex="20" ng-model="displayWheel1">
+      <md-option ng-repeat="w in wheels" ng-value="w">{{ ::w }}</md-option>
+    </md-select>
+    <md-select flex="20" ng-model="displayWheel2">
+      <md-option ng-repeat="w in wheels | orderBy:'-toString()'" ng-value="w">{{ ::w }}</md-option>
+    </md-select>
+  </label>
+  <hr>
+
+
+  <div ng-repeat="set in data" layout="row">
+    <div flex>{{set.name | translate}}</div>
+    <div flex="20" ng-class="{'thermal_warning': set.warn1, 'thermal_error': set.error1}">
+      {{set.str1}}
+    </div>
+    <div flex="20" ng-class="{'thermal_warning': set.warn2, 'thermal_error': set.error2}">
+      {{set.str2}}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+{
+  "domElement": "<police-info></police-info>",
+  "name": "Police Info",
+
+  "css": {
+    "left": "0px",
+    "top": "300px",
+    "width": "300px",
+    "min-width": "300px",
+    "max-width": "300px",
+    "height": "160px",
+    "min-height": "100px",
+    "max-height": "200px"
+  },
+  "description": "An app to display police information from the traffic system.",
+  "author": "beamng.ui Team",
+  "version": "1",
+  "directive": "policeInfo"
+}

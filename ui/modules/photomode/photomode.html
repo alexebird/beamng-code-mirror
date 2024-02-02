@@ -1,0 +1,468 @@
+<link href="/ui/modules/photomode/photomode.css" rel="stylesheet" />
+
+<div class="photomode-container" ng-show="photo.showControls">
+  <div style="position: absolute; top:0; right: 0; bottom: 0; left:0;" layout="column" ng-show="photo.settings.showGrid">
+    <div layout-align="row" ng-repeat="num in [1,2,3]" layout="row" flex>
+      <div ng-repeat="num in [1,2,3]" flex style="border:rgba(0, 0, 0, 0.3) 1px solid;"></div>
+    </div>
+  </div>
+  <div class="tl" layout layout-align="center center">
+    <button class="overlay-button" ng-click="photo.takePic()" bng-sound="{click: 'event:>UI>Main>Photo'}">
+      <div class="material-icons">photo_camera</div>
+      <md-tooltip md-direction="bottom">{{:: 'ui.photomode.takeScreen' | translate}}</md-tooltip>
+    </button>
+    <button class="overlay-button" ng-click="photo.takeBigPic()" bng-sound="{click: 'event:>UI>Main>Photo'}">
+      <div class="material-icons">aspect_ratio</div>
+      <md-tooltip md-direction="bottom">{{:: 'ui.photomode.takebigScreen' | translate}}</md-tooltip>
+    </button>
+    <button md-no-ink class="overlay-button" ng-click="photo.sharePic()" bng-sound="{click: 'event:>UI>Generic>Select'}">
+      <div class="material-icons">share</div>
+      <md-tooltip md-direction="bottom">{{:: 'ui.photomode.uploadScreen' | translate}}</md-tooltip>
+    </button>
+    <button ng-if="photo.steamAvailable" md-no-ink class="overlay-button" ng-click="photo.steamPic()" bng-sound="{click: 'event:>UI>Generic>Select'}">
+      <div class="icon-mask"
+        style="-webkit-mask-image: url(/ui/modules/photomode/steam-logo.svg);
+        width: 1.5em;
+        background-color: white;
+        height: 1.5em;"></div>
+      <md-tooltip md-direction="bottom">{{:: 'ui.photomode.steamScreen' | translate}}</md-tooltip>
+    </button>
+
+    <button md-no-ink class="overlay-button" ng-click="photo.openScreenshotsFolderInExplorer()">
+      <div class="material-icons">folder_open</div>
+      <md-tooltip md-direction="bottom">{{:: 'ui.photomode.openScreenshotsFolder' | translate}}</md-tooltip>
+    </button>
+  </div>
+
+  <div class="tr" layout layout-align="center center">
+  </div>
+
+  <div class="bl" layout layout-align="center center">
+    <button md-no-ink class="overlay-button" ui-sref="menu" bng-sound-class="bng_cancel_generic">
+      <div class="material-icons">close</div>
+      <md-tooltip md-direction="right">{{:: 'ui.photomode.quitPhotoMode' | translate}}</md-tooltip>
+    </button>
+  </div>
+
+  <div class="br" layout layout-align="center center">
+    <button md-no-ink class="overlay-button" ng-click="photo.toggleSettings()" ng-hide="photo.settings.visible">
+      <div class="material-icons">settings</div>
+      <md-tooltip md-direction="left">{{:: 'ui.photomode.advancedImgSettings' | translate}}</md-tooltip>
+    </button>
+  </div>
+
+  <!-- Settings -->
+  <bng-card-dark
+    ng-hide="!photo.settings.visible"
+    class="photomode-settings"
+    style="position: absolute;
+    bottom: 50px;
+    right: 3em;
+    width: 32em;
+    padding: 0;" bng-blur="true">
+    <card-title style="display: flex; flex-direction: row; padding: 0.75em;">
+      <div class="bng-button-link bng-button color-white md-warn" style="flex: 1;" layout="row" layout-align="center center" ng-click="photo.toggleSettings()" aria-label="{{:: 'ui.photomode.advancedImgSettingsClose' | translate}}" bng-sound-class="bng_click_hover_generic" role="button" tabindex="0">
+        <div class="material-icons icon-mask" style="font-size: 2em; margin: -0.25em 0; color: var(--bng-add-red-500);">expand_more</div>
+        <md-tooltip md-direction="left">{{:: 'ui.photomode.advancedImgSettingsClose' | translate}}</md-tooltip>
+      </div>
+    </card-title>
+    <card-body>
+
+      <div class="bng-section" aria-label="General-settings" role="group">
+        <div class="bng-list-item">
+          <div class="settings-label">
+            <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">zoom_in</div>
+            <span>{{:: 'ui.photomode.fov' | translate}}</span>
+          </div>
+          <div class="settings-input">
+            <md-slider ng-model="photo.settings.fov" id="fov-slider" min="10" max="120" step="0.05" aria-label="_"></md-slider>
+            <div class="input-wrapper suffix">
+              <input type="number" ng-model="photo.settings.fov" aria-label="fov" aria-controls="fov-slider" min="10" max="120" />
+              <span>°</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bng-list-item">
+          <div class="settings-label">
+            <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">directions_run</div>
+            <span>{{:: 'ui.photomode.cameraSpeed' | translate}}</span>
+          </div>
+          <div class="settings-input">
+            <md-slider ng-model="photo.settings.cameraSpeed" id="camspeed-slider" min="2" max="100" step="0.5" aria-label="_"></md-slider>
+            <div class="input-wrapper">
+              <input type="number" ng-model="photo.settings.cameraSpeed" aria-label="camera speed" aria-controls="camspeed-slider" min="2" max="100" />
+            </div>
+          </div>
+        </div>
+
+        <div class="bng-list-item">
+          <div class="settings-label">
+            <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">rotate_right</div>
+            <span>{{:: 'ui.photomode.roll' | translate}}</span>
+          </div>
+          <div class="settings-input">
+            <md-slider ng-model="photo.settings.roll" id="roll-slider" min="-90" max="90" step="0.1" aria-label="Camera roll"></md-slider>
+            <div class="input-wrapper suffix">
+              <input type="number" ng-model="photo.settings.roll" aria-label="roll" aria-controls="roll-slider" min="-90" max="90"/>
+              <span>°</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bng-list-item"
+          ng-if="photo.environment.state.time >= 0">
+          <div class="settings-label">
+            <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">av_timer</div>
+            <span>{{:: 'ui.photomode.tod' | translate}}</span>
+          </div>
+          <div class="settings-input">
+            <md-slider ng-model="photo.environment.state.time" min="0" max="1" step="0.001"
+              id="time-slider"
+              ng-change="photo.environment.submitState()"
+              ng-disabled="photo.environment.state.time < 0"
+              aria-label="Time of the day"></md-slider>
+            <div style="width: 3.2em; padding-left: 0.5em;">{{ timeAsString.slice(0, 5) }}</div>
+          </div>
+        </div>
+
+        <div class="bng-list-item"
+        ng-if="photo.environment.state.time >= 0">
+        <div class="settings-label">
+          <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">av_timer</div>
+          <span>{{:: 'ui.photomode.azimuth' | translate}}</span>
+        </div>
+        <div class="settings-input">
+          <md-slider ng-model="photo.environment.state.azimuthOverride" min="0" max="6.29" step="0.1"
+            id="azimuth-slider"
+            ng-change="photo.environment.submitState()"
+            aria-label="Sun Direction"></md-slider>
+          <div style="width: 3.2em; padding-left: 0.5em;">{{ azimuthOverrideAsDegrees | number: 0}}</div>
+        </div>
+      </div>
+
+      </div>
+
+      <div class="bng-section" aria-label="Filters" role="group">
+        <div class="bng-list-item">
+          <div class="settings-label">
+            <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">camera_enhance</div>
+            <span>{{:: 'ui.photomode.colorCorrection' | translate}}</span>
+          </div>
+          <div class="settings-input">
+            <md-select ng-model="currentState" flex aria-label="_">
+              <md-option md-no-ink ng-selected="true" ng-click="photo.setColorCorrectionRamp($event, -1)" value="-1">{{:: "ui.common.default" | translate}}</md-option>
+              <md-option md-no-ink ng-repeat="item in photo.colorCorrectionRamps" ng-click="photo.setColorCorrectionRamp($event, item.filename)">
+                {{ item.filename.replace("/art/postfx/", "").replace(".png", "") }}
+              </md-option>
+            </md-select>
+          </div>
+        </div>
+
+        <div class="bng-list-item" ng-hide="currentState == -1" style="padding-top: 0.5em;">
+          <div class="settings-label">
+            <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">texture</div>
+            <span>{{:: 'ui.photomode.colorCorrectionStrength' | translate}}</span>
+          </div>
+          <div class="settings-input">
+            <md-slider ng-model="photo.settings.colorCorrectionStrength" id="cc-slider" min="0" max="1" step="0.01" aria-label="CC-Strength"></md-slider>
+            <div class="input-wrapper">
+              <input type="number" ng-model="photo.settings.colorCorrectionStrength" aria-label="CC-Strength" aria-controls="cc-slider" min="0" max="1"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bng-horizontal-divider"></div>
+
+      <div class="bng-section" aria-label="PostFX-settings" role="group" ng-if="photo.PostFXDOFGeneralEnabled || photo.PostFXSSAOGeneralEnabled || photo.advancedSettings">
+        <bng-accordion flex class="vAccordion--default">
+          <!-- Bloom -->
+          <bng-accordion-pane class="bng-list-item pane-vertical" is-open="false">
+            <bng-pane-header>
+              {{:: "ui.photomode.bloom" | translate}}
+            </bng-pane-header>
+            <bng-pane-body>
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">flash_on</div>
+                  <span>
+                    {{:: "ui.photomode.bloomThreshold" | translate}}
+                  </span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.bloomThreshold" id="bloom-slider" min="0.5" max="10" step="0.01" aria-label="Bloom strength"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.bloomThreshold" aria-label="Bloom strength" aria-controls="bloom-slider" min="0.5" max="10"/>
+                  </div>
+                </div>
+              </div>
+            </bng-pane-body>
+          </bng-accordion-pane>
+
+          <!-- DOF -->
+          <bng-accordion-pane ng-if="photo.PostFXDOFGeneralEnabled" class="bng-list-item pane-vertical" is-open="false">
+            <bng-pane-header>
+              {{:: 'ui.photomode.dofControls' | translate}}
+            </bng-pane-header>
+            <bng-pane-body>
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">blur_on</div>
+                  <span>{{:: 'ui.photomode.dofMaxBlurNear' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.dofMaxBlurNear" id="blurnear-slider" min="0" max="1" step="0.001" aria-label="Max blur near"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.dofMaxBlurNear" aria-label="Max blur near" aria-controls="blurnear-slider" min="0" max="1"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">blur_on</div>
+                  <span>{{:: 'ui.photomode.dofMaxBlurFar' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.dofMaxBlurFar" id="blurfar-slider" min="0" max="1" step="0.001" aria-label="Blur far strength"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.dofMaxBlurFar" aria-label="Blur far strength" aria-controls="blurfar-slider" min="0" max="1"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bng-list-item" ng-disabled="photo.settings.dofAutofocus">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">center_focus_strong</div>
+                  <span>{{:: 'ui.photomode.dofFocusRange' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.dofFocusRange" id="dofrange-slider" min="-50" max="200" step="0.01" aria-label="Focus range"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.dofFocusRange" aria-label="Focus range" aria-controls="dofrange-slider" min="-50" max="200"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">camera</div>
+                  <span>{{:: 'ui.photomode.dofAperture' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.dofAperture" id="aperture-slider" min="0" max="2000" step="0.05" aria-label="Aperture"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.dofAperture" aria-label="Aperture" aria-controls="aperture-slider" min="0" max="2000"/>
+                  </div>
+                </div>
+              </div>
+            </bng-pane-body>
+          </bng-accordion-pane>
+
+          <!-- SSAO -->
+          <bng-accordion-pane ng-if="photo.PostFXSSAOGeneralEnabled" class="bng-list-item pane-vertical" is-open="false">
+            <bng-pane-header>
+              {{:: 'ui.photomode.SSAOControls' | translate}}
+            </bng-pane-header>
+            <bng-pane-body>
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">texture</div>
+                  <span>{{:: 'ui.photomode.SSAOContrast' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.SSAOContrast" id="ssaoContr-slider" min="1" max="10" step="0.001" aria-label="SSAO contrast"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.SSAOContrast" aria-label="SSAO contrast" aria-controls="ssaoContr-slider" min="1" max="10"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">leak_add</div>
+                  <span>{{:: 'ui.photomode.SSAORadius' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.SSAORadius" id="ssaoRadius-slider" min="0.01" max="2" step="0.001" aria-label="SSAO radius"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.SSAORadius" aria-label="SSAO radius" aria-controls="ssaoRadius-slider" min="0.01" max="2"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">high_quality</div>
+                  <span>{{:: 'ui.photomode.SSAOQuality' | translate}}</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.SSAOQuality" id="ssaoRadius-slider" min="1" max="2" step="1" aria-label="SSAO quality"></md-slider>
+                  <div style="width: 3.2em; padding-left: 0.5em; text-overflow: ellipsis; overflow: hidden;">{{ photo.settings.SSAOQualityText }}</div>
+                  <!-- <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.SSAOQuality" aria-label="SSAO quality" aria-controls="ssaoRadius-slider" min="1" max="2"/>
+                  </div> -->
+                </div>
+              </div>
+            </bng-pane-body>
+          </bng-accordion-pane>
+
+          <!-- Rendering -->
+          <bng-accordion-pane ng-if="photo.advancedSettings" class="bng-list-item pane-vertical" is-open="false">
+            <bng-pane-header>
+              Rendering Controls
+            </bng-pane-header>
+            <bng-pane-body>
+              <div class="warning">
+                <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">warning</div>
+                <span>
+                  Rendering settings are not reset on exit! Game may freeze, use with caution!
+                </span>
+              </div>
+              <div class="bng-card-h4">
+                Sun shadows parameters
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">gradient</div>
+                  <span>Shadow Resolution</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.shadowSize" id="shadowsz-slider" min="9" max="11" step="1" aria-label="Shadow Size"></md-slider>
+                  <div style="width: 3.2em; padding-left: 0.5em; text-overflow: ellipsis; overflow: hidden;">
+                    {{ shadowSizeLabel }}px
+                  </div>
+                  <!-- <div class="input-wrapper suffix">
+                    <input type="number" ng-model="photo.settings.shadowSize" aria-label="Shadow Size" aria-controls="shadowsz-slider" min="9" max="11"/>
+                    <span>
+                      px
+                    </span>
+                  </div> -->
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">straighten</div>
+                  <span>Shadow Distance</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.shadowDistance" id="shadowDistance-slider" min="1000" max="10000" step="1" aria-label="Shadow distance"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.shadowDistance" aria-label="Shadow distance" aria-controls="shadowDistance-slider" min="1000" max="10000"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">linear_scale</div>
+                  <span>Log Weight</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.logWeight" id="logWeight-slider" min="0.75" max="1" step="0.0001" aria-label="Shadow distance"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.logWeight" aria-label="Shadow distance" aria-controls="logWeight-slider" min="0.75" max="1" step="0.0001"/>
+                  </div>
+                  <md-tooltip md-direction="left">Higher values will result in sharper sharper near camera, but shorter distance</md-tooltip>
+                </div>
+              </div>
+
+              <div class="bng-card-h4">
+                Level Of Detail
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">compare</div>
+                  <span>Object LOD Scale</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.detailAdjust" id="detailAdjust-slider" min="1" max="10" step="0.5" aria-label="Object LOD Scale"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.detailAdjust" aria-label="Object LOD Scale" aria-controls="detailAdjust-slider" min="1" max="10" step="0.5"/>
+                  </div>
+                  <md-tooltip md-direction="left">Higher values will let high quality models be visible from farther</md-tooltip>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">landscape</div>
+                  <span>Terrain LOD Scale</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.lodScale" id="lodScale-slider" min="0.001" max="1" step="0.001" aria-label="Terrain LOD Scale"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.lodScale" aria-label="Terrain LOD Scale" aria-controls="lodScale-slider" min="0.001" max="1" step="0.001"/>
+                  </div>
+                  <md-tooltip md-direction="left">Lower values will let terrain have more details at distance</md-tooltip>
+                </div>
+              </div>
+
+              <div class="bng-list-item">
+                <div class="settings-label">
+                  <div class="material-icons photomode-icons" bng-sound-class="bng_click_hover_generic">landscape</div>
+                  <span>Groundcover Scale</span>
+                </div>
+                <div class="settings-input">
+                  <md-slider ng-model="photo.settings.GroundCoverScale" id="GroundCoverScale-slider" min="1" max="10" step="0.5" aria-label="Object LOD Scale"></md-slider>
+                  <div class="input-wrapper">
+                    <input type="number" ng-model="photo.settings.GroundCoverScale" aria-label="Object LOD Scale" aria-controls="GroundCoverScale-slider" min="1" max="10" step="0.5"/>
+                  </div>
+                  <md-tooltip md-direction="left">Higher values will cause grass to be more dense</md-tooltip>
+                </div>
+              </div>
+              
+            </bng-pane-body>
+          </bng-accordion-pane>
+        </bng-accordion>
+        <div class="bng-horizontal-divider"></div>
+      </div>
+
+      <div class="bng-section" style="flex-direction:row;" aria-label="PostFX-settings" role="group">
+        <div style="display: flex; flex-direction: column; flex: 1 0 50%">
+          <md-checkbox ng-model="photo.settings.showGrid" aria-label="Show grid" bng-sound-class="bng_checkbox_generic">
+            {{:: 'ui.photomode.showGrid' | translate}}
+          </md-checkbox>
+          <md-checkbox ng-model="photo.dynReflectionEnabled" ng-change="photo.toggleDynReflection()" aria-label="Enable reflections" bng-sound-class="bng_checkbox_generic">
+            {{:: "ui.photomode.reflections" | translate}}
+          </md-checkbox>
+          <md-checkbox ng-model="photo.PostFXDOFGeneralEnabled" aria-label="Show DoF settings" ng-change="photo.toggleDOFPostFX()" bng-sound-class="bng_checkbox_generic">
+            {{:: "ui.photomode.toggleDoF" | translate}}
+          </md-checkbox>
+          <md-checkbox ng-model="photo.nodeGrabberVisible" ng-change="photo.toggleNodeGrabberVisibility()" aria-label="Toggle NodeGrabber visibility" md-no-ink bng-sound-class="bng_checkbox_generic">{{:: "ui.photomode.toggleNodegrabber" | translate}}
+            <md-tooltip md-direction="right">{{:: "ui.photomode.tooltipNodegrabber" | translate}}</md-tooltip>
+          </md-checkbox>
+        </div>
+        <div style="display: flex; flex-direction: column; flex: 1 0 50%">
+          <md-checkbox ng-model="photo.PostFXSSAOGeneralEnabled" ng-change="photo.toggleSSAOPostFX()" aria-label="_" md-no-ink bng-sound-class="bng_checkbox_generic">{{:: "ui.photomode.toggleSSAO" | translate}}</md-checkbox>
+          <md-checkbox ng-model="photo.cameraFreeSmoothMovement" ng-change="photo.toggleCameraFreeSmoothMovement()" aria-label="_" md-no-ink bng-sound-class="bng_checkbox_generic">{{:: "ui.photomode.toggleSmooth" | translate}}</md-checkbox>
+          <!-- Rendering -->
+          <md-checkbox ng-if="!app.shipping" ng-model="photo.advancedSettings" aria-label="_" md-no-ink bng-sound-class="bng_checkbox_generic">
+            <div style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start;">
+              <div class="material-icons photomode-icons">bug_report</div><span>Rendering</span>
+            </div>
+          </md-checkbox>
+        </div>
+      </div>
+    </card-body>
+    <card-footer>
+      <span style="padding-right: 0.5em; font-weight: 600;">
+        {{:: 'ui.photomode.takeScreen' | translate}}:
+      </span>
+      <button class="bng-button bng-button-link" ng-click="photo.takeHugePic()" aria-label="Take a huge screenshot (it take some time)" bng-sound="{click: 'event:>UI>Main>Photo'}">
+        {{:: "ui.photomode.screenshotHuge" | translate}}
+      </button>
+      <button class="bng-button bng-button-link" ng-click="photo.takeBigPic()" aria-label="Take a big screenshot" bng-sound="{click: 'event:>UI>Main>Photo'}">
+        {{:: "ui.photomode.screenshotBig" | translate}}
+      </button>
+      <button class="bng-button bng-button-main" ng-click="photo.takePic()" aria-label="Take a screenshot" bng-sound="{click: 'event:>UI>Main>Photo'}">
+        {{:: "ui.photomode.screenshotNormal" | translate}}
+      </button>
+    </card-footer>
+  </bng-card-dark>
+  <!-- </div> -->
+</div>

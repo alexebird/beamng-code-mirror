@@ -1,0 +1,199 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/careerQuests/questsOverview.css" />
+
+<style type="text/css">
+  .tabMenuButton{
+    height:100%;
+    border: none;
+    background-color: #0000008c;
+    color: white;
+    padding: 0 20px;
+  }
+  .tabMenuButton:hover{
+    background-color: orangered;
+  }
+
+  .tabMenu{
+    height:50px;
+    margin: 30px;
+    text-align: center;
+  }
+
+  .quest{
+    padding:20px;
+    line-height: 30px;
+    margin-bottom: 40px;
+    display: flex;
+    position: relative;
+  }
+
+  .tick{
+    background-image: url(/ui/ui-vue/dist/icons/general/check.svg);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: 999;
+  }
+
+  .overlay{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    text-align: center;
+    background-color: black;
+  }
+
+  .newQuestOverlay{
+    background-color: #ff8d00b3;
+  }
+
+  .claimedQuestOverlay{
+    background-color: #000000b3;
+  }
+
+  .lockedQuestOverlay{
+    background-color: #000000b3;
+  }
+
+  .questIcon{
+    background-color: #00ff72;
+    margin-right: 30px;
+    height: 200px;
+    width: 200px;
+    position: relative;
+  }
+
+  .filter > *{
+    margin:10px;
+  }
+
+</style>
+
+<div bng-blur="true" style="background-color: #000000ab;overflow-y:scroll;color: white;">
+  <div>
+    <!-- FITERS -->
+    <div class="tabMenu">
+      <button class="tabMenuButton" ng-click="showQuests(false)"> Quests </button>
+      <button class="tabMenuButton" ng-click="showQuests(true)"> Milestones </button>
+    </div>
+    <div class="filter" style = "display:flex;">
+      <div> Order by : </div>
+      <md-select ng-model="orderBy" ng-change="updateQuests()" aria-label="_" style="flex:1;">
+        <md-option value="progress">Progress</md-option>
+        <md-option value="rewards">Rewards</md-option>
+      </md-select>
+    </div>
+    <div class="filter" style = "display:flex;">
+      <div> Show : </div>
+      <md-checkbox ng-model="showActive" aria-label="__">Active</md-checkbox>
+      <md-checkbox ng-model="showCompleted" aria-label="__">Completed</md-checkbox>
+    </div>
+    <div class="filter" style = "display:flex;">
+      <div> Hide : </div>
+      <md-checkbox ng-model="hideClaimedQuests" aria-label="__">Claimed {{isMilestone && "milestones" || "quests"}}</md-checkbox>
+    </div>
+    <h1 style="color: white; text-align: center;">{{isMilestone && "Milestones" || "Quests"}}</h1>
+  </div>
+  <div>
+    <div ng-repeat="quest in quests track by $index" 
+    ng-show="
+        quest.isMilestone === isMilestone && 
+        quest.status !== 'locked' &&
+        (showActive && quest.status === 'active' || showCompleted && quest.status === 'completed' &&
+        (!hideClaimedQuests && quest.claimed) || quest.claimable)">
+      <div class="quest" ng-style="quest.claimable && {'background-color': '#ff8100b3'}">
+        <div class="questIcon"> 
+          <div ng-show="quest.claimed" class="tick"></div>
+          An icon
+        </div>
+        <div style="flex:3;">
+          <h2>{{quest.title}}</h2>
+          {{quest.shortDescription | contextTranslate}}<br>
+          <div class="levels-progressbar-wrapper" style="margin:20px auto 20px auto;" ng-show="quest.progress[0].type === 'progressBar'">
+            <div class="progressbar-labels">
+              <div>Progress : {{quest.progress[0].percentage}}%</div>
+              <span class="progressbar-value">
+                {{ quest.progress[0].currValue }} / {{ quest.progress[0].maxValue }}
+              </span>
+            </div>
+            <div class="progressbar-background">
+              <div class="progressbar-fill"style="width: {{quest.progress[0].percentage}}%;"></div>
+            </div>
+          </div>
+
+          <div style="margin:20px auto 20px auto; display: flex;" ng-show="quest.progress[0].type === 'checkBox'">
+            <div>Progress :</div>
+            <div>
+              <div ng-if="q.status != 'completed'" class="GoalIcon">
+                <md-icon ng-style="{color:c.textColor}" class="material-icons">check_box_outline_blank</md-icon>
+              </div>
+              <div ng-if="q.status == 'completed'" class="GoalIcon">
+                <md-icon ng-style="{color:c.textColor}" class="material-icons">check_box</md-icon>
+              </div>
+            </div>
+          </div>
+
+          <div ng-if="selectedQuest.id === quest.id">
+            {{selectedQuest.image| contextTranslate}}<br>
+            {{selectedQuest.description| contextTranslate}}<br>
+            <span ng-show="selectedQuest.status === 'completed'">{{selectedQuest.goalReached| contextTranslate}}<br></span>
+          </div>
+
+          <div>
+            <div ng-show="quest.claimed" class="overlay claimedQuestOverlay">
+              <h1> This {{isMilestone && "milestone" || "quest"}} is completed and claimed </h1>
+            </div>
+            <button ng-show="selectedQuest.id !== quest.id"class="bng-button bng-button-outline" ng-click="goToQuestDetails(quest)">
+                See quest's details
+            </button>
+            <button ng-show="selectedQuest.id === quest.id"class="bng-button bng-button-outline" ng-click="hideQuestDetails()">
+                Hide quest's details
+            </button>
+
+            <button ng-show="!quest.tracked && !quest.claimed && !quest.claimable"class="bng-button bng-button-outline" ng-click="trackQuest(quest.id, true)">
+                Track quest
+            </button>
+            <button ng-show="quest.tracked && !quest.claimed && !quest.claimable"class="bng-button bng-button-outline" ng-click="trackQuest(quest.id, false)">
+                Untrack quest
+            </button>
+
+            <button class="bng-button bng-button-outline" ng-show="quest.claimable" ng-click="claimQuestRewards(quest.id)">
+                Claim reward
+            </button>
+
+            <div ng-show="quest.status === 'locked'" class="overlay lockedQuestOverlay">
+              <h1> This quest is locked !</h1>
+            </div>
+            <div ng-show="quest.isNew" class="overlay newQuestOverlay">
+              <div>
+                <h1> New unlocked quest !</h1>
+                <button class="bng-button bng-button-outline" ng-show="quest.isNew" ng-click="setQuestAsNotNew(quest.id)">
+                  See quest
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div style="margin-left: 20px;text-align: center;">
+            <h2>Rewards : </h2>
+            <div ng-repeat="reward in quest.rewards track by $index">
+              <div ng-show="reward.attributeKey === 'beamXP'">
+                BeamXP : {{reward.rewardAmount}}
+              </div>
+              <div ng-show="reward.attributeKey === 'money'">
+                Money : {{reward.rewardAmount}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <md-divider style="margin-bottom:10px;" class="md-default-theme"></md-divider>
+    </div>
+  </div>
+</div>

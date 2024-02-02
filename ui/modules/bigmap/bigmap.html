@@ -1,0 +1,418 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/scenariocontrol/scenariocontrol.css" />
+<link rel="stylesheet" type="text/css" href="/ui/modules/bigmap/bigmap.css" />
+
+
+<style type="text/css">
+  .actionbutton {
+    padding: 10px;
+    font-size: 1.4em;
+    border: solid 2px white;
+    text-transform: uppercase;
+    background: none;
+    font-family: Open Sans Bold;
+    color: #ffa500;
+    margin: 10px;
+    min-width: 100px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .actionbutton:hover {
+    background: orange;
+    color: white;
+    border-color: orange;
+  }
+
+  .actionbutton:focus {
+    background: orange;
+    color: white;
+    border-color: orange;
+  }
+
+  .slideInRight {
+    left: -350px;
+    -webkit-animation: slideInRight 0.5s forwards;
+    -webkit-animation-delay: 0.1s;
+  }
+  @-webkit-keyframes slideInRight {
+      100% { left: 0; }
+  }
+
+  .slideInDown {
+    margin-top: -350px;
+    -webkit-animation: slideInDown 0.5s forwards;
+    -webkit-animation-delay: 0.1s;
+  }
+  @-webkit-keyframes slideInDown {
+      100% { margin-top: 0; }
+  }
+
+  .small-star {
+    font-size: 0.8em;
+  }
+</style>
+
+<div class="big-map-poi-container" layout="column">
+  <div class="headingContainer">
+    <div bng-blur="true"><h4>{{ "ui.playmodes." + app.gameState | translate }}</h4><md-divider class="vertical-divider md-default-theme"></md-divider><h4>{{levelData.title | translate}}</h4></div>
+    <h2 bng-blur="true">{{:: "bigMap.sideMenu.pois" | translate}}</h2>
+  </div>
+  <div class="mission-filters-container lt-column">
+    <!-- Replace tab-action-button with clickable actual key bindings for the gamepad input and simple arrows when the mouse input is detected -->
+    <span bng-no-nav="true" class="tab-action-button" bng-translate='bigMap.inputActions.filter.previousFilter' ng-click="selectPreviousFilter()">
+<!--      <svg class="tab-action-icon left-tab">-->
+<!--        <use xlink:href="#controller_x_btn_lt" />-->
+<!--      </svg>-->
+    </span>
+    <div class="filters">
+      <div class="mission-filter-container" ng-repeat="filter in filterData track by $index" ng-class="{ filterDelimR: $index===0, filterDelimL: filter.delim }">
+        <div class="mission-filter" ng-click="setSelectedFilter($index)" ng-class="{filterActive: selectedFilter === $index}">
+          <span class="mission-filter-mask" style="{{ filter.iconStyle }}"></span>
+        </div>
+      </div>
+    </div>
+    <span bng-no-nav="true" bng-translate='bigMap.inputActions.filter.nextFilter' class="tab-action-button" ng-click="selectNextFilter()">
+<!--      <svg class="tab-action-icon right-tab">-->
+<!--        <use xlink:href="#controller_x_btn_rt" />-->
+<!--      </svg>-->
+    </span>
+  </div>
+  <div class="contentContainer">
+    <div class="bigmap-list orange-underline lt-column" bng-blur="true">
+      <div class="poi-group-header" ng-if="topGroupIndex > -1">
+        <h3 class="poi-group-header-text">{{ filterData[selectedFilter].groups[topGroupIndex].label | contextTranslate}}</h3>
+        <div class="poi-group-header-divider"></div>
+      </div>
+      <div class="bigmap-content" id="bigmap-pois">
+        <div class="mission-group"
+          ng-repeat="(idx, group) in reducedPois[selectedFilter].groups"
+          ng-init="$group = filterData[selectedFilter].groups[idx]"
+          ng-if="group.elements.length > 0"
+          data-group-index="{{idx}}"
+        >
+          <div ng-if="idx > 0"
+            class="poi-group-header"
+            ng-class="{
+              'poi-group-header-hidden': reducePoisToSelected === true && group.isFirstNonEmptyGroup === true,
+              'poi-group-header-active': topGroupIndex === idx
+            }"
+          >
+            <h3 class="poi-group-header-text">
+              {{$group.label | contextTranslate}}
+            </h3>
+            <div class="poi-group-header-divider"></div>
+          </div>
+          <div ng-repeat="poiId in group.elements track by $index" class="tile poi-container"
+            ng-mouseover="onHover(poiId, true)" ng-mouseleave="onHover(poiId, false)"
+            ng-focus="onHover(poiId, true)" ng-blur="onover(poiId, false)"
+            ng-click="poiOnClick(poiData[poiId])"
+            bng-sound-class="bng_click_hover_bigmap"
+            focus-if="{{ :: 0 === $index && group === filterData[selectedFilter].groups[0] }}"
+            ng-class="{'selected-tile': poiData[poiId] === selectedMission }">
+
+            <div class="poi-image-wrapper"><div style="background-image: url({{poiData[poiId].thumbnailFile}});"></div></div>
+            <div class="poi-description">
+              <div layout="row" class="poi-description-header">
+                <div class="poi-rating" ng-if="poiData[poiId].rating.type === 'attempts'">
+                  <span class="poi-rating-attempts-value">
+                    {{poiData[poiId].rating.attempts ? poiData[poiId].rating.attempts : 0}}
+                  </span>
+                  <span>attempts</span>
+                </div>
+                <div class="poi-rating" ng-if="poiData[poiId].rating.type === 'done'">
+                  <span class="poi-rating-icon-wrapper poi-rating-done">
+<!--                    <svg>-->
+<!--                      <use xlink:href="#mission_system_cup" />-->
+<!--                    </svg>-->
+                  </span>
+                  <span class="poi-rating-text">Done</span>
+                </div>
+                <div class="poi-rating" ng-if="poiData[poiId].rating.type === 'new'">
+                  <span class="poi-rating-icon-wrapper poi-rating-new">
+                    <!-- <span class="poi-rating-icon-mask poi-rating-new"></span> -->
+                  </span>
+                  <span class="poi-rating-text-new">New!</span>
+                </div>
+                <div class="poi-rating" ng-if="poiData[poiId].rating.type === 'locked'">
+                  <span class="poi-rating-icon-wrapper">
+                    <icon ng-show="poiData[poiId].unlocks && !poiData[poiId].unlocks.startable" class="material-icons color1 poi-icon">locked</icon>
+                  </span>
+                  <span class="poi-rating-text">Locked</span>
+                </div>
+                <div class="poi-rating-stars" ng-if="poiData[poiId].rating.stars > 0">
+                  <span class="poi-rating-icon-wrapper poi-rating-star"
+                        ng-class="{ star: poiData[poiId].rating.stars > 2 }">
+                  </span>
+                  <span class="poi-rating-icon-wrapper poi-rating-done"
+                        ng-if="poiData[poiId].rating.stars > 2">
+                  </span>
+                  <span class="poi-rating-icon-wrapper poi-rating-star"
+                        ng-class="{ star: poi.rating.stars > 2 }" ng-if="poiData[poiId].rating.stars > 1">
+                  </span>
+<!--                  <span class="poi-rating-icon-wrapper" ng-if="poi.rating.stars > 0">-->
+<!--                    <svg ng-class="{ star: poi.rating.stars > 2 }">-->
+<!--                      <use xlink:href="#mission_system_star" />-->
+<!--                    </svg>-->
+<!--                    <svg ng-if="poi.rating.stars > 2">-->
+<!--                      <use xlink:href="#mission_system_cup" />-->
+<!--                    </svg>-->
+<!--                    <svg ng-class="{ star: poi.rating.stars > 2 }" ng-if="poi.rating.stars > 1">-->
+<!--                      <use xlink:href="#mission_system_star" />-->
+<!--                    </svg>-->
+<!--                  </span>-->
+                </div>
+                <div class="poi-type">
+                  {{poiData[poiId].label | translate}}
+                </div>
+              </div>
+              <div layout="row">
+                <h4 class="poi-name">{{poiData[poiId].name | translate}}</h4>
+
+              </div>
+              <md-divider class="poi-description-content-divider"></md-divider>
+              <div layout="row" class="poi-description-footer">
+                <div ng-show="poiData[poiId].aggregatePrimary !== undefined && poiData[poiId].aggregatePrimary['label'] !== undefined">
+                  <span>{{poiData[poiId].aggregatePrimary.label.text | translate}}:</span>
+                  <span class="poi-best-value">{{poiData[poiId].aggregatePrimary.value.text | translate: {value: poiData[poiId].aggregatePrimary.value.context.value} }}</span>
+                </div>
+                <div ng-show="poiData[poiId].aggregateSecondary !== undefined && poiData[poiId].aggregateSecondary['label'] !== undefined">
+                  <span>{{poiData[poiId].aggregateSecondary.label.text | translate}}:</span>
+                  <span class="poi-best-value">{{poiData[poiId].aggregateSecondary.value.text | translate: {value: poiData[poiId].aggregateSecondary.value.context.value} }}</span>
+                </div>
+              </div>
+        <!--        <p>{{poi.description | translate}}</p>-->
+        <!--        <md-button md-no-ink ng-click="teleportToMission(poi)">-->
+        <!--          debug teleport-->
+        <!--        </md-button>-->
+            </div>
+            <!--<div ng-if="poi.type == 'mission'">Best: {{poi.attemptAggregate.bestType}}</div>-->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div ng-if="selectedMission" id="bigmap-details"
+      class="bigmap-panel orange-underline mission-details-container" bng-blur="true">
+      <div class="mission-details">
+        <div class="mission-gallery fixd-ratio">
+          <svg viewBox="0 0 16 9"></svg>
+          <img-carousel imageurls="selectedMission.previewFiles"/>
+        </div>
+        <div class="flex-row" style="margin-bottom: -1em; margin-top: 1em; font-weight: 400; text-transform: capitalize;">
+          <div ng-if="selectedMission.label">{{ selectedMission.label | contextTranslate }}</div>
+          <div ng-if="selectedMission.label && selectedMission.difficulty" class="vertical-divider"></div>
+          <div ng-if="selectedMission.difficulty">{{:: "ui.common.property.difficulty" | translate}}: {{ selectedMission.difficulty }}</div>
+        </div>
+        <h1 class="mission-title">{{selectedMission.name | contextTranslate}}</h1>
+        <h2 ng-if="selectedMission.devMission" style="color: red;">[DEV Mission]</h2>
+        <div class="mission-description">{{selectedMission.description | contextTranslate}}</div>
+        <div class="mission-stats">
+          <!-- hide for now as it is not currently needed -->
+          <div class="stats-section stats-details" ng-if="false">
+            <div class="stats-section-info">
+              <div class="stats-header">
+                <h2>Details</h2>
+              </div>
+              <div class="stats-feature-main">
+                <span class="stats-feature-main-label">
+                  <img src="/ui/modules/menu/icon-car.svg">
+                  <span>Vehicle:</span>
+                </span>
+                <span class="stats-feature-main-value">Gavril Grand Marshall</span>
+              </div>
+              <div class="stats-feature">
+                <span class="stats-feature-label">
+                  <img src="/ui/modules/menu/icon-engine.svg">
+                  <span>Config:</span>
+                </span>
+                <span class="stats-feature-value">Gavril T-series</span>
+              </div>
+              <div class="stats-feature">
+                <span class="stats-feature-label">
+                  <svg>
+                    <use xlink:href="#mission_system_route" />
+                  </svg>
+                  Route length:
+                </span>
+                <span class="stats-feature-value">15km</span>
+              </div>
+              <div class="stats-feature">
+                <span class="stats-feature-label">
+                  <svg>
+                    <use xlink:href="#mission_system_fast_travel" />
+                  </svg>
+                  Rolling start
+                </span>
+              </div>
+            </div>
+            <div class="stats-action">
+              Edit mission settings
+              <svg><use xlink:href="#material_keyboard_arrow_right"></use></svg>
+            </div>
+          </div>
+          <div class="stats-section stats-progress" ng-if="selectedMission.rating.type === 'locked'">
+            <div class="stats-section-info">
+              <div class="stats-header">
+                <h2>Progress</h2>
+              </div>
+              <div ng-if="selectedMission && !selectedMission.unlocks.hideStartableDetails">
+                <p>To Unlock this Mission:</p>
+                <li>
+                  <span>
+                    {{selectedMission.unlocks.startableDetails.label | contextTranslate}}
+                    <svg class="mission-check" ng-if="selectedMission.unlocks.startableDetails.met &&
+                         (!selectedMission.unlocks.startableDetails.nested ||
+                          selectedMission.unlocks.startableDetails.nested.length === 0)">
+                      <use xlink:href="#material_check" />
+                    </svg>
+                  </span>
+                  <ul>
+                    <li ng-repeat="detail in selectedMission.unlocks.startableDetails.nested"
+                        ng-include="'mission_list_renderer.html'"></li>
+                  </ul>
+                </li>
+              </div>
+              <div ng-if="selectedMissionForwardUnlocks">
+                <p>Passing this will help Unlock:</p>
+                <ul>
+                  <li ng-repeat="missionForward in selectedMission.unlocks.forwardNames">
+                    {{:: missionForward | translate}}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <!-- hide for now as it is not currently needed -->
+          <div class="stats-section stats-ratings" ng-if="selectedMission.rating && selectedMission.formattedProgress.unlockedStars.stars.length > 0 && selectedMission.rating.type !== 'locked'">
+            <div class="stats-section-info">
+              <div class="stats-header" ng-if="selectedMission._totals">
+                <h2>Mission progress</h2>
+              </div>
+              <div class="divider-bottom" ng-if="selectedMission._totals">
+                <div class="flex-row" style="margin-top: 0.25em; margin-bottom: 0.25em; font-size: 1.25em; align-items: center;">
+                  <div class="icon-mask reward-stars-meter" style="background-position: {{ (selectedMission._totals.stars[1] > 0 ? 100 - ( selectedMission._totals.stars[0] / selectedMission._totals.stars[1] * 100 ) : 100) }}%; margin-right: 1em; margin-bottom: 0.1em;" aria-label="Total stars: {{ (selectedMission._totals.stars[1] > 0 ? selectedMission._totals.stars[0] / selectedMission._totals.stars[1] * 100 : 0) }}%"></div>
+                  <div class="flex-row align-center" ng-show="selectedMission._totals.bonusstars[0] > 0">
+                    <div class="career-bonus-star"></div>
+                    <div class="mission-rewards-label">{{ selectedMission._totals.bonusstars[0] }}/{{ selectedMission._totals.bonusstars[1] }}</div>
+                  </div>
+                </div>
+                <div class="flex-row" ng-if="inCareer">
+                  <div class="flex-row align-center">
+                    <div bng-branch-icon="beamXP" style="transform: translate(0, -0.125em); width: 1.75em; height: 1.75em;"></div>
+                    <div class="mission-rewards-label">{{ selectedMission._totals.beamXP[0] }}/{{ selectedMission._totals.beamXP[1] }}</div>
+                  </div>
+                  <div class="flex-row align-center">
+                    <div bng-branch-icon="beambucks" style="transform: translate(0, -0.125em); width: 1.75em; height: 1.75em;"></div>
+                    <div class="mission-rewards-label">{{ selectedMission._totals.money[0] }}/{{ selectedMission._totals.money[1] }}</div>
+                  </div>
+                </div>
+                <div class="flex-row">
+                  <div class="flex-row align-center" ng-repeat="(type, reward) in selectedMission._totals.branches">
+                    <div bng-branch-icon="{{ type }}" style="transform: translate(0, -0.125em); width: 1.75em; height: 1.75em;"></div>
+                    <!-- we can use (( career )) instead -->
+                    <div class="mission-rewards-label">{{ reward[0] }}/{{ reward[1] }}</div>
+                  </div>
+                </div>
+              </div>
+              <!--
+              <div class="progress-summary divider-bottom">
+                <h3>Progress for: "{{selectedMission.formattedProgress.progressKeyTranslations[selectedMission.formattedProgress.defaultProgressKey] | contextTranslate}}"</h3>
+                <div class="progress-key" ng-repeat="(i, col) in selectedMission.formattedProgress.formattedProgressByKey[selectedMission.formattedProgress.defaultProgressKey].ownAggregateCols">
+                  <div ng-repeat="(i, data) in col"
+                    class="{{ i === 0 ? 'key-label' : 'key-value' }}"
+                    bng-timespan="{{:: data.timestamp }}" >
+                    {{:: (data.text || data.label) | translate}}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+
+                <div class="progress-attempts">
+                  <h3 ng-if="selectedMission.leaderboardKey === 'recent'">{{"bigMap.progressLabels.recentAttempts" | translate}}</h3>
+                  <table style="width:100%; text-align: center">
+                    <tr>
+                      <th ng-repeat="(key, val) in selectedMission.formattedProgress.formattedProgressByKey[selectedMission.formattedProgress.defaultProgressKey].attempts.labels track by key">{{:: val | translate}}</th>
+                    </tr>
+                    <tr ng-repeat="(_, row) in selectedMission.formattedProgress.formattedProgressByKey[selectedMission.formattedProgress.defaultProgressKey].attempts.rows|limitTo:5">
+                      <td ng-repeat="(_, d) in row" bng-timespan="{{:: d.timestamp }}" bng-simplestars="{{:: d.simpleStars}}">{{:: d.text | translate}}</td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            -->
+
+            <!-- hide for now as no behavior implementation yet -->
+            <div class="stats-action" ng-hide="true">
+              Link button label
+              <svg><use xlink:href="#material_keyboard_arrow_right"></use></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="mission-actions">
+        <button id="bigmap-details-default" ng-if="rules.canSetRoute" class="bng-button bng-button-outline" ng-click="setRoute(selectedMission)" bng-sound-class="bng_click_set_route">
+          <!-- Implement later after unified keybindings issue has been resolved -->
+<!--            <span class="mission-action-icon">-->
+<!--              <svg>-->
+<!--                <use xlink:href="#controller_x_btn_x" />-->
+<!--              </svg>-->
+<!--            </span>-->
+          Set Route
+        </button>
+        <div ng-if="selectedMission.quickTravelAvailable">
+          <button class="bng-button bng-button-outline"  ng-disabled="!selectedMission.quickTravelUnlocked && app.shipping" ng-click="teleportToPoi(selectedMission)">
+            <!-- Implement later after unified keybindings issue has been resolved -->
+  <!--            <span class="mission-action-icon">-->
+  <!--              <img src="/ui/modules/options/deviceIcons/xbox/x_btn_y.svg" />-->
+  <!--            </span>-->
+            Quick Travel
+          </button>
+          <md-tooltip md-direction="bottom" md-delay="0" style="{{ selectedMission.quickTravelUnlocked ? 'display:none' : '' }}">
+            You need to complete it at least once to be able to quick travel
+          </md-tooltip>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--
+<md-content ng-if="modalMission != null" class="modal-mission">
+  <div class="pop-up">
+    <md-button md-no-ink ng-click="teleportToSpawnPoint(modalMission)" focus-if="true">
+      {{"bigMap.quickTravel.accept" | translate}}
+    </md-button>
+    <md-button id="bigmap-popup-cancel" md-no-ink bng-sound="{click: 'event:>UI>Main>Cancel'}"  ng-click="teleportToSpawnPoint()">
+      {{"bigMap.quickTravel.cancel" | translate}}
+    </md-button>
+  </div>
+</md-content>
+
+<md-content ng-if="modalGarage != null" class="modal-mission">
+  <div class="pop-up">
+    <md-button md-no-ink ng-click="teleportToSpawnPoint(modalGarage, 'garage')" focus-if="true">
+      {{"bigMap.quickTravel.accept" | translate}}
+    </md-button>
+    <md-button id="bigmap-popup-cancel" md-no-ink bng-sound="{click: 'event:>UI>Main>Cancel'}"  ng-click="teleportToSpawnPoint()">
+      {{"bigMap.quickTravel.cancel" | translate}}
+    </md-button>
+  </div>
+</md-content>
+-->
+<script type="text/ng-template" id="mission_list_renderer.html">
+  <span>{{detail.label | contextTranslate}}
+    <svg class="mission-check" ng-if="detail.met &&
+                          (!detail.nested || detail.nested.length === 0)">
+      <use xlink:href="#material_check" />
+    </svg>
+  </span>
+  <ul>
+    <li ng-repeat="detail in details.nested" ng-include="'mission_list_renderer.html'"></li>
+  </ul>
+</script>
+

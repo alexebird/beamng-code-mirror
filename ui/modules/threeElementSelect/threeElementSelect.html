@@ -1,0 +1,26 @@
+<style>.career-veh-select { display: none; }</style><!-- hides content until styles are loaded -->
+<link rel="stylesheet" type="text/css" href="/ui/modules/career/career.css" />
+<link rel="stylesheet" type="text/css" href="/ui/modules/threeElementSelect/threeElementSelect.css" />
+
+<div bng-blur="true" class="career-veh-select career-veh-select-size">
+  <div class="career-veh-select-container">
+    <div class="veh-card-container">
+      <div class="career-veh-select-veh-card bng-button-outline" ng-repeat="veh in data.elements track by $index" ng-click="click(veh.pickButtonCode)" focus-if="$index === 0">
+        <div class="veh-image " bng-sound-class="bng_back_hover_generic" ng-if=veh.image style='background-image:url({{veh.image}})'></div>
+          <div class="veh-image unknown" ng-if=!veh.image >?</div>
+          <div class="veh-description">
+            <div layout="row" class="veh-name">
+              {{veh.name | translate}}
+            </div>
+            <div>
+              {{veh.desc | translate}}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="career-vehicle-select-description">
+        {{data.description | translate}}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,132 @@
+<style>
+  .aicontrol table {
+    width: 100%;
+  }
+  .aicontrol md-select {
+    width: 100%;
+    margin: 0;
+  }
+  .aicontrol input[type=number] {
+    width: 60px;
+    padding: 2px;
+  }
+  .aicontrol .category {
+    width: 20%;
+  }
+  .aicontrol .parameter {
+    padding: 3px 6px 3px 0px;
+    white-space: nowrap;
+  }
+  .aicontrol .pad-bottom {
+    padding-bottom: 12px;
+  }
+  .aicontrol .action-needed {
+    background-color: #c30000;
+  }
+  .aicontrol .disabled-option {
+    opacity: 0.8;
+    pointer-events: none;
+    background-color: inherit;
+  }
+</style>
+
+<div class="bngApp aicontrol" style="width: 100%; height: 100%">
+  <table>
+    <tr>
+      <td class="category pad-bottom">{{:: "ui.apps.aicontrol.AiMode" | translate}}</td>
+      <td class="pad-bottom" layout="row" layout-align="start center">
+        <div flex>
+          <md-select ng-model="ai.mode.value" ng-change="ai.changeMode()">
+            <md-option ng-value="opt.val" ng-repeat="opt in ai.mode.options">{{opt.txt}}</md-option>
+          </md-select>
+        </div>
+        <div flex></div>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="category">{{:: "ui.apps.aicontrol.Parameters" | translate}}</td>
+      <td layout="row" layout-align="start center">
+        <span flex layout="row" layout-align="start center">
+          <span class="parameter">{{:: "ui.apps.aicontrol.InLane" | translate}}</span>
+          <md-select ng-model="ai.driveInLaneFlag.value" ng-change="ai.changeLaneDriving()">
+            <md-option ng-value="opt.val" ng-repeat="opt in ai.driveInLaneFlag.options">{{opt.txt}}</md-option>
+          </md-select>
+        </span>
+        <span flex layout="row" layout-align="start center">
+          <span class="parameter">{{:: "ui.apps.aicontrol.Awareness" | translate}}</span>
+          <md-select ng-model="ai.extAvoidCars.value" ng-change="ai.changeTrafficAwareness()">
+            <md-option ng-value="opt.val" ng-repeat="opt in ai.extAvoidCars.options">{{opt.txt}}</md-option>
+          </md-select>
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="category"></td>
+      <td layout="row" layout-align="start center">
+        <span flex layout="row" layout-align="start center">
+          <span class="parameter">{{:: "ui.apps.aicontrol.Risk" | translate}}</span>
+          <input class="input-light" type="number" min="0.2" max="2" step="0.01" value="1" ng-model="ai.aggression.value" ng-change="ai.changeAggression()">
+        </span>
+        <span flex layout="row" layout-align="start center">
+          <span class="parameter">{{:: "ui.apps.aicontrol.Drivability" | translate}}</span>
+          <input class="input-light"type="number" min="0" max="0.9" step="0.1" value="0" ng-model="ai.drivability.value" ng-change="ai.changeCutOffDrivability()">
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="category">{{:: "ui.apps.aicontrol.RouteSpeed" | translate}}</td>
+      <td layout="row" layout-align="start center">
+        <span flex layout="row" layout-align="start center">
+          <span class="parameter">{{:: "ui.apps.aicontrol.RouteSpeedValue" | translate}}</span>
+          <input class="input-light" type="number" min="0" max="1000" ng-model="ai.routeSpeed.value" ng-change="ai.changeSpeed()">
+          <span style="padding-left: 6px"> {{ ai.distanceUnits.label }}</span>
+        </span>
+        <span flex layout="row" layout-align="start center">
+          <span class="parameter">{{:: "ui.apps.aicontrol.RouteSpeedMode" | translate}}</span>
+          <div flex>
+            <md-select ng-model="ai.speedMode.value" ng-change="ai.changeSpeedMode()">
+              <md-option ng-value="opt.val" ng-repeat="opt in ai.speedMode.options">{{opt.txt}}</md-option>
+            </md-select>
+          </div>
+        </span>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="category">{{:: "ui.apps.aicontrol.Target" | translate}}</td>
+      <td layout="row" layout-align="start center">
+        <span ng-class="{ 'disabled-option': ['flee', 'manual'].indexOf(ai.mode.value) < 0,
+                          'action-needed': (ai.mode.value == 'manual') && ai.mapNodes.options.indexOf(ai.mapNodes.value) < 0 }"
+                          style="padding: 2px 12px 0px 0px">{{:: "ui.apps.aicontrol.TargetMap" | translate}}</span>
+        <div flex>
+          <md-select ng-class="{ 'disabled-option': ['flee', 'manual'].indexOf(ai.mode.value) < 0}" flex ng-model="ai.mapNodes.value" ng-change="ai.changeMapNode()">
+            <md-option ng-value="opt" ng-repeat="opt in ai.mapNodes.options">{{opt}}</md-option>
+          </md-select>
+        </div>
+        <span ng-class="{ 'disabled-option': ['flee', 'chase', 'follow'].indexOf(ai.mode.value) < 0  || ai.targetObjects.options.length < 2,
+                          'action-needed':   (ai.targetObjects.options.length >= 2) && (ai.targetObjects.value < 0) }"
+                          style="padding: 2px 8px 0px 15px">{{:: "ui.apps.aicontrol.TargetVehicle" | translate}}</span>
+        <div flex>
+          <md-select ng-class="{ 'disabled-option': ['flee', 'chase', 'follow'].indexOf(ai.mode.value) < 0  || ai.targetObjects.options.length < 2}" flex ng-model="ai.targetObjects.value" ng-change="ai.changeTargetObject()">
+            <md-option ng-value="opt.id" ng-repeat="opt in ai.targetObjects.options">{{opt.txt}}</md-option>
+          </md-select>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="category">{{:: "ui.apps.aicontrol.AiDebug" | translate}}</td>
+      <td layout="row" layout-align="start center">
+        <div flex>
+          <md-select ng-model="ai.vehicleDebugMode.value" ng-change="ai.changeVehicleDebugMode()">
+            <md-option ng-value="opt.val" ng-repeat="opt in ai.vehicleDebugMode.options" >{{opt.txt}}</md-option>
+          </md-select>
+        </div>
+        <div flex></div>
+      </td>
+    </tr>
+  </table>
+ </div>

@@ -1,0 +1,128 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/career/career.css" />
+
+<div class="career career-size">
+
+  <div class="headingContainer">
+    <div><h4>{{:: "ui.career.savedProgress" | translate }}</h4></div>
+    <h2>{{:: "ui.career.profiles" | translate}}</h2>
+  </div>
+
+  <div class="career-cards" bng-nav-scroll>
+    <div ng-repeat="card in cards track by $index" class="career-cardholder">
+      <md-tooltip ng-if="card.data.outdatedVersion && !card.disabled" md-direction="top">
+        This profile was saved with an old version of the game. It can no longer be loaded.
+      </md-tooltip>
+      <div class="career-card {{card.class}}"
+        ng-class="{ 'career-card-active': card.data.active, 'career-card-outdated': card.data.outdatedVersion && card.data.preview }"
+        bng-nav-item bng-sound-class="bng_hover_generic" bng-blur="$index == 0"
+        focus-on-hover ng-focus="manage.select(card.id)" ng-click="card.action($event)"
+        style="{{ card.data.preview ? 'background-image:url(\'' + card.data.preview + '\');' : '' }}"
+        ng-disabled="card.disabled"
+      >
+
+        <!-- title -->
+        <div class="career-card-cover" bng-sound-class="bng_click_generic" ng-if="manage.id !== card.id || card.id !== manage.newid || !manage.mode">
+          <div class="career-card-title-block flex-column">
+            <div class="career-card-title" ng-class="{ 'modded': modded }">{{card.title}}</div>
+            <div class="career-card-date" ng-if="card.id !== manage.newid && (manage.id !== card.id || (manage.id === card.id && !manage.mode))">
+              <span ng-if="!card.data.active">
+                <!-- {{ profile.creationDate | formattedDate }}
+                &ndash;
+                {{ profile.date | formattedDate }}
+                &ndash; -->
+                {{ "ui.career.lastplayed" | translate }}:
+                {{ card.data.date | timeSpan : null : 2 : true }}
+                <!-- timeSpan : <start date> : <number of values to display (play with it to see!)> : <should it add "ago" or "later" at the end> -->
+              </span>
+              <span ng-if="card.data.active">
+                {{ "ui.career.nowplaying" | translate }}
+              </span>
+            </div>
+          </div>
+          <div class="career-modded-badge" ng-if="false">
+            <div class="career-modded-icon"></div>
+            {{:: "ui.career.modded" | translate }}
+          </div>
+        </div>
+
+        <!-- content -->
+        <div class="career-content"
+          ng-class="{ 'unwrapped': manage.id === card.id && !manage.mode }"
+          ng-if="card.id !== manage.newid && (manage.id !== card.id || (manage.id === card.id && !manage.mode))"
+          bng-career-status profile="card.data" showdate="false" expanded="manage.id === card.id && !manage.mode"
+          onclick="event.stopPropagation()"
+        ></div>
+
+        <!-- manage menu -->
+        <div class="career-manage" onclick="event.stopPropagation()"
+          ng-if="manage.id === card.id && manage.mode === 'manage'"
+        >
+          <button bng-sound-class="bng_click_generic" ng-click="manage.rename()" ng-disabled="card.data.active">{{:: "ui.career.rename" | translate}}</button>
+          <button bng-sound-class="bng_click_generic" ng-click="manage.deleteShowHide($event)" ng-disabled="card.data.active">{{:: "ui.career.delete" | translate}}</button>
+          <button disabled="disabled" bng-sound-class="bng_click_generic" ng-click="manage.mods()">{{:: "ui.career.mods" | translate}}</button>
+          <button disabled="disabled" bng-sound-class="bng_click_generic" ng-click="manage.backup()">{{:: "ui.career.backup" | translate}}</button>
+          <!-- delete mini-menu -->
+          <span style="padding-bottom: 1.5em;" class="ng-hide">
+            {{ "ui.career.deletePrompt" | translate }}
+          </span>
+          <button class="ng-hide" style="background-color: var(--bng-add-red-600);" bng-sound-class="bng_click_generic" ng-click="manage.deleteConfirm($event)" ng-disabled="card.data.active">{{:: "ui.common.yes" | translate}}</button>
+          <button class="ng-hide" bng-sound-class="bng_cancel_generic" ng-click="manage.deleteShowHide($event)" ng-disabled="card.data.active">{{:: "ui.common.no" | translate}}</button>
+        </div>
+
+        <!-- naming -->
+        <div class="career-manage" onclick="event.stopPropagation()"
+          ng-if="manage.id === card.id && manage.mode === 'name'"
+        >
+          <div class="flex-column" style="align-items: stretch;" >
+            <label style="padding-bottom: 1em;">{{:: "ui.career.saveName" | translate}}</label>
+            <input focus-if="true" type="text" ng-model="manage.newname" maxlength="64"/>
+          </div>
+        </div>
+
+        <!-- naming tutorial options -->
+        <div class="tutorial-onoff-select" ng-if="manage.id === card.id && manage.mode === 'name' && manage.tutorialToggleEnabled" onclick="event.stopPropagation()" >
+          <md-checkbox ng-show="manage.tutorialToggleEnabled" ng-model="manage.tutorialEnabledCheck" bng-sound-class="bng_checkbox_generic">{{:: "ui.career.tutorialCheckDesc" | translate}}</md-checkbox>
+          <br/>
+          <span class="tutorial-onoff-desc" ng-class="manage.tutorialEnabledCheck ? '' : 'selected'" ng-show="manage.tutorialToggleEnabled">
+            {{:: "ui.career.tutorialOnDesc" | translate}}
+          </span>
+        </div>
+
+        <!-- buttons container -->
+        <div class="career-card-buttons" onclick="event.stopPropagation()"
+          ng-class="{ 'unwrapped': manage.id === card.id && ( card.id !== manage.newid || manage.mode === 'name' )}"
+        >
+          <!-- default buttons -->
+          <div ng-if="(manage.id !== card.id || (manage.id === card.id && !manage.mode)) && card.id !== manage.newid">
+            <button bng-sound-class="bng_click_generic" ng-click="manage.go('manage')">
+              {{:: "ui.career.manage" | translate}}
+            </button>
+            <button bng-sound-class="bng_click_generic" class="selected" ng-disabled="card.data.active || card.data.outdatedVersion" ng-click="card.action()">
+              {{:: "ui.common.load" | translate}}
+            </button>
+          </div>
+          <!-- manage menu buttons -->
+          <div ng-if="manage.id === card.id && manage.mode === 'manage'" >
+            <button bng-sound-class="bng_cancel_generic" ng-click="manage.go()">
+              {{:: "ui.common.back" | translate}}
+            </button>
+          </div>
+          <!-- naming buttons -->
+          <div ng-if="manage.id === card.id && manage.mode === 'name'">
+            <button bng-sound-class="bng_click_generic" class="selected" ng-click="manage.name()" ng-disabled="!manage.isNewNameOk()">
+              {{ (card.id === manage.newid ? "ui.common.action.start" : "ui.common.save") | translate}}
+            </button>
+            <button bng-sound-class="bng_cancel_generic" ng-click="manage.go()">
+              {{:: "ui.common.cancel" | translate}}
+            </button>
+          </div>
+        </div>
+
+        <div ng-if="fancyblur && $index == 0" class="fancy-blur">
+          <img-carousel sync="true"></img-carousel>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

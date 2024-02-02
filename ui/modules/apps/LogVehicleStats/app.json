@@ -1,0 +1,18 @@
+{
+    "domElement": "<logvehiclestats></logvehiclestats>",
+    "name": "ui.apps.logvehiclestats.name",
+    "types": [
+      "ui.apps.categories.utility"
+    ],
+    "description": "App for researchers purposes. Here you can select which vehicle stats you want to log.",
+    "css": {
+      "left": "200px",
+      "height": "550px",
+      "top": "200px",
+      "width": "400px"
+    },
+    "author": "BeamNG",
+    "version": "1.0",
+    "preserveAspectRatio" : false,
+    "directive": "logvehiclestats"
+  }

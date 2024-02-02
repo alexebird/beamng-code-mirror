@@ -1,0 +1,54 @@
+<!-- <link type="text/css" rel="stylesheet" href="/ui/modules/modmanager/mods.css"> -->
+<style>
+  md-tabs-wrapper, md-tabs-canvas, md-pagination-wrapper {
+    height: 64px !important;
+
+  }
+  .md-tab {
+    line-height: 40px !important;
+  }
+  .md-tab.md-active {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .mods-background md-content {
+    background-color: rgba(35,35,35,0.8);
+  }
+  .mods-background md-content md-content {
+    background-color: rgba(35,35,35,0.5);
+  }
+</style>
+<div layout="row" style="max-width:1400px; min-width:600px; height: 100%" class="mods-background" bng-blur="true">
+  <md-content  layout="column">
+    <md-toolbar >
+      <div class="md-toolbar-tools" layout="row">
+
+        <div style="width: 1400px;">
+          <md-tabs class="md-primary" md-selected="modCtrl.selectedTab" md-stretch-tabs="always">
+            <md-tab ng-click="switchState('menu.mods.local')" label="{{:: 'ui.repository.mods' | translate}}"></md-tab>
+            <md-tab ng-click="switchState('menu.mods.repository')" label="{{:: 'ui.mainmenu.repo' | translate}}" ng-if="!disableModsAfterUpdate"></md-tab>
+            <md-tab ng-click="switchState('menu.mods.automation')" label="Automation" ng-if="!disableModsAfterUpdate"></md-tab>
+          </md-tabs>
+        </div>
+
+      </div>
+
+    </md-toolbar>
+
+    <div flex layout-padding style="overflow-y: auto">
+      <md-content style="max-width:1200px; min-width:800px;" class="contentModManager">
+        <div ui-view="content" layout></div>
+      </md-content>
+    </div>
+  </md-content>
+
+  <md-content layout="column" flex="25" style="max-width: 500px; height: 100%;" ng-if="hasFilter && !disableModsAfterUpdate">
+    <md-toolbar class="md-primary md-hue-1">
+      <div class="md-toolbar-tools">
+        <span flex>{{hasFilter.name | translate}}</span>
+      </div>
+    </md-toolbar>
+
+    <div style="overflow: auto;" class="md-padding" ui-view="filter"></div>
+  </md-content>
+</div>

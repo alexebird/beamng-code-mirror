@@ -1,0 +1,439 @@
+<style>
+  .gameContext.transparent { background-color: transparent; color: white; }
+  .gameContext .color1 {color: white !important; }
+  .gameContext .header { min-height: 50px; font-size: 2vh; padding-left: 10px; opacity: 1; background-color: rgba(255, 103, 0, 0.8);}
+  .gameContext .mainHeader { min-height: 75px; font-size: 3vh; padding-left: 20px; opacity: 1; background-color: rgba(255, 103, 0, 0.8);}
+  .gameContext .darkbg { background-color: rgba(0, 0, 0, 0.85); }
+  .gameContext .title { position: absolute; bottom: 0; left: 0; background-color: rgb(255, 103, 0); font-size: 3vh; padding: 1% 2.5%;}
+  .gameContext .mockedCover {
+    width: 105%;
+    min-height: 105%;
+    -webkit-transform: translate(-50%, -50%);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+  }
+
+  .gameContext .tile {
+    cursor: pointer;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .gameContext .tile:focus .header {
+    opacity: 1;
+    background-color: rgb(255, 103, 0);
+  }
+
+  @-webkit-keyframes zoomIn {
+    100% {
+      width: 100%;
+      min-height: 100%;
+    }
+  }
+
+  .gameContext .tile:focus .mockedCover {
+    -webkit-animation: zoomIn 0.0s forwards;
+  }
+
+  .gameContext .tile:focus::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    box-sizing: border-box;
+    border: 4px solid rgb(255, 103, 0);
+    pointer-events: none;
+  }
+
+
+  .gameContext .paginationLabel {
+
+
+
+
+  }
+
+
+  .gameContext .paginationButton {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.5);
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    -webkit-transform: translate(-50%, -50%);
+  }
+
+  .gameContext .paginationButton:focus {
+    background-color: rgb(255, 103, 0, 128);
+  }
+
+
+  .gameContext .playBtn {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.7);
+    margin: 5px;
+
+  }
+
+  .gameContext .playBtn:focus {
+    background-color: rgb(255, 103, 0);
+  }
+
+  .gameContext .disabled {
+    opacity: 0.8;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    /*background-color: rgba(120, 120, 120, 0.8); */
+  }
+
+  .gameContext .disabled.playBtn {
+    opacity: 0.8;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: rgb(255,64,64);
+  }
+
+  @keyframes unfulfilledRequirement {
+    0% {
+      background-color: rgba(255, 64, 64, 0.5);
+    }
+    33% {
+      background-color: rgba(255, 64, 64, 0.5);
+    }
+
+    90% {
+      background-color: rgba(255, 64, 64, 0.0);
+    }
+    100% {
+      background-color: rgba(255, 64, 64, 0.0);
+    }
+  }
+
+  .unfulfilledRequirement {
+      background-color: rgba(255, 64, 64, 0.5);
+     -webkit-animation: unfulfilledRequirement 3s infinite;
+  }
+
+/*
+  .gameContext .menu-navigation:focus {
+    outline: none !important;
+  }*/
+
+  .gameContext md-list-item:focus {
+    background-color: rgba(255, 103, 0, 0.35);
+  }
+
+  .popover {
+    position: absolute;
+    z-index: var(--zorder_gamecontext_popover);
+  }
+
+  /* copied over from bigmap.css and custom stuff */
+  /*
+  .scenario-start-progress-wrapper {
+    position: absolute;
+    width: 28em;
+    min-height:100px;
+    right: 35px;
+    bottom: 35px;
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+*/
+  .progress-key {
+    display: flex;
+    flex-direction: column;
+    /* flex-wrap: wrap; */
+    /* grid-template-columns: repeat(auto-fit, minmax(4em, 1fr)); */
+  }
+
+  .progress-key:nth-child(2) {
+    /* display: grid; */
+    grid-area: 2 / 1 / 2 / -1;
+    margin: 0 0 0.5em 0;
+    flex-direction: row;
+    font-weight: 600;
+    /* grid-template-columns: repeat(auto-fit, minmax(4em, 1fr)); */
+  }
+
+  .progress-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(5em, 1fr));
+    font-family: 'Noto Sans';
+    font-style: normal;
+    font-weight: 600;
+    gap: 0.5em;
+  }
+
+  .progress-summary h3 {
+      grid-area: 1 / 1 / 1 / -1;
+      margin-bottom: 0.5em;
+  }
+
+  .attempts-counter {
+      grid-area: 2 / 1 / 2 / -1;
+      margin: 0 0 0.5em 0;
+      font-weight: 600;
+  }
+
+  .key-label {
+      font-weight: 400;
+      font-size: 0.8em;
+      flex: 1 1 auto;
+  }
+
+  .progress-key:nth-child(2) > .key-label, .progress-key:nth-child(2) > .key-value {
+      font-size: 1.15em;
+      flex: 0 0 auto;
+      padding: 0 0.5em 0 0;
+  }
+
+  .progress-summary h3 ::after {
+      background-color: #f60;
+      height: 1em;
+      width: 100%;
+  }
+
+  .key-value {
+    text-overflow: ellipsis;
+    /* width: 100%; */
+    overflow: hidden;
+  }
+
+  .divider-bottom {
+    border-bottom: var(--bng-orange) solid 2px;
+    padding: 0 0 1em 0;
+  }
+
+  .orange-underline {
+    border-bottom: 0.5em solid var(--bng-orange);
+  }
+
+  .small-star {
+    font-size: 0.8em;
+  }
+
+  .star-disabled {
+    opacity: 0.8;
+    cursor: not-allowed !important;
+    text-decoration: line-through;
+  }
+
+</style>
+
+<md-content layout-fill style="position: relative;" layout="row" layout-align="center center" class="gameContext transparent filler" bng-blur="1">
+
+  <div flex style="max-width: 140vh;" ng-show='context === "empty"' >
+    <md-grid-list md-cols="12" md-row-height="18:25" md-gutter="2vh">
+      <md-grid-tile md-rowspan="1" md-colspan="3"></md-grid-tile>
+      <md-grid-tile md-rowspan="1" md-colspan="6">
+        <div class="filler tile"  layout="row" >
+          <div  layout="column"  class="filler" >
+            <div class="header" layout="row" layout-align="start center">
+              <md-icon class="material-icons color1" style="margin: 0 10px;">textsms</md-icon>
+              Nothing Here!
+            </div>
+            <div style="text-align: justify; padding: 10px; font-size: 1.25em;" class="darkbg filler">
+              There are no missions at this location. Why not check out the Map to see where they are?
+            </div>
+          </div>
+        </div>
+      </md-grid-tile>
+      <md-grid-tile md-rowspan="1" md-colspan="3"></md-grid-tile>
+
+      <md-grid-tile md-colspan="3" md-rowspan="1"> <div class="filler"> </div> </md-grid-tile>
+      <md-grid-tile md-colspan="6" md-rowspan="1" layout="row" layout-align="bottom center">
+        <div ng-click="" class="playBtn" bng-nav-item style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;">
+          Open Map
+        </div>
+      </md-grid-tile>
+
+    </md-grid-list>
+
+  </div>
+
+  <div flex style="max-width: 140vh;" ng-show='context === "availableMissions" || context === "ongoingMission"'>
+    <div style="font-size: 3vh; padding: 10px; text-align: center; height: 5vh; padding-bottom:2vh">
+      <div ng-show='missionCount > 1' style="position: absolute; left:50%;  -webkit-transform: translate(-50%, 0);  background-color: rgba(0, 0, 0, 0.5); padding: 10px 30px;">
+        {{missionIndex + 1}} / {{missions.length}}
+      </div>
+    </div>
+    <md-grid-list md-cols="14" md-row-height="15:25" md-gutter="2vh">
+
+      <!-- Prev-->
+      <md-grid-tile md-rowspan="4" md-colspan="2" >
+        <div class="tile filler"  >
+          <div ng-show='missionCount > 1' bng-nav-item style="font-size: 5vh; padding: 10px; text-align: center; " class="paginationButton" ng-click = 'prevMission()' >
+            <md-icon class="material-icons color1" style="font-size: 2em">keyboard_arrow_left</md-icon>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <!-- Main-->
+      <md-grid-tile md-rowspan="2" md-colspan="6">
+        <div class="filler tile"  layout="row" >
+          <div class="filler" layout="column">
+            <div class="mainHeader" layout="row" layout-align="start center">
+              <md-icon ng-show="!currentMission.unlocks.startable" class="material-icons color1" style="margin: 0 10px;">locked</md-icon>
+              {{currentMission.name | translate}}
+            </div>
+            <div class="filler" layout = "">
+              <div flex="60" style="overflow: hidden; position: relative;">
+                <img ng-src="{{currentMission.preview}}" style="display: block; width: 100%; height: 100% ;object-fit: cover;"></img>
+              </div>
+
+              <div flex="40" class="darkbg" layout="column" style="overflow: auto;">
+                <md-list>
+                  <md-list-item class="md-2-line" ng-repeat="att in currentMission.additionalAttributes" style="min-height: 3em">
+                    <md-icon class="material-icons color1" style="font-size: 2em; margin-top: 2px; margin-bottom: 2px">{{att.icon}}</md-icon>
+                    <div class="md-list-item-text" style="padding: 0px 2px">
+                      <h3 class="color1">{{att.labelKey | translate}}</h3>
+                      <p class="color1">{{att.valueKey | translate}}</p>
+                    </div>
+                  </md-list-item>
+                </md-list>
+              </div>
+            </div>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <!-- Progress-->
+      <md-grid-tile md-rowspan="4" md-colspan="4">
+        <div class="filler tile"  layout="column" >
+          <div class="header" layout="row" layout-align="start center">
+            <md-icon class="material-icons color1" style="margin: 0 10px;">playlist_add_check</md-icon>
+            Progress for: "{{currentMission.formattedProgress.progressKeyTranslations[currentMission.formattedProgress.defaultProgressKey] | contextTranslate}}"
+          </div>
+
+          <div class="darkbg filler" style='overflow:auto' >
+            <div style="padding: 10px;">
+              <div class="divider-bottom">
+                <div ng-repeat="star in currentMission.formattedProgress.unlockedStars.stars" ng-class="{'star-disabled': star.isDefaultStar && !currentMission.userSettingsAreDefault}">
+                  <md-icon ng-if="star.unlocked">star</md-icon><md-icon ng-if="!star.unlocked">star_outline</md-icon> {{star.label | contextTranslate}}
+                </div>
+                <div ng-if="!currentMission.userSettingsAreDefault">(Default Stars are only available with default mission settings.)</div>
+              </div>
+
+
+              <div class="progress-summary divider-bottom">
+                <div class="progress-key" ng-repeat="(i, col) in currentMission.formattedProgress.formattedProgressByKey[currentMission.formattedProgress.defaultProgressKey].ownAggregateCols">
+                  <div ng-repeat="(i, data) in col"
+                    class="{{ i === 0 ? 'key-label' : 'key-value' }}"
+                    bng-timespan="{{:: data.timestamp }}" >
+                    {{:: (data.text || data.label) | translate}}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+
+                <div class="progress-attempts">
+                  <h3 ng-if="currentMission.leaderboardKey === 'recent'">{{"bigMap.progressLabels.recentAttempts" | translate}}</h3>
+                  <table style="width:100%; text-align: center">
+                    <tr>
+                      <th ng-repeat="(key, val) in currentMission.formattedProgress.formattedProgressByKey[currentMission.formattedProgress.defaultProgressKey].attempts.labels track by key">{{:: val | translate}}</th>
+                    </tr>
+                    <tr ng-repeat="(_, row) in currentMission.formattedProgress.formattedProgressByKey[currentMission.formattedProgress.defaultProgressKey].attempts.rows|limitTo:5">
+                      <td ng-repeat="(_, d) in row" bng-timespan="{{:: d.timestamp }}" bng-simplestars="{{:: d.simpleStars}}">{{:: d.text | translate}}</td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <!-- Next-->
+      <md-grid-tile md-rowspan="4" md-colspan="2">
+        <div class="tile filler"  >
+          <div ng-show='missionCount > 1' bng-nav-item style="font-size: 5vh; padding: 10px; text-align: center; " class="paginationButton" ng-click = 'nextMission()' >
+            <md-icon class="material-icons color1" style="font-size: 2em">keyboard_arrow_right</md-icon>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <!-- Settings-->
+      <md-grid-tile md-rowspan="2" md-colspan="3">
+        <div class="filler tile"  layout="column" ng-show='currentMission.unlocks.startable'>
+          <div class="header" layout="row" layout-align="start center" style="opacity: 1;">
+            <md-icon class="material-icons color1" style="margin: 0 10px;">tune</md-icon>
+            <div ng-if=" currentMission.userSettingsAreDefault">Default Settings</div>
+            <div ng-if="!currentMission.userSettingsAreDefault">Custom Settings</div>
+          </div>
+
+          <div class="filler darkbg" style="overflow: auto;" ng-class="{'disabled': !currentMission.hasUserSettingsUnlocked}">
+            <div ng-show='currentMission.userSettings'>
+              <div  ng-repeat="setting in currentMission.userSettings">
+                <md-list-item layout="row" layout-align="space-between center" bng-nav-item  ng-blur="!currentMission.unlocks.startable">
+                  <p flex>{{setting.label | translate}}</p>
+                  <bng-select ng-if='setting.type === "bool"' ng-disabled="!currentMission.hasUserSettingsUnlocked" ng-model="setting.value" ng-change="settingsChanged();" loop options="[{l: 'Yes', v: true}, {l: 'No', v: false}]" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+                  <bng-select ng-if="setting.type == 'select'" ng-disabled="!currentMission.hasUserSettingsUnlocked"  ng-model="setting.value" ng-change="settingsChanged();" loop bng-options="{{setting.values}}" options="" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+                  <bng-select ng-if="setting.type == 'int'" ng-disabled="!currentMission.hasUserSettingsUnlocked" ng-model="setting.value" ng-change="settingsChanged();" loop bng-range-min="{{setting.min?setting.min:0}}" bng-range-max="{{setting.max?setting.max:20}}" options="" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+                </md-list-item>
+              </div>
+              <div ng-if="!currentMission.hasUserSettingsUnlocked">(Unlock settings by achieving at least one star.)</div>
+            </div>
+            <div ng-show='!currentMission.hasUserSettings'>
+              <div style="text-align: justify; padding: 10px; font-size: 1.25em; color:gray;" class="filler">
+                Nothing to configure here!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filler tile"  layout="column" ng-show='!currentMission.unlocks.startable'>
+          <div class="header" layout="row" layout-align="start center" style="opacity: 1;">
+            <md-icon class="material-icons color1" style="margin: 0 10px;">locked</md-icon>
+            Locked!
+          </div>
+          <div class="filler darkbg" style="overflow: auto;">
+            To unlock this mission:
+            <div ng-bind-html = "currentMission.unlockList"></div>
+            <div ng-if="currentMission.unlocks.forwardNames.length > 0">
+              <p>Passing this will help Unlock:</p>
+              <ul>
+                <li ng-repeat="missionForward in currentMission.unlocks.forwardNames">
+                  {{missionForward | translate}}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <!-- Description-->
+      <md-grid-tile md-rowspan="2" md-colspan="3">
+        <div class="filler tile"  layout="row" >
+          <div  layout="column"  class="filler" >
+            <div class="header" layout="row" layout-align="start center">
+              <md-icon class="material-icons color1" style="margin: 0 10px;">textsms</md-icon>
+              Description
+            </div>
+            <div style="text-align: justify; padding: 10px; font-size: 1.25em;" class="darkbg filler">
+              {{currentMission.description | translate}}
+            </div>
+          </div>
+        </div>
+      </md-grid-tile>
+
+      <!-- Spacing and Button-->
+      <md-grid-tile md-colspan="2" md-rowspan="1"> <div class="filler"> </div> </md-grid-tile>
+      <md-grid-tile md-colspan="10" md-rowspan="1" layout="row" layout-align="bottom center">
+        <div ng-show="context != 'ongoingMission'" ng-click="currentMission.unlocks.startable && startMissionById(currentMission.id)" class="playBtn" ng-class="{'disabled': !currentMission.unlocks.startable}" bng-nav-item focus-if="true" nav-item-disabled="!currentMission.unlocks.startable" style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;">
+          {{:: 'ui.quickrace.play' | translate}}
+        </div>
+        <div ng-show='context == "ongoingMission"' ng-click="stopMissionById(currentMission.id)" class="playBtn" bng-nav-item style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;">
+          Abandon
+        </div>
+        <div ng-show='context == "ongoingMission"' ng-repeat="btn in currentMission.gameContextUiButtons" ng-click="btnClicked(btn)" class="playBtn" bng-nav-item style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;">
+          {{btn.label | translate }}
+        </div>
+      </md-grid-tile>
+
+    </md-grid-list>
+  </div>
+</md-content>

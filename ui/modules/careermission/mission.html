@@ -1,0 +1,196 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/careermission/mission.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/ui/modules/scenariocontrol/scenariocontrol.css" /> -->
+<!-- <link rel="stylesheet" type="text/css" href="/ui/modules/bigmap/bigmap.css" /> -->
+
+<div bng-blur="true" class="mission-container">
+  <div class="mission-title">
+    <div class="headingContainer">
+      <div>
+        <h4 ng-if="currentMission.type">{{ currentMission.type }}</h4>
+        <div ng-if="currentMission.type && currentMission.difficulty" class="vertical-divider"></div>
+        <h4  ng-if="currentMission.difficulty">{{:: "ui.common.property.difficulty" | translate}}: {{ currentMission.difficulty }}</h4>
+      </div>
+      <h2>{{currentMission.name | translate}}</h2>
+      <h2 ng-if="currentMission.devMission" style="color: red;">[DEV Mission]</h2>
+      <div class="mission-pagination" ng-if="missionCount > 1">
+        <div bng-nav-item ng-click="prevMission()" class="mission-pagination-side-item">
+          <div class="arrow-centering">&larr;</div>
+        </div>
+        <div class="mission-pagination-spacer"></div>
+        <div class="mission-pagination-item">
+          <span>{{missionIndex + 1}}/{{missionCount}}</span>
+        </div>
+        <div class="mission-pagination-spacer"></div>
+        <div bng-nav-item ng-click="nextMission()" class="mission-pagination-side-item">
+          <div class="arrow-centering">&rarr;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mission-view">
+
+    <!-- Mission overview -->
+    <div ng-if='context != "ongoingMission"' class="mission-details-column"><!-- 1st column -->
+      <!-- make sure about currentMission.unlocks.startable -->
+      <bng-card card-style="hero" bng-nav-item focus-on-hover focus-if="currentMission.unlocks.startable"
+        action="repairStartButton.enabled ? repairStartButton.reason : ((currentMission.unlocks.startable ? 'ui.mission.action.start' : 'ui.mission.action.locked')) | translate" action-disabled="!currentMission.unlocks.startable || repairStartButton.enabled" ng-click="!repairStartButton.enabled && currentMission.unlocks.startable && startMissionById(currentMission.id)">
+        <div class="mission-gallery fixd-ratio">
+          <svg viewBox="0 0 16 9"></svg>
+          <img-carousel imageurls="currentMission.previewFiles || currentMission.preview"/>
+        </div>
+        <div class="mission-content">
+          {{currentMission.description | contextTranslate}}
+        </div>
+      </bng-card>
+
+      <bng-card ng-if="showRepairCard" title="{{'ui.mission.panel.repair' | translate}}" class="mission-screen-card">
+        <md-list-item layout="row" layout-align="center">
+          <span>{{'ui.mission.repair.select' | translate}} : </span>
+          <bng-select flex ng-model="options.currRepairOption" ng-change="repairChanged();" loop options="repairOptions" config="{label: x => x.label, value: x => x}"></bng-select>
+        </md-list-item>
+      </bng-card>
+      <bng-card ng-if="startWarning" title="{{startWarning.title}}" class="mission-screen-card">
+        <div class="mission-content">
+          {{startWarning.label | contextTranslate}}
+        </div>
+      </bng-card>
+      <!-- <button ng-click="fn()">log current mission data</button> -->
+    </div><!-- /1st column -->
+
+    <!-- While in mission -->
+    <div ng-if='context == "ongoingMission"' class="mission-details-column"><!-- 1st column -->
+      <!-- make sure about currentMission.unlocks.startable -->
+      <bng-card card-style="hero" bng-nav-item focus-on-hover action="'ui.mission.action.returnToMission' | translate" ng-click="resumeMission()">
+        <div class="mission-gallery fixd-ratio">
+          <svg viewBox="0 0 16 9"></svg>
+          <img-carousel imageurls="currentMission.previewFiles || currentMission.preview"/>
+        </div>
+        <div class="mission-content">
+          {{currentMission.description | contextTranslate}}
+        </div>
+      </bng-card>
+      <!-- <button ng-click="fn()">log current mission data</button> -->
+    </div><!-- /1st column -->
+
+    <div class="secondary-cards-wrapper">
+
+      <div class="mission-details-column"><!-- 2nd column -->
+        <!-- Task/Progress -->
+        <bng-card ng-if='context != "ongoingMission" && currentMission.formattedProgress.unlockedStars.stars.length > 0' title="{{'ui.mission.panel.progress' | translate}}" class="mission-screen-card ">
+          <!-- <span>progress: {{currentMission.progress}}</span>
+          formatted: {{currentMission.formattedProgress}}
+          leaderboard key: {{currentMission.leaderboardKey}} -->
+
+          <!-- <div class="icon-mask reward-stars-meter"></div> -->
+          <bng-star-line ng-repeat="star in currentMission.formattedProgress.unlockedStars.stars track by $index" data="star" has-content="true" mission="currentMission" class="mission-rewards mission-content-thin">
+
+            <span ng-repeat="reward in star.rewards" class="mission-reward">
+              <span bng-branch-icon="{{reward.attributeKey}}" ng-class="{locked : (!currentMission.userSettingsAreDefault && star.isDefaultStar) || !star.unlocked}"></span>{{reward.rewardAmount}}
+            </span>
+          </bng-star-line>
+          <div ng-if="!currentMission.userSettingsAreDefault" class="mission-content-thin">(Default Stars are only available with default mission settings.)</div>
+        </bng-card>
+
+        <!-- Settings -->
+        <bng-card ng-show='context != "ongoingMission"' title="{{'ui.mission.panel.settings' | translate}}" class="mission-screen-card">
+          <div class="mission-content" style="overflow: auto;" ng-class="{'disabled': !currentMission.hasUserSettingsUnlocked}">
+            <!-- if unlocked -->
+            <div ng-show='currentMission.userSettings && currentMission.unlocks.startable'>
+              <div  ng-repeat="setting in currentMission.userSettings">
+                <md-list-item layout="row" layout-align="space-between center" ng-blur="!currentMission.unlocks.startable">
+                  <p flex>{{setting.label | translate}}</p>
+                  <bng-select ng-if='setting.type === "bool"' ng-disabled="!currentMission.hasUserSettingsUnlocked" ng-model="setting.value" ng-change="settingsChanged();" loop options="[{l: 'Yes', v: true}, {l: 'No', v: false}]" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+                  <bng-select ng-if="setting.type == 'select'" ng-disabled="!currentMission.hasUserSettingsUnlocked"  ng-model="setting.value" ng-change="settingsChanged();" loop bng-options="{{setting.values}}" options="" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+                  <bng-select ng-if="setting.type == 'int'" ng-disabled="!currentMission.hasUserSettingsUnlocked" ng-model="setting.value" ng-change="settingsChanged();" loop bng-range-min="{{setting.min?setting.min:0}}" bng-range-max="{{setting.max?setting.max:20}}" options="" config="{label: (x) => x.l, value: (x) => x.v}"></bng-select>
+                </md-list-item>
+              </div>
+              <div ng-if="!currentMission.hasUserSettingsUnlocked">{{:: "ui.mission.screen.unlockByAchieving" | translate}}</div>
+            </div>
+            <div ng-show='!currentMission.hasUserSettings'>
+              <div style="text-align: justify; padding: 10px; font-size: 1.25em; color:gray;" class="filler">
+                {{:: "ui.mission.screen.nothingToConfigure" | translate}}
+              </div>
+            </div>
+            <!-- if locked -->
+            <div class=""  layout="column" ng-show='!currentMission.unlocks.startable'>
+              <div class="" style="overflow: auto;">
+                {{:: "ui.mission.screen.toUnlockMission" | translate}}
+                <div ng-bind-html = "currentMission.unlockList"></div>
+                <div ng-if="currentMission.unlocks.forwardNames.length > 0">
+                  <p>{{:: "ui.mission.screen.passingUnlock" | translate}}</p>
+                  <ul>
+                    <li ng-repeat="missionForward in currentMission.unlocks.forwardNames">
+                      {{missionForward | translate}}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </bng-card>
+
+        <!-- Progress while in mission -->
+        <bng-card ng-if='context == "ongoingMission"' title="{{'ui.mission.panel.progress' | translate}}" style="width: 100%; height: 25rem; background-color: rgba(0,0,0, 0.5); color: #fff; overflow:auto;">
+          <bng-star-line ng-repeat="star in currentMission.formattedProgress.unlockedStars.stars track by $index" data="star" has-content="false" mission="currentMission" class="mission-rewards mission-content-thin">
+            <span ng-repeat="reward in star.rewards" class="mission-reward">
+              <span bng-branch-icon="{{reward.attributeKey}}" ng-class="{locked : (!currentMission.userSettingsAreDefault && star.isDefaultStar) || !star.unlocked}"></span>{{reward.rewardAmount}}
+            </span>
+          </bng-star-line>
+        </bng-card>
+
+        <div class="buttons-wrapper">
+          <div class="small-mission-button playBtn" bng-sound-class="bng_click_hover_generic" bng-nav-item focus-on-hover ng-show='context == "ongoingMission"' ng-repeat="btn in currentMission.gameContextUiButtons" ng-click="btnClicked(btn)">
+            <img src="/ui/modules/bigmap/icons/mission_system/restart.svg" alt="" class="mission-button-image">
+            {{btn.label | translate }}
+          </div>
+          <div class="small-mission-button" bng-sound-class="bng_cancel_hover_generic" bng-nav-item focus-on-hover ng-show='context == "ongoingMission"' ng-click="stopMissionById(currentMission.id)" class="playBtn" ng-class="{'disabled': currentMission.tutorialActive}">
+            <img src="/ui/modules/bigmap/icons/mission_system/abandon.svg" alt="" class="mission-button-image" >
+            {{'ui.mission.action.abandon' | translate}}
+          </div>
+        </div>
+    </div><!-- /2nd column -->
+
+    <!-- Vehicle selected -->
+    <div ng-if="false" class="mission-details-column"><!-- 3rd column -->
+      <bng-card title="Vehicle Selected">
+          <div class="mission-content">
+            Mission-description goes here with some additional infos
+          </div>
+        </bng-card>
+    </div><!-- /3rd column -->
+
+    <!-- Ratings -->
+    <div class="mission-details-column"><!-- 4th column -->
+      <bng-card title="{{'ui.mission.panel.ratings' | translate}}" class="mission-screen-card">
+        <div class="mission-content" ng-if="currentMission.rating.type !== 'locked'">
+          <div>
+            <div>
+              <div ng-repeat="(i, col) in currentMission.formattedProgress.formattedProgressByKey[currentMission.formattedProgress.defaultProgressKey].ownAggregateCols">
+                <div ng-repeat="(i, data) in col"
+                  class="{{ i === 0 ? 'key-label' : 'key-value' }}"
+                  bng-timespan="{{:: data.timestamp }}" >
+                  {{:: (data.text || data.label) | translate}}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div>
+                <h3 ng-if="currentMission.leaderboardKey === 'recent'">{{"bigMap.progressLabels.recentAttempts" | translate}}</h3>
+                <table style="width:100%; text-align: center">
+                  <tr>
+                    <th ng-repeat="(key, val) in currentMission.formattedProgress.formattedProgressByKey[currentMission.formattedProgress.defaultProgressKey].attempts.labels track by key">{{:: val | translate}}</th>
+                  </tr>
+                  <tr ng-repeat="(_, row) in currentMission.formattedProgress.formattedProgressByKey[currentMission.formattedProgress.defaultProgressKey].attempts.rows|limitTo:5">
+                    <td ng-repeat="(_, d) in row" bng-timespan="{{:: d.timestamp }}" bng-simplestars="{{:: d.simpleStars}}">{{:: d.text | translate}}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </bng-card>
+    </div><!-- /4th column -->
+
+  </div>
+</div>

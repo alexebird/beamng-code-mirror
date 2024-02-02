@@ -1,0 +1,263 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/scenariocontrol/scenariocontrol.css" />
+<link rel="stylesheet" type="text/css" href="/ui/modules/careermission/mission.css" />
+
+<style type="text/css">
+  .actionbutton {
+    padding: 10px;
+    font-size: 1.4em;
+    border: solid 2px white;
+    text-transform: uppercase;
+    background: none;
+    font-family: Open Sans Bold;
+    color: orange;
+    margin: 10px;
+    min-width: 100px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .actionbutton:hover {
+    background: orange;
+    color: white;
+    border-color: orange;
+  }
+
+  .actionbutton:focus {
+    background: orange;
+    color: white;
+    border-color: orange;
+  }
+
+  .slideInRight {
+    left: -350px;
+    -webkit-animation: slideInRight 0.5s forwards;
+    -webkit-animation-delay: 0.1s;
+  }
+  @-webkit-keyframes slideInRight {
+      100% { left: 0; }
+  }
+
+  .slideInDown {
+    margin-top: -350px;
+    -webkit-animation: slideInDown 0.5s forwards;
+    -webkit-animation-delay: 0.1s;
+  }
+  @-webkit-keyframes slideInDown {
+      100% { margin-top: 0; }
+  }
+
+  .small-star {
+    font-size: 0.8em;
+  }
+</style>
+<div class="filler" style="pointer-events: auto;" >
+  <md-content ng-if="scenarioStart.data.introType === 'portrait'" style="padding:35px;width: 100%; height: 100%; background-color: transparent; color: white;" layout="column">
+    <div style="width: 80%;">
+      <!-- TODO: replace this with gradient from garage as soon as that is updated -->
+      <div style="padding:10px;font-size: 3em; padding-left: 20px; font-weight: bold;color:white;background-color: rgba(0, 0, 0, 0.8);background: -webkit-linear-gradient(left, rgba(0, 0, 0, 0.8) 350px, transparent);">
+        {{scenarioStart.data.name | translate}}
+      </div>
+    </div>
+
+    <div style="width: 350px; background-color: rgba(0, 0, 0, 0.8);" flex layout="column" layout-align="start center" class="md-padding">
+      <img style="margin:0;margin-bottom: 15px; max-width: 80%; max-height: 300px;" ng-src="/{{ scenarioStart.data.portraitImg.start }}" ng-if="scenarioStart.data.portraitImg.start !== undefined">
+
+      <div class="instructions" style="font-size:1.3em; overflow: auto; margin-bottom: 15px;" bng-translate="{{:: scenarioStart.data.portraitText}}" flex></div>
+
+      <div layout="row" layout-align="center center" style="width: 100%;" ng-repeat="btn in scenarioStart.data.extraButtons track by $index">
+        <button bng-nav-item focus-if="true" bng-sound-class="bng_click_generic" class="actionbutton" id="scenario-start-btn" ng-click="scenarioStart.extraButton(btn.cmd)" ng-class="{'md-raised': scenarioStart.data, 'md-accent': scenarioStart.data}">
+          {{btn.label | translate}}
+        </button>
+      </div>
+      <div layout="row" layout-align="center center" style="width: 100%;">
+        <button bng-nav-item focus-if="true" class="actionbutton" id="scenario-start-btn" ng-click="scenarioStart.play()" ng-class="{'md-raised': scenarioStart.data, 'md-accent': scenarioStart.data}" auto-focus-me>
+          {{scenarioStart.data.buttonText | translate}}
+        </button>
+      </div>
+    </div>
+
+    <div ng-if="scenarioStart.data.userCheckSettings" layout="column" class="md-padding" style="position: absolute; left: 400px; width: 350px; bottom: 35px; min-height:100px; background-color: rgba(0, 0, 0, 0.8)">
+      <div layout="column" ng-repeat="(key, val) in scenarioStart.data.userCheckSettings track by key">
+        {{:: val.msg}}
+        <!-- <div layout="row"> -->
+          <md-select aria-label="." style="background-color: white; color:black;" ng-model="scenarioStart.userSettings.values[key]" ng-change="scenarioStart.applySettings(key)">
+            <md-option ng-repeat="option in scenarioStart.userSettings.options[key].modes.keys track by $index" ng-value="option">{{scenarioStart.userSettings.options[key].modes.values[$index] | translate}}</md-option>
+          </md-select>
+          {{val.options[scenarioStart.userSettings.values[key]]}}
+          <!-- </div> -->
+      </div>
+    </div>
+
+    <div ng-if="scenarioStart.data.formattedProgress" layout="column" class="md-padding scenario-start-progress-wrapper" >
+
+
+      <div class="stats-section-info">
+        <div style="font-weight: bold; font-size: 1.17em; margin-bottom: 0.55em;">{{:: 'missions.missions.general.objectives' | translate}}:</div>
+        <div class="progress-summary divider-bottom">
+          <div ng-if="!scenarioStart.data.formattedStars.disabled">
+            <bng-star-line ng-repeat="star in scenarioStart.data.formattedStars.stars track by $index" data="star" has-content="true" mission="currentMission" class="mission-rewards mission-content-thin">
+
+              <span ng-repeat="reward in star.rewards" class="mission-reward">
+                <span bng-branch-icon="{{reward.attributeKey}}"></span>{{reward.rewardAmount}}
+              </span>
+            </bng-star-line>
+          </div>
+        </div>
+        <div class="progress-summary divider-bottom">
+          <h3>Progress for: "{{scenarioStart.data.progressKeyTranslations[scenarioStart.data.formattedProgressKey] | contextTranslate}}"</h3>
+          <div class="progress-key" ng-repeat="(i, col) in scenarioStart.data.formattedProgress.ownAggregateCols">
+            <div ng-repeat="(i, data) in col"
+              class="{{ i === 0 ? 'key-label' : 'key-value' }}"
+              bng-timespan="{{:: data.timestamp }}">
+              {{:: (data.text || data.label) | translate}}
+            </div>
+          </div>
+        </div>
+
+        <div>
+
+          <div class="progress-attempts">
+            <h3 ng-if="scenarioStart.data.leaderboardKey === 'recent'">{{"bigMap.progressLabels.recentAttempts" | translate}}</h3>
+            <table style="width:100%; text-align: center">
+              <tr>
+                <th ng-repeat="(key, val) in scenarioStart.data.formattedProgress.attempts.labels track by key">{{:: val | translate}}</th>
+              </tr>
+              <tr ng-repeat="(_, row) in scenarioStart.data.formattedProgress.attempts.rows|limitTo:5">
+                <td ng-repeat="(_, d) in row" bng-timespan="{{:: d.timestamp }}" bng-simplestars="{{::d.simpleStars}}">{{:: d.text | translate}}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </md-content>
+
+
+  <md-content ng-if="scenarioStart.data.introType !== 'portrait' && scenarioStart.data.introType !== 'selectableVehicle'" style="width: 100%; height: 84%; position: absolute; bottom: 8%; background-color: transparent; color: white;" layout="column" layout-align="end center">
+    <div style="width: 600px; background-color: rgba(0, 0, 0, 0.7);" layout="column" class="md-padding" ng-style="{'height': scenarioStart.data.introType === 'htmlOnly' ? '100%' : '', 'padding': scenarioStart.data.introType === 'htmlOnly' ? '' : '0'}">
+      <ng-include flex ng-if="scenarioStart.data.introType === 'htmlOnly' && !!scenarioStart.data.descriptionHref" src="scenarioStart.data.descriptionHref" style="overflow-y: auto;"></ng-include>
+
+      <div ng-if="scenarioStart.data.introType === 'htmlOnly' && !scenarioStart.data.descriptionHref" flex>
+        <h2>{{scenarioStart.data.name | translate}}</h2>
+        <div style="padding-bottom: 8px;" compile="scenarioStart.data.description"></div>
+      </div>
+
+      <div ng-if="scenarioStart.config.vehicles" style="text-align: center;">Steer with your controller in order to choose a vehicle:</div>
+      <div ng-if="scenarioStart.config" layout="row" layout-wrap style="text-align: center;">
+        <div ng-if="vv != ''" ng-repeat="(vk, vv) in scenarioStart.config.vehicles track by $index" style="min-width: 100px; max-width: 150px; margin: 5px;" flex layout="column" ng-style="{'color': (!scenarioStart.config.inv[vv] ? 'white' : 'salmon')}">
+          <div style="height: 32px;">
+            {{vv}}
+            <md-divider ng-style="{'border-top-color': (!scenarioStart.config.inv[vv] ? 'white' : 'salmon')}" ng-if="vv"></md-divider>
+          </div>
+          <div ng-repeat="(pk, pv) in scenarioStart.config.players track by $index" style="height: 50px; margin: 5px;">
+            <div ng-if="pv == vk" layout="column" layout-align="center center">
+            <!-- unfortunatly it has to be == here since === does not work -->
+              <ng-md-icon class="material-icons" style="font-size: 2em;">
+                {{ scenarioStart.getIconName(pk) }}
+              </ng-md-icon>
+              <small style="width:150%">{{ scenarioStart.config.devices[pk][1] }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div ng-show="scenarioStart.config.invalidMsg" style="color:salmon; text-align: center;"><span class="material-icons" style="font-size:1.0em;">warning</span> <strong>{{scenarioStart.config.invalidMsg}}</strong></div>
+
+      <md-button bng-nav-item focus-if="scenarioStart.showStartButton && scenarioStart.data.buttonText" bng-sound-class="bng_click_generic" id="scenario-start-btn" md-no-ink ng-click="scenarioStart.play()" ng-disabled="!scenarioStart.config.playerValid" ng-class="{'md-raised': scenarioStart.data.introType === 'htmlOnly', 'md-accent': scenarioStart.data.introType === 'htmlOnly'}" ng-style="{'background-color': scenarioStart.data.introType === 'htmlOnly' ? '' : 'transparent'}" ng-show="scenarioStart.showStartButton && scenarioStart.data.buttonText">
+        <div flex layout="row" layout-align="center center" style="font-size: 2em;">
+          {{scenarioStart.data.buttonText | translate}}
+        </div>
+      </md-button>
+    </div>
+  </md-content>
+
+  <md-content ng-if="scenarioStart.data.introType === 'selectableVehicle'" layout-fill style="position: relative;" layout="row" layout-align="center center" class="quickraceOverview transparent filler">
+    <div flex style="max-width: 140vh;">
+      <md-grid-list md-cols="10" md-row-height="18:25" md-gutter="2vh">
+
+        <md-grid-tile md-rowspan="2" md-colspan="3">
+          <div class="filler tile" ng-class="{'disabled': false}" layout="column">
+            <div ng-show="scenarioStart.data.name" class="header" layout="row" layout-align="start center" style="opacity: 1;">
+              {{scenarioStart.data.name | translate}}
+            </div>
+
+            <div class="filler darkbg" style="overflow: auto;">
+              <div compile="scenarioStart.data.description" style="padding: 2%"></div>
+            </div>
+          </div>
+        </md-grid-tile>
+
+        <md-grid-tile md-rowspan="2" md-colspan="7">
+          <div class="filler tile" layout="row" ng-click="scenarioStart.selectVehicle()" bng-nav-item>
+            <div flex="60" layout="column">
+              <div class="header" layout="row" layout-align="start center">
+                <div ng-if=":: vehicle.official" layout="row" layout-align="center center" style="margin: 0 10px;">
+                  <img src="/ui/images/beamng_logo_50x50.png" height="22px" style="-webkit-filter: brightness(0) invert(1);" />
+                  <md-tooltip md-direction="top">
+                    Official
+                  </md-tooltip>
+                </div>
+                {{vehicle.name}}
+              </div>
+
+              <div flex style="overflow: hidden; position: relative;">
+                <imageslider imageurls="vehicle.preview" class="mockedCover"></imageslider>
+              </div>
+            </div>
+
+            <div flex="40" class="darkbg" layout="column" style="overflow: auto;">
+              <md-list>
+                <md-list-item class="md-2-line">
+                  <md-icon ng-hide="vehicle.file.Country" class="material-icons color1" style="font-size: 2em">info</md-icon>
+                  <country-flag src="vehicle.file.Country" ng-if="vehicle.file.Country != missing" style="margin-top: 16px; margin-bottom: 12px; margin-right: 27px;"></country-flag>
+
+                  <div class="md-list-item-text">
+                    <h3 class="color1">{{:: 'ui.quickrace.country' | translate}}</h3>
+                    <p class="color1" ng-if="vehicle.file">{{vehicle.file.Country | translate}}</p>
+                    <p class="color1" ng-if="!vehicle.file">{{:: 'ui.common.unknown' | translate}}</p>
+                  </div>
+                </md-list-item>
+
+                <md-list-item class="md-2-line">
+                  <md-icon class="material-icons color1" style="font-size: 2em">info</md-icon>
+                  <div class="md-list-item-text">
+                    <h3 class="color1">{{:: 'ui.quickrace.brand' | translate}}</h3>
+                    <p class="color1" ng-if="vehicle.file">{{vehicle.file.Brand | translate}}</p>
+                    <p class="color1" ng-if="!vehicle.file">{{:: 'ui.common.unknown' | translate}}</p>
+                  </div>
+                </md-list-item>
+
+                <md-list-item class="md-2-line">
+                  <md-icon class="material-icons color1" style="font-size: 2em">info</md-icon>
+                  <div class="md-list-item-text">
+                    <h3 class="color1">{{:: 'ui.quickrace.derby' | translate}}</h3>
+                    <p class="color1" ng-if="vehicle.file">{{ vehicle.file['Derby Class'] | translate }}</p>
+                    <p class="color1" ng-if="!vehicle.file">{{:: 'ui.common.unknown' | translate}}</p>
+                  </div>
+                </md-list-item>
+              </md-list>
+            </div>
+
+            <div ng-show="scenarioStart.data.selectionText" class="title">
+              {{:: scenarioStart.data.selectionText | translate}}
+            </div>
+          </div>
+        </md-grid-tile>
+
+        <md-grid-tile md-colspan="2" md-rowspan="1" layout="row" layout-align="bottom center"> </md-grid-tile>
+        <md-grid-tile md-colspan="6" md-rowspan="1" layout="row" layout-align="bottom center">
+          <div ng-click="scenarioStart.play();" class="playBtn" bng-nav-item focus-if="true" style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;" ng-class="{'disabled': isDisabled()}" nav-item-disabled="{{isDisabled()}}" bng-sound-class="bng_click_hover_generic">
+            {{scenarioStart.data.buttonText | translate}}
+          </div>
+        </md-grid-tile>
+        <md-grid-tile md-colspan="2" md-rowspan="1" layout="row" layout-align="bottom center">
+          <div ng-show="scenarioStart.data.exitButtonText !== undefined" ng-click="scenarioStart.exit();" class="playBtn" bng-nav-item focus-if="true" style="font-size: 5vh; padding: 10px; text-align: center; min-width: 300px;" ng-class="{'disabled': isDisabled()}" nav-item-disabled="{{isDisabled()}}" bng-sound-class="bng_click_hover_generic">
+            {{scenarioStart.data.exitButtonText | translate}}
+          </div>
+        </md-grid-tile>
+      </md-grid-list>
+    </div>
+  </md-content>
+
+</div>

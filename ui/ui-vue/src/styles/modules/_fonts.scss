@@ -1,0 +1,285 @@
+// BNG UI Fonts
+// --------------------------------------
+
+$font_path: 'fonts';
+
+:deep() {
+  --fnt-defs: 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif;
+
+    * {
+      box-sizing: border-box;
+    }
+}
+
+@font-face {
+  font-family: 'Overpass';
+  src: --ASSET_URL('#{$font_path}/Overpass/Overpass-VariableFont_wght.ttf');
+  font-weight: 125 950;
+  font-stretch: 75% 125%;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Overpass';
+  src: --ASSET_URL('#{$font_path}/Overpass/Overpass-Italic-VariableFont_wght.ttf');
+  font-weight: 125 950;
+  font-stretch: 75% 125%;
+  font-style: italic;
+}
+
+/* Secondary font (to be used in UI) */
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-SemiBoldItalic.ttf');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-ExtraLight.ttf');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-Bold.ttf');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-SemiBold.ttf');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-BoldItalic.ttf');
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-ExtraBoldItalic.ttf');
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-ExtraBold.ttf');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-Regular.ttf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-LightItalic.ttf');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-Medium.ttf');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-Light.ttf');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-MediumItalic.ttf');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-Italic.ttf');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSans-ExtraLightItalic.ttf');
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Set of fonts to fill the gaps for the hieroglyphic languages */
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansJP-Light.otf');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansJP-Black.otf');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansJP-Bold.otf');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansJP-Regular.otf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansJP-Medium.otf');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansKR-Light.otf');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansKR-Black.otf');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansKR-Bold.otf');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansKR-Regular.otf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansKR-Medium.otf');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansSC-Light.otf');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansSC-Black.otf');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansSC-Bold.otf');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansSC-Regular.otf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansSC-Medium.otf');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Monospace font just in case */
+
+@font-face {
+  font-family: 'Noto Sans Mono';
+  src: --ASSET_URL('#{$font_path}/NotoSans/NotoSansMono-VariableFont_wdth,wght.ttf');
+  font-weight: 100 950;
+  font-stretch: 75% 125%;
+  font-style: normal;
+}
+
+/* Symbol font(s) */
+
+@font-face {
+  font-family: 'bngIcons';
+  src:
+    --ASSET_URL('#{$font_path}/bngIcons/bngIcons.otf') format("opentype"),
+    --ASSET_URL('#{$font_path}/bngIcons/bngIcons.ttf') format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}

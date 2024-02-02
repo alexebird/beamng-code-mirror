@@ -1,0 +1,18 @@
+<div class="radiowrapper">
+  <link rel="stylesheet" type="text/css" href="/ui/modules/apps/RadioTest/radio.css" />
+  <h2 class="radiohead">
+    This is a simple radio application to test our CEF WebAudio API capabilities
+  </h2>
+
+  <span>{{ status }}</span>
+  <div ng-if="ready">
+    <button ng-click="play()">Play</button>
+    <button ng-click="pause()">Pause</button>
+    <button ng-click="stop()">Stop</button>
+    <br/>
+    Volume:
+    <button ng-click="volume(0.05)">5%</button>
+    <button ng-click="volume(0.30)">30%</button>
+    <button ng-click="volume(1.00)">100%</button>
+  </div>
+</div>

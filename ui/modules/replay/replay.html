@@ -1,0 +1,47 @@
+<link rel="stylesheet" type="text/css" href="/ui/modules/replay/replay.css" />
+
+<md-content layout="column" class="replayList transparency" style="width: 400px;" bng-blur="true">
+  <md-toolbar class="md-primary">
+    <h1 class="md-toolbar-tools">
+      <span flex>{{:: 'ui.dashboard.replay' | translate}}</span>
+      <md-button ng-click="replay.openReplayFolderInExplorer()" class="md-raised">
+        <md-icon class="material-icons">folder</md-icon>
+        {{:: 'ui.replay.openReplayFolderInExplorer' | translate}}
+      </md-button>
+    </h1>
+  </md-toolbar>
+  <md-content style="box-sizing:border-box; height: 100%;" layout="column">
+    <md-list layout="column" style="overflow: auto">
+      <span layout="row" class="md-padding">
+        <md-icon style="color: rgb(195,139,74); padding-right:8px;">warning</md-icon>
+        <span bng-translate="ui.replay.warning"></span>
+      </span>
+    </md-list>
+    <md-list layout="column" flex style="overflow: auto">
+      <div ng-repeat="item in replay.list" layout="row" layout-align="center center" class="replayListItem markEveryOddChild">
+          <md-button ng-if="replay.loadedFile !== item.filename" md-no-ink class="md-fab md-mini md-primary" ng-click="replay.play($event, item.filename)" style="transition:none !important">
+            <md-icon class="material-icons">play_arrow</md-icon>
+            <md-tooltip>{{:: 'ui.replay.play' | translate}}</md-tooltip>
+          </md-button>
+          <md-button ng-if="replay.loadedFile == item.filename" md-no-ink class="md-fab md-mini md-accent" ng-click="replay.stop($event)"  style="transition:none !important">
+            <md-icon class="material-icons">stop</md-icon>
+            <md-tooltip>{{:: 'ui.replay.stop' | translate}}</md-tooltip>
+          </md-button>
+          <div ng-click="replay.play($event, item.filename)" flex>{{item.filename.replace("\.rpl", "").replace("replays/", "") }}
+            <md-tooltip>{{:: 'ui.replay.play' | translate}}</md-tooltip>
+            <!--
+            <md-tooltip>{{:: 'ui.replay.rename' | translate}}</md-tooltip>
+            -->
+          </div>
+          <small>{{ item.size | bytes }}</small>
+          <md-button class="md-icon-button md-warn" style="margin:0px; width: 24px" ng-disabled="replay.loadedFile == item.filename" md-no-ink ng-click="replay.remove($event, item.filename)">
+            <md-icon class="material-icons">delete_forever</md-icon>
+            <md-tooltip>{{:: 'ui.replay.remove' | translate}}</md-tooltip>
+          </md-button>
+      </div>
+    </md-list>
+    <md-list layout="column" style="overflow: auto; font-style:italic">
+      <div flex style="padding: 15px;" bng-translate="ui.replay.appHint"></div>
+    </md-list>
+  </md-content>
+</md-content>

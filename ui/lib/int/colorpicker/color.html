@@ -1,0 +1,121 @@
+<link type="text/css" rel="stylesheet" href="/ui/lib/int/colorpicker/color.css">
+<div class="colorPicker" layout layout-align="start center" layout-wrap>
+  <div ng-if="showMain">
+    <span ng-if="showText">{{:: 'ui.trackBuilder.matEditor.paint' | translate}} {{ paintNumber }}</span>
+    <div id="hslimg" ng-mousemove="hslMousemove($event)" ng-mousedown="hslMousedown($event)" ng-mouseup="hslMouseupLeave($event)" ng-mouseleave="hslMouseupLeave($event)" style="height: {{height}}px; width:{{w}}px">
+      <div class="hslSFilter">
+          <div style="border: solid 1.5px black;border-radius: 10px; width: 10px; height: 10px;position: relative;left:{{colorDot.x-6}}px;top:{{colorDot.y-6}}px; pointer-events: none"></div>
+      </div>
+    </div>
+    <div class="sliderContainer" style="max-width:{{w}}px" layout="column" ng-if="showMain">
+      <span ng-if="showText">{{:: 'ui.color.brightness' | translate}} ({{brightness * 100 | number : 0}}%)</span>
+      <input type="range" min="0" max="1" step="0.001" id="brightSlider" class="colorSlider colorSliderWrapper" ng-model="brightness" ng-change="updateBright(brightness); returnColor()" style="background: linear-gradient(90deg, rgb(0,0,0), hsl({{brightGradientColor()}}), rgb(255,255,255)); padding: 0;"/>
+    </div>
+  </div>
+  <bng-accordion flex class="vAccordion--default" ng-if="showMain">
+    <bng-accordion-pane class="md-list-item" is-open="false">
+      <bng-pane-header style="border: none; margin: 8px 0px;">
+        <div flex="35" style="padding: 0px 6px;">
+            {{:: 'ui.color.configurations' | translate}}
+        </div>
+      </bng-pane-header>
+      <bng-pane-body style="border-left: 1px rgba(255, 255, 255, 0.25) dashed; padding-left: 5px; margin-left: 5px;">
+        <div class="sliderContainer" style="max-width:{{w}}px" layout="column" ng-if="showAlpha">
+            <span ng-if="showText">{{:: 'ui.color.chrominess' | translate}} ({{color.alpha * 50 | number : 0}}%)</span>
+            <div class="transparentIndicatorSquared colorSliderWrapper" style="background-color: white; border-radius: 5px;">
+              <input type="range" min="0" max="2" step="0.001" id="alphaSlider" class="colorSlider colorSliderWrapper" ng-model="color.alpha" ng-change="returnColor()" style="background: linear-gradient(90deg, hsla({{alphaGradientColor()}}, 0), hsla({{alphaGradientColor()}}, 2)); margin:0; padding: 0; width: 100%;"/>
+            </div>
+        </div>
+        <div class="sliderContainer" style="max-width:{{w}}px" layout="column" ng-if="showAlpha">
+          <span ng-if="showText">{{:: 'ui.color.metallic' | translate}} ({{color.metallic * 100 | number : 0}}%)</span>
+          <input type="range" min="0" max="1" step="0.001" id="metallicSlider" class="colorSlider colorSliderWrapper" ng-model="color.metallic" ng-change="updateMetallic(color.metallic)" style="background: linear-gradient(90deg, rgb(0,0,0), rgb(255,255,255)); padding: 0;"/>
+        </div>
+        <div class="sliderContainer" style="max-width:{{w}}px" layout="column" ng-if="showAlpha">
+          <span ng-if="showText">{{:: 'ui.color.roughness' | translate}} ({{color.roughness * 100 | number : 0}}%)</span>
+          <!-- <span ng-if="showText" style="
+          display: inline;">{{color.roughness * 100}}%</span> -->
+              <input type="range" min="0" max="1" step="0.001" id="alphaSlider" class="colorSlider colorSliderWrapper" ng-model="color.roughness" ng-change="updateRoughness(color.roughness)" style="background: linear-gradient(90deg, rgb(0,0,0), rgb(255,255,255)); padding: 0;"/>
+        </div>
+        <div class="sliderContainer" style="max-width:{{w}}px" layout="column" ng-if="showAlpha">
+        <span ng-if="showText">{{:: 'ui.color.clearCoat' | translate}} ({{color.coat * 100 | number : 0}}%)</span>
+            <input type="range" min="0" max="1" step="0.001" id="alphaSlider" class="colorSlider colorSliderWrapper" ng-model="color.coat" ng-change="updateCoat(color.coat)" style="background: linear-gradient(90deg, rgb(0,0,0), rgb(255,255,255)); padding: 0;"/>
+        </div>
+        <div class="sliderContainer" style="max-width:{{w}}px" layout="column" ng-if="showAlpha">
+          <span ng-if="showText">{{:: 'ui.color.clearCoatRoughness' | translate}} ({{color.coatRoughness * 100 | number : 0}}%)</span>
+              <input type="range" min="0" max="1" step="0.001" id="alphaSlider" class="colorSlider colorSliderWrapper" ng-model="color.coatRoughness" ng-change="updateCoatRoughness(color.coatRoughness)" style="background: linear-gradient(90deg, rgb(0,0,0), rgb(255,255,255)); padding: 0;"/>
+        </div>
+      </bng-pane-body>
+    </bng-accordion-pane>
+  </bng-accordion>
+  <div layout="row" style="max-width: 100%;">
+    <svg ng-if="showPreview" class="colorWidgetContainer" style="width: {{w/ 5.5}}px;"
+      xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="light"
+          cy="0.28" cx="0.35" r="0.3" spreadMethod="pad">
+          <!--
+            the following expressions throw errors on init because of how angular+jqlite work (but these errors can be safely ignored)
+            yet this version of angular does not support adding custom attributes at runtime, therefore we are forced to create our own
+          -->
+          <stop bng-attr bng-attr.offset="{{ 0.1 + 0.2 * (1 - color.roughness) }}" bng-attr.stop-opacity="{{ 0.4 + 0.2 * color.roughness }}" stop-color="#fff"/>
+          <stop bng-attr bng-attr.offset="{{ 1 - color.roughness * 0.5 }}" stop-opacity="0.0" stop-color="#fff"/>
+        </radialGradient>
+        <radialGradient id="shadow"
+          cy="0.43" cx="0.45" r="0.55" spreadMethod="pad">
+          <stop offset="0.7" stop-opacity="0.0" stop-color="#000"/>
+          <stop offset="0.85" stop-opacity="0.2" stop-color="#000"/>
+          <stop offset="1.0" stop-opacity="0.5" stop-color="#000"/>
+        </radialGradient>
+        <pattern id="colPreview"
+          x="0" y="0" width="1" height="1" patternUnits="userSpaceOnUse">
+          <!-- reflection --><!-- FIXME: this image should NOT contain light reflection -->
+          <image x="0" y="0" height="1" width="1"
+            xlink:href="/ui/lib/int/colorpicker/color-chrome.png" />
+          <!-- colour -->
+          <rect y="0" x="0" width="1" height="1"
+            fill="hsl({{alphaGradientColor()}})" fill-opacity="{{ color.alpha / 2 }}" stroke="transparent" />
+          <!-- light -->
+          <rect y="0" x="0" width="1" height="1"
+            fill="url(#light)" stroke="transparent"/>
+          <!-- shadow -->
+          <rect y="0" x="0" width="1" height="1"
+            fill="url(#shadow)" stroke="transparent"/>
+        </pattern>
+      </defs>
+      <circle cy="0.5" cx="0.5" r="0.5" fill="url(#colPreview)" stroke="transparent" />
+    </svg>
+    <div ng-if="showPresets" layout="column" flex style="max-width: 100%;">
+      <span ng-if="showText && !carListEmpty">{{:: 'ui.color.factory' | translate}}:</span>
+      <div ng-if="!carListEmpty" style="min-height:24px">
+        <div style="background-color: white; width:20px; height:20px; float: left; margin:2px;margin-bottom: 3px; cursor: pointer" ng-repeat="entry in presets.car track by $index">
+          <div ng-repeat="(name, preset) in entry" style="width:100%; height:100%;">
+            <div class="transparentIndicatorSquared" style="width:100%; height:100%;">
+              <div style="position:relative; width:100%; height:100%; background-color: rgba({{toIntVal(preset, false)}});" ng-click="applyPreset(preset)" ng-right-click="removePreset(preset)">
+                <md-tooltip>
+                  {{name}}
+                </md-tooltip>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span ng-if="showText && !userListEmpty">{{:: 'ui.color.user' | translate}}:</span>
+      <div ng-if="!userListEmpty" style="min-height:24px">
+        <div style="background-color: white; width:20px; height:20px; float: left; margin:2px; cursor: pointer;" ng-repeat="preset in presets.user track by $index">
+          <div class="transparentIndicatorSquared" style="width:100%; height:100%;">
+            <div style="position:relative; width:100%; height:100%; background-color: rgba({{toIntVal(preset)}});" ng-click="applyPreset(preset)" ng-right-click="removePreset(preset)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <md-button style="margin-top: 12px; text-overflow: ellipsis;" class="md-raised md-primary md-hue-1" ng-if="presetsEditable" ng-click="addPreset()">
+        <md-icon style="position: relative; bottom: 1px; padding-left: 2px;">save</md-icon>
+        {{:: 'ui.colorpicker.colToPre' | translate}}
+        <md-tooltip>
+          {{:: 'ui.colorpicker.colToPre' | translate}}
+        </md-tooltip>
+      </md-button>
+      <div ng-if="showText && !userListEmpty" layout="row" layout-align="center start" flex style="font-size: small;">({{:: 'ui.colorpicker.rightToDel' | translate}})</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<div ng-if="loading.img" class="loadingBackground" layout="column" layout-align="end center" class="md-padding" style="background: url({{ ::loading.img }}) no-repeat;">
+
+  <link rel="stylesheet" type="text/css" href="/ui/modules/loading/loading.css" />
+
+  <simple-test></simple-test>
+  <div id="progressBox">
+      <div class="iconGroup" layout="row" layout-align="center center">
+        <animated-icon icon="terrain"></animated-icon>
+        <animated-icon icon="environment"></animated-icon>
+        <animated-icon icon="forest"></animated-icon>
+        <animated-icon icon="meshes"></animated-icon>
+        <animated-icon icon="roads"></animated-icon>
+        <animated-icon icon="beamng"></animated-icon>
+      </div>
+      <animated-progress-bar></animated-progress-bar>
+      <animated-progress-status></animated-progress-status>
+      <animated-progress-status-history></animated-progress-status-history>
+  </div>
+  <tips-bar></tips-bar>
+</div>

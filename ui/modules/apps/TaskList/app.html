@@ -1,0 +1,47 @@
+<div style="height: 100%; padding: 8px;" ng-style="{visibility:showTaskList ? 'visible' : 'hidden'}">
+    <link type="text/css" rel="stylesheet" href="/ui/modules/apps/TaskList/app.css">
+
+    <div class="tasks-container">
+        <div class="header-wrapper" ng-show="data.headerLabel !== ''">
+            <div class="header-card">
+                <div bng-translate="{{data.headerLabel}}" class="header"></div>
+                <div bng-translate="{{data.headersubtext}}" class="subheader"></div>
+            </div>
+        </div>
+
+        <div class="tasks-scroller" scroll-to-bottom="data.tasks">
+            <div ng-repeat="c in data.tasks" ng-attr-id="{{c.id}}" ng-class="{
+                'message-card-wrapper': c.type === 'message', 
+                'goal-card-wrapper': c.type === 'goal',
+                complete: c.done === true,
+                fail: c.fail === true
+            }">
+                <div ng-if="c.type === 'message'" class="message-card">
+                    <span bng-translate="{{c.label}}" class="label"></span>
+                    <span ng-if="c.subtext" bng-translate="{{c.subtext}}" class="description"></span>
+                </div>
+                <div ng-if="c.type === 'goal'" class="goal-card">
+                    <div class="label">
+                        <span class="checkbox"></span>
+                        <span bng-translate="{{c.label}}" class="text"></span>
+                    </div>
+                    <span ng-if="c.subtext" bng-translate="{{c.subtext}}" class="description"></span>
+                </div>
+            </div>
+
+            <!-- <div ng-repeat="c in data.tasks" class="task-card-wrapper">
+                <div ng-if="c.type === 'message'" class="message-card task-card">
+                    <span bng-translate="{{c.label}}" class="label"></span>
+                    <span ng-if="c.subtext" bng-translate="{{c.subtext}}" class="description"></span>
+                </div>
+                <div ng-if="c.type === 'goal'" class="goal-card task-card" ng-class="{complete: c.done === true, fail: c.fail === true}">
+                    <div class="label">
+                        <span class="checkbox"></span>
+                        <span bng-translate="{{c.label}}" class="text"></span>
+                    </div>
+                    <span ng-if="c.subtext" bng-translate="{{c.subtext}}" class="description"></span>
+                </div>
+            </div> -->
+        </div>
+    </div>
+</div>

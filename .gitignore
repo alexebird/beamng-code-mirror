@@ -1,0 +1,35 @@
+# Ignore everything
+*
+
+!/.gitignore
+!/README.md
+
+# Allow traversal into directories
+!*/
+
+# Include .lua files at any level
+!**/*.lua
+!**/*.json
+!**/*.js
+!**/*.css
+!**/*.scss
+!**/*.html
+!**/*.vue
+
+# !/lua
+# !/lua/*.lua
+# !/lua/**/*.lua
+# !/lua/**/*.json
+
+# !/ui
+# !/ui/**
+# !/ui/**/*.json
+# !/ui/**/*.js
+# !/ui/**/*.css
+# !/ui/**/*.scss
+# !/ui/**/*.html
+# !/ui/**/*.vue
+
+# !/locales
+# !/locales/**
+# !/locales/**/*.json

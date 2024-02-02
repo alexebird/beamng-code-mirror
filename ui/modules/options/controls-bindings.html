@@ -1,0 +1,66 @@
+<md-content flex id="binding_list">
+  <form layout layout-align="center" layout-padding>
+      <div layout="row" flex>
+          <md-input-container flex class="md-icon-float md-block">
+              <label>{{:: 'ui.controls.searchAllBindings' | translate}}:</label>
+              <md-icon class="material-icons">search</md-icon>
+              <input ng-model="actionQuery" ng-model-options="{debounce: 200}">
+          </md-input-container>
+          <md-button flex="10" class="md-icon-button" ng-disabled="!actionQuery" ng-click="actionQuery=''" bng-sound-class="bng_click_generic">
+            <md-icon class="material-icons">clear</md-icon>
+          </md-button>
+      </div>
+  </form>
+
+  <bng-accordion flex class="vAccordion--default" multiple>
+    <bng-accordion-pane ng-repeat="category in controls.data.categoriesList | orderBy: 'order' track by category.key"
+            is-open="false" ng-show="controlsBindings.fActions[category.key].length > 0"
+            style="padding-right: 1em; padding-left: 1.25em; padding-bottom: 1.25em" class="md-list-item">
+      <bng-pane-header>
+        <span class="orangeHover">
+        <md-icon class="material-icons">{{ ::category.icon }}</md-icon>
+          {{category.title | translate}} <span ng-if="actionQuery">({{ 'ui.controls.searchMatches' | translate: { number:controlsBindings.fActions[category.key].length} }})</span>
+        </span>
+      </bng-pane-header>
+      <bng-pane-body>
+        <md-list-item layout="row"
+            style="padding:0px; min-height: 2em;"
+            ng-repeat="action in (controlsBindings.fActions[category.key] = (category.actions | filter: {$: actionQuery} )) | orderBy: ['order', 'title']">
+          <span flex bng-tooltip="{{ {'key':'bngTooltipValueTop', 'value':action.descTranslated } }}">
+            <small style="text-transform: capitalize" ng-show="::action.vehicle">[{{ ::action.vehicle }}]</small> {{ :: action.titleTranslated}}
+          </span>
+          <div layout layout-align="start start" layout-wrap>
+            <div ng-repeat="device in controls.data.bindingsUniqueDevices" layout layout-wrap>
+              <div class="bng-binding"
+                ng-repeat="binding in ::device.contents.bindings | filter: {'action': action.key}:true"
+                ng-click="controlsBindings.select(action.key, device.devname, binding.control);"
+                bng-tooltip="{{ {'key':'bngTooltipValueTop', 'value':'ui.controls.bindings.edit' } }}"
+                style="font-size: 1.25em; position: relative;" >
+                <binding class="hoverable" key="::binding.control" device="::device.devname" style="cursor: pointer; color:red; margin: 0.125em 0;"></binding>
+              </div>
+              <md-divider style="margin:0;"></md-divider>
+            </div>
+          </div>
+          <div class="hoverable" style="cursor:pointer; position: relative;" ng-click="controlsBindings.select(action.key)" bng-tooltip="{{ {'key':'bngTooltipValueTop', 'value':'ui.controls.bindings.add' } }}">
+            <span style="border-radius: var(--bng-corners-1); background-color: var(--white-2); color: var(--bng-black-8); padding-left: 5px; padding-right: 5px" ng-if="!controls.data.bindingsFilled[action.key]">{{::'ui.controls.unassignedBinding'|translate}}</span>
+            <span style="text-align:center; margin-left: 0.2em; border-radius: var(--bng-corners-2); background-color: white; color: var(--bng-black-8); padding-left: 0.4em; padding-right: 0.4em"><strong>+<strong></span>
+          </div>
+        </md-list-item>
+      </bng-pane-body>
+    </bng-accordion-pane>
+  </bng-accordion>
+
+  <div layout="row">
+    <md-button flex class="md-raised md-accent" style="display:block; text-align:left;" md-no-ink ng-click="controlsBindings.resetBindings(undefined, 'All devices')">
+      <md-icon class="material-icons">undo</md-icon>
+      {{:: 'ui.controls.bindings.resetAll' | translate}}
+    </md-button>
+  </div>
+  <div layout="row" ng-repeat="(devName, ctrl) in controls.data.controllers">
+    <md-button flex class="md-raised md-primary" style="display:block; text-align:left;" md-no-ink ng-click="controlsBindings.resetBindings(devName, ctrl.productName)">
+        <md-icon class="material-icons">undo</md-icon>
+        {{:: 'ui.controls.bindings.resetDevice' | translate:{productName: ctrl.productName} }}
+    </md-button>
+  </div>
+
+</md-content>

@@ -1,0 +1,44 @@
+<div style="position: absolute; overflow:hidden;transition: opacity 0.3s ease;" class="bng-app">
+  <!-- app side -->
+  <div ng-transclude style="width: 100%; height: 100%; box-sizing: border-box; pointer-events: auto;"></div>
+
+  <!-- editing side -->
+  <div class="editing-side"
+  ng-mousedown="translateStart($event)"
+  style="display: flex; justify-content: center; width: 100%; height:100%; color: white; position: absolute; left:0; top: 0; pointer-events: auto;"
+  ng-if="$parent.editMode"
+  ng-style="{cursor: edit ? 'move': '', 'background-color': edit ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)'}"
+  layout layout-align="end center">
+
+    <span style="position: absolute; width: 100%; background-color: rgba(0, 0, 0, 0.4); box-shadow: 0px 10px 20px 0px rgba(0,0,0,0.4); top: 0; color: white; font-size: 1.2em; text-align: center;">
+      {{:: name | translate}}
+    </span>
+
+    <div style="z-index: var(--zorder_bngapp_cockpit); position: absolute; bottom: 0; left: 0; padding:2px" layout="column" ng-mousedown="$event.stopPropagation()">
+      <label>
+          <input type="checkbox" ng-model="entry.settings.noCockpit" ng-change="cockpitChanged()">{{:: 'ui.appselect.noCockpit' | translate}}
+          <!--
+          <md-select style="width: 130px; margin: 0px; color:black; background:white;" ng-model="entry.settings.target" >
+            <md-option value="player0">Player 0</md-option>
+            <md-option value="player1">Player 1</md-option>
+            <md-option value="player2">Player 2</md-option>
+            <md-option value="player3">Player 3</md-option>
+          </md-select>
+          -->
+      </label>
+
+      <!--       <label>
+        <input type="checkbox" ng-model="entry.race">Race
+      </label> -->
+    </div>
+
+    <span class="material-icons" style="z-index: var(--zorder_bngapp_delete); cursor: pointer; position:absolute; right: 0; top:0; background-color:red" ng-click="kill(); $event.stopPropagation()" ng-mousedown="$event.stopPropagation()">clear</span>
+
+    <center style="font-size:1.2em; user-select:none; z-index: var(--zorder_bngapp_move);">
+      <span ng-if="!showDimensions" class="material-icons" style="font-size:45px;">open_with</span><br/>
+      <span ng-if="showDimensions">{{ dimensions.width }} x {{ dimensions.height }}</span>
+    </center>
+
+    <span class="material-icons resizeHandle" ng-mousedown="resizeStart($event);" style="z-index: var(--zorder_bngapp_resize); cursor: nw-resize; position: absolute; right: 0; bottom: 0; -webkit-transform: scale(1, -1)">call_made</span>
+  <div>
+</div>

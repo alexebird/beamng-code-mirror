@@ -1,0 +1,83 @@
+<md-list-item layout class="bng-short-select-item">
+  <p flex="60">{{:: 'ui.options.userInterface.unitSystem' | translate}}</p>
+  <md-select aria-label="_" flex ng-model="opt.specialUiUnit.system" ng-change="opt.specialUiUnit.applyState()">
+    <md-select-label style="width:100%;"></md-select-label>
+    <md-option md-no-ink ng-repeat="(key, value) in opt.specialUiUnit.highLvlOpt" ng-value="key">
+      {{value | translate}}
+    </md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item ng-if="opt.specialUiUnit.system == 'custom'" ng-repeat="uiUnit in opt.specialUiUnit.settable track by $index"
+    class="bng-short-select-item md-no-proxy" style="padding-left: 50px;" ng-init="m = options.data.options[uiUnit].modes">
+  <p flex="40">{{opt.specialUiUnit.names[$index] | translate}}</p>
+  <md-select aria-label="_" flex ng-model="options.data.values[uiUnit]"  ng-change="options.applyState()">
+    <md-option md-no-ink ng-repeat="opt in m.keys track by $index" ng-value="opt">
+      {{m.values[$index] | translate}}
+    </md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.modAutoUpdates' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.modAutoUpdates" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.modNumParallelDownload' | translate}}</p>
+  <md-select aria-label="_" flex="10" ng-model="options.data.values.modNumParallelDownload" ng-change="options.applyState()">
+    <md-select-label style="width:100%;"></md-select-label>
+    <md-option md-no-ink value="1">1</md-option>
+    <md-option md-no-ink value="2">2</md-option>
+    <md-option md-no-ink value="3">3</md-option>
+    <md-option md-no-ink value="10">10</md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.userInterface.richPresence' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.richPresence" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink ng-disabled="!options.data.values.richPresence">
+  <p>{{:: 'ui.options.userInterface.richPresenceDiscord' | translate}}</p>
+  <md-checkbox ng-disabled="!options.data.values.richPresence" ng-model="options.data.values.richPresenceDiscord" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.userInterface.showMissionMarkers' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.showMissionMarkers" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-divider></md-divider>
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.advanced' | translate}}</h3></p></md-list-item>
+
+<md-list-item layout class="bng-short-select-item"  ng-if="!app.mainmenu">
+  <md-tooltip md-direction="right">{{:: 'ui.options.graphics.uimaxresExplanation' | translate}}</md-tooltip>
+  <p flex="40">{{:: 'ui.options.graphics.uimaxres' | translate}}</p>
+  <md-select flex ng-model="options.data.values.uiUpscaling" aria-label="_" ng-change="options.applyState()">
+    <md-select-label style="width:100%"></md-select-label>
+    <md-option md-no-ink ng-repeat="uiupscale in options.data.options.uiUpscaling.modes.values"
+                          ng-value="options.data.options.uiUpscaling.modes.keys[$index]" >
+      {{ ::uiupscale }}
+    </md-option>
+  </md-select>
+</md-list-item>
+
+<md-list-item layout class="bng-short-select-item" ng-if="app.mainmenu">
+  <md-tooltip md-direction="right">{{:: 'ui.options.graphics.uimaxresExplanation' | translate}}</md-tooltip>
+  <p flex>{{:: 'ui.options.graphics.uimaxresNotAvailable' | translate}}</p>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.userInterface.externalUi' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.externalUI2" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink ng-if="options.externalUIURL" layout="column">
+  {{ options.externalUIURL }}
+  <md-button ng-click="opt.openBrowserURL(options.externalUIURL)" class="md-primary md-raised" bng-sound-class="bng_click_generic">
+    open
+  </md-button>
+  <qr-Code2 href="{{ options.externalUIURL }}" ng-click="openBrowserURL(options.externalUIURL)" style="background: white; border-radius: 0.5em; padding: 0.5em; position: relative;"/>
+</md-list-item>

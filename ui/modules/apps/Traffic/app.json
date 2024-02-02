@@ -1,0 +1,19 @@
+{
+  "domElement": "<traffic></traffic>",
+  "name": "ui.apps.traffic.name",
+  "types": [
+    "ui.apps.categories.utility"
+  ],
+  "css": {
+    "left": "0px",
+    "bottom": "280px",
+    "width": "380px",
+    "height": "280px",
+    "min-width": "360px",
+    "min-height": "70px"
+  },
+  "description": "Spawns and manages vehicles for traffic",
+  "author": "BeamNG",
+  "version": "1.0",
+  "directive": "traffic"
+}

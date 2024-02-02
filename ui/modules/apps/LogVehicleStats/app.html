@@ -1,0 +1,37 @@
+<div style="max-height:100%; width:100%; background:rgba(0, 0, 0, 0.43);color:white;" >
+  <div layout="row" layout-align="begin center" style="max-height:100%; width:100%;">
+    <span style="padding: 3px 6px 3px 6px">Update Period:</span>
+    <input type="number" min="1" max="360" step="1" value="5" ng-model="updateTime">
+    <span style="padding: 3px 6px 3px 6px">seconds</span>
+  </div>
+  <div layout="column" style="max-height:100%; width:100%;">
+    <md-checkbox ng-model="module_general" aria-label="__">General</md-checkbox>
+    <md-checkbox ng-model="module_wheels" aria-label="__">Wheels</md-checkbox>
+    <md-checkbox ng-model="module_engine" aria-label="__">Engine</md-checkbox>
+    <md-checkbox ng-model="module_inputs" aria-label="__">Inputs</md-checkbox>
+    <md-checkbox ng-model="module_powertrain" aria-label="__">Powertrain</md-checkbox>
+  </div>
+  <div layout="row" layout-align="center center" style="max-height:100%; width:100%;">
+    <label style="padding-left: 8px; padding-right: 8px" flex>Apply Settings:</label>
+    <md-button md-no-ink class="md-raised" ng-click="applySettings()" >Apply</md-button>
+  </div>
+  <div layout="row" layout-align="center center" style="max-height:100%; width:100%;">
+    <label style="padding-left: 8px; padding-right: 8px" flex>Set Custom Output Directory:</label>
+    <input style="padding-left: 0px; padding-right: 8px" placeholder="(no file)" class="bng-hidden-input" ng-model="outputDir"></input>
+    <md-button md-no-ink class="md-raised" ng-click="useAsOutputDir()" >Use</md-button><md-tooltip>Subdirectory of the BeamNG.drive/BeamNG.research directory.</md-tooltip>
+  </div>
+  <div layout="row" layout-align="center center" style="max-height:100%; width:100%;">
+    <label style="padding-left: 8px; padding-right: 8px" flex>Settings Output Filename:</label>
+    <input style="width:100%" placeholder="(no file)" class="bng-hidden-input" ng-model="outputFileName"></input>
+    <md-button md-no-ink class="md-raised" ng-click="saveSettingsToJson()" >Write</md-button><md-tooltip>Settings files are written to the BeamNG.drive/BeamNG.research directory.</md-tooltip>
+  </div>
+  <div layout="row" layout-align="center center" style="max-height:100%; width:100%;">
+    <label style="padding-left: 8px; padding-right: 8px" flex>Settings Input Filename:</label>
+    <input style="width:100%" placeholder="(no file)" class="bng-hidden-input" ng-model="inputFileName"></input>
+    <md-button md-no-ink class="md-raised" ng-click="importSettingsFromFile()" >Load</md-button><md-tooltip>Settings files are assumed to be in the BeamNG.drive/BeamNG.research directory.</md-tooltip>
+  </div>
+  <div layout="row" layout-align="begin center" style="max-height:100%; width:100%;">
+    <md-button md-no-ink class="md-raised" ng-click="startLogging()" >Start Log</md-button>
+    <md-button md-no-ink class="md-raised" ng-click="stopLogging()" >Stop Log</md-button>
+  </div>
+</div>

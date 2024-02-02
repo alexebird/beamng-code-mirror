@@ -1,0 +1,188 @@
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.graphics.quality' | translate}}</h3></p></md-list-item>
+
+<!-- presets begin -->
+<md-list-item layout class="bng-short-select-item">
+  <md-button flex md-no-ink class="md-primary md-raised" aria-label="_" ng-if="$index !== 0" ng-repeat="label in options.data.options.GraphicOverallQuality.modes.values" ng-click="options.data.values.GraphicOverallQuality = options.data.options.GraphicOverallQuality.modes.keys[$index]; opt.applyOverallQuality()" bng-sound-class="bng_click_generic">
+      {{label | translate}}
+  </md-button>
+</md-list-item>
+<!-- presets end -->
+
+<!-- list of quality dropdowns -->
+<div>
+  <md-list-item layout class="bng-short-select-item" ng-repeat="param in options.uiElements.graphics.checkboxGroup2">
+    <md-tooltip md-direction="top">{{param.tooltip | translate}}</md-tooltip>
+    <p flex="40">{{param.name | translate}}</p>
+    <!-- <p flex="40">{{::  'ui.options.graphics.' + param.key | translate }}</p> -->
+    <md-select select flex class="bng-select-fullwidth"
+        ng-model="options.data.values[param.key]" ng-change="options.applyState()" aria-label="_">
+      <md-option md-no-ink ng-repeat="opt in options.data.options[param.key].modes.values"
+                            ng-value="options.data.options[param.key].modes.keys[$index]">
+          {{opt | translate}}
+      </md-option>
+    </md-select>
+  </md-list-item>
+</div>
+
+<!-- antialiasing -->
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.graphics.antialiasing' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.GraphicAntialias" ng-true-value="4" ng-false-value="0" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic">{{:: 'ui.options.graphics.antialiasing' | translate}}</md-checkbox>
+</md-list-item>
+
+<!-- antialiasing type -->
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.GraphicAntialias && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.GraphicAntialias">
+  <md-list-item layout class="bng-short-select-item">
+    <md-tooltip md-direction="top">{{::'ui.options.graphics.GraphicAntialiasTypeTooltip' | translate}}</md-tooltip>
+    <p flex="40">{{:: 'ui.options.graphics.GraphicAntialiasType' | translate}}</p>
+    <md-select select flex class="bng-select-fullwidth"
+        ng-model="options.data.values.GraphicAntialiasType" ng-change="options.applyState()" aria-label="_">
+      <md-option md-no-ink ng-repeat="opt in options.data.options.GraphicAntialiasType.modes.values" ng-disabled="!options.data.values.GraphicAntialias" ng-value="options.data.options.GraphicAntialiasType.modes.keys[$index]">
+          {{opt | translate}}
+      </md-option>
+    </md-select>
+  </md-list-item>
+</div>
+
+<!-- list of checkboxes -->
+<md-list-item md-no-ink ng-repeat="param in options.uiElements.graphics.checkboxGroup1">
+  <p>{{param.name | translate}}</p><small ng-style="options.data.values[param.key] && {'color': 'rgb(195,61,61)'} || {'color':'grey'}" ng-if="param.requiresLowLighting && options.data.values.GraphicLightingQuality == 'Lowest'">&nbsp;{{::'ui.options.graphics.requiresLowLighting' | translate}}</small>
+  <md-checkbox ng-model="options.data.values[param.key]" ng-change="options.applyState()" aria-label="_" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<!-- motion blur strength -->
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.PostFXMotionBlurEnabled && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.PostFXMotionBlurEnabled">
+  <md-list-item layout class="md-padding">
+    <p flex="40">{{:: 'ui.options.graphics.PostFXMotionBlurStrength' | translate}}</p>
+    <md-slider min="0" max="0.5" step="0.01" aria-label="_" ng-model="options.data.values.PostFXMotionBlurStrength" flex ng-change="options.applyStateDebounce()" ng-disabled="!options.data.values.PostFXMotionBlurEnabled"></md-slider>
+    <span flex="10" style="text-align:right;">{{options.data.values.PostFXMotionBlurStrength.toFixed(2)}}</span>
+  </md-list-item>
+</div>
+
+<!-- motion blur player vehicle -->
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.PostFXMotionBlurEnabled && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.PostFXMotionBlurEnabled">
+  <md-list-item layout>
+    <p>{{:: 'ui.options.graphics.PostFXMotionBlurPlayerVehicle' | translate}}</p>
+    <md-checkbox ng-model="options.data.values.PostFXMotionBlurPlayerVehicle" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+  </md-list-item>
+</div>
+
+<!-- dynamic reflection checkbox -->
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.graphics.GraphicDynReflection' | translate}}</p>
+  <md-tooltip md-direction="right">{{:: 'ui.options.graphics.GraphicDynReflectionTooltip' | translate}}</md-tooltip>
+  <md-checkbox ng-model="options.data.values.GraphicDynReflectionEnabled"ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<!-- dynamic reflection options -->
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.GraphicDynReflectionEnabled && {'opacity':'0.4'} || {}"  ng-disabled="!options.data.values.GraphicDynReflectionEnabled">
+  <md-list-item  layout="column" ng-repeat="param in options.uiElements.graphics.dynReflectionSliders" ng-disabled="!options.data.values.GraphicDynReflectionEnabled">
+    <div layout="row" layout-align="center center" style="width: 100%">
+      <p flex="30">{{:: ('ui.options.graphics.' + param.key) | translate }}</p>
+      <md-tooltip md-direction="right">{{:: ('ui.options.graphics.' + param.tooltip) | translate}}</md-tooltip>
+
+      <md-slider flex ng-model="options.data.values[param.key]" ng-disabled="!options.data.values.GraphicDynReflectionEnabled"
+          min="{{ ::param.min }}" max="{{ ::param.max }}" step="{{ ::param.step }}" aria-label="_" ng-change="options.applyState()">
+      </md-slider>
+      <span ng-if="param.key === 'GraphicDynReflectionTexsize'" flex="15" style="text-align:right">{{ GraphicDynReflectionTexsizeText }} px</span>
+      <span ng-if="param.key === 'GraphicDynReflectionFacesPerupdate' && options.data.values[param.key] > 2" flex="10" style="text-align:right; color: red; font-weight: bold">{{options.data.values[param.key]}}</span>
+      <span ng-if="param.key === 'GraphicDynReflectionFacesPerupdate' && options.data.values[param.key] <= 2" flex="10" style="text-align:right">{{options.data.values[param.key]}}</span>
+      <span ng-if="param.key === 'GraphicDynReflectionDetail'" flex="10" style="text-align:right">{{options.data.values[param.key].toFixed(1)}}</span>
+      <span ng-if="::param.unitsTxt" flex="10" style="text-align:right">{{ options.data.values[param.key] }} {{ ::param.unitsTxt }}</span>
+    </div>
+    <md-list-item layout style="font-size: 14px; margin: 0px 16px 0px 16px; color: #ff2f3a; border: #ff2f3a 1px solid; border-radius: 4px;" class="md-padding" ng-if="param.key === 'GraphicDynReflectionFacesPerupdate' && options.data.values[param.key] > 2">
+      <strong style="margin: 0px 12px 0px 0px;">{{:: 'ui.options.graphics.Warning' | translate}}</strong>
+      <p>{{:: 'ui.options.graphics.GraphicDynReflection.warning' | translate}}</p>
+    </md-list-item>
+  </md-list-item>
+</div>
+
+<!-- dynamic mirrors checkbox -->
+<md-list-item md-no-ink ng-disabled="!options.data.values.GraphicDynReflectionEnabled" >
+  <p>{{:: 'ui.options.graphics.GraphicDynMirrors' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.GraphicDynMirrorsEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic" ></md-checkbox>
+</md-list-item>
+<!-- dynamic mirrors options -->
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!(options.data.values.GraphicDynMirrorsEnabled) && {'opacity':'0.4'} || {}"  ng-disabled="!(options.data.values.GraphicDynMirrorsEnabled)">
+  <md-list-item  layout="column" ng-repeat="param in options.uiElements.graphics.dynMirrorsSliders" ng-disabled="!(options.data.values.GraphicDynMirrorsEnabled)">
+    <div layout="row" layout-align="center center" style="width: 100%">
+      <p flex="30">{{:: ('ui.options.graphics.' + param.key.replace('Mirrors', 'Reflection')) | translate }}</p>
+      <md-tooltip md-direction="right">{{:: ('ui.options.graphics.' + param.tooltip) | translate}}</md-tooltip>
+
+      <md-slider flex ng-model="options.data.values[param.key]" ng-disabled="!(options.data.values.GraphicDynMirrorsEnabled)"
+          min="{{ ::param.min }}" max="{{ ::param.max }}" step="{{ ::param.step }}" aria-label="_" ng-change="options.applyState()">
+      </md-slider>
+      <span ng-if="param.key === 'GraphicDynMirrorsTexsize'" flex="15" style="text-align:right">{{ GraphicDynMirrorsTexsizeText }} px</span>
+      <span ng-if="param.key === 'GraphicDynMirrorsDetail'" flex="10" style="text-align:right">{{options.data.values[param.key].toFixed(1)}}</span>
+      <span ng-if="::param.unitsTxt" flex="10" style="text-align:right">{{ options.data.values[param.key] }} {{ ::param.unitsTxt }}</span>
+    </div>
+  </md-list-item>
+</div>
+
+<!-- tiremarks -->
+<md-list-item layout class="md-padding">
+    <p flex="40">{{:: 'ui.options.graphics.GraphicMaxDecalCount' | translate}}</p>
+    <md-slider min="500" max="20000" step="500" aria-label="_" ng-model="options.data.values.GraphicMaxDecalCount" flex ng-change="options.applyStateDebounce()"></md-slider>
+    <span ng-if="options.data.values.GraphicMaxDecalCount > 6000" flex="10" style="text-align:right; color: red; font-weight: bold">{{options.data.values.GraphicMaxDecalCount}}</span>
+    <span ng-if="options.data.values.GraphicMaxDecalCount <= 6000" flex="10" style="text-align:right;">{{options.data.values.GraphicMaxDecalCount}}</span>
+</md-list-item>
+<!-- tiremarks warning -->
+<div style="margin: 0px 32px 0px 32px;">
+  <md-list-item layout style="font-size: 14px; color: #ff2f3a; border: #ff2f3a 1px solid; border-radius: 4px;" class="md-padding" ng-if="options.data.values.GraphicMaxDecalCount > 6000">
+    <strong style="margin: 0px 12px 0px 0px;">{{:: 'ui.options.graphics.Warning' | translate}}</strong>
+    <p>{{:: 'ui.options.graphics.GraphicMaxDecalCount.warning' | translate}}</p>
+  </md-list-item>
+</div>
+
+<!-- grass density -->
+<md-list-item layout class="md-padding">
+  <p flex="40">{{:: 'ui.options.graphics.GraphicGrassDensity' | translate}}</p>
+  <md-slider min="0" max="1" step="0.01" aria-label="_" ng-model="options.data.values.GraphicGrassDensity" flex ng-change="options.applyStateDebounce()"></md-slider>
+  <span flex="10" style="text-align:right;">{{options.data.values.GraphicGrassDensity.toFixed(2)}}</span>
+</md-list-item>
+
+<!-- skip licence plate generation -->
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.graphics.skipgenerationlicenceplate' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.SkipGenerateLicencePlate" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.graphics.lowFovDetailEnabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.lowFovDetailEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic">{{:: 'ui.options.graphics.lowFovDetailEnabled' | translate}}</md-checkbox>
+</md-list-item>
+
+<md-button ng-click="opt.toggleFPS()" md-no-ink class="md-primary md-raised" bng-sound-class="bng_click_generic"> {{:: 'ui.inputActions.debug.cycle_metrics.title' | translate}}</md-button>
+<md-button ng-click="opt.resetPostFX()" md-no-ink class="md-primary md-raised" bng-sound-class="bng_click_generic"><md-icon class="material-icons">undo</md-icon> {{:: 'ui.options.graphics.postfxReset' | translate}}</md-button>
+
+
+
+<md-divider></md-divider>
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.debug' | translate}}</h3></p></md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.debug.renderer.boundingBoxes' | translate}}</p>
+  <md-checkbox ng-model="opt.debug_boundingboxes" ng-change="opt.toggleRenderBoundingBoxes()" bng-sound-class="bng_checkbox_generic">
+  </md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.debug.renderer.disableShadows' | translate}}</p>
+  <md-checkbox ng-model="opt.debug_disableShadows" ng-change="opt.toggleDisableShadows()" bng-sound-class="bng_checkbox_generic">
+  </md-checkbox>
+</md-list-item>
+
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.debug.renderer.wireframeMode' | translate}}</p>
+  <md-checkbox ng-model="opt.debug_wireframe" ng-change="opt.toggleWireframe()" bng-sound-class="bng_checkbox_generic">
+  </md-checkbox>
+</md-list-item>
+
+
+<md-list-item class="bng-short-select-item" layout>
+  <p flex>{{:: 'ui.debug.renderer.visualization' | translate}}</p>
+  <md-select ng-model="opt.debug_visualization" ng-change="opt.setVisualizationMode()" class="bng-select-fullwidth" flex="45">
+    <md-option ng-repeat="(key, value) in ::opt.visualizationModes">{{ ::key }}</md-option>
+  </md-select>
+</md-list-item>
+

@@ -2,6 +2,17 @@
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
+--[[
+stepper.startStepSequence(
+{
+  stepper.makeStepFadeToBlack(),
+  stepper.makeStepSpawnVehicleSimple("pickup","vehicles/pickup/d15_4wd_A.pc",function() print("Hello")end), stepper.makeStepFadeFromBlack()
+  })
+]]
+
+
+
+
 local M = {}
 local showDebugWindow = false
 local taskData = {
@@ -15,9 +26,9 @@ local taskData = {
 local function taskFadeStep(step)
   if not step.waitForFade then
     if step.direction == "start" then
-      ui_fadeScreen.start()
+      ui_fadeScreen.start(step.duration)
     else
-      ui_fadeScreen.stop()
+      ui_fadeScreen.stop(step.duration)
     end
     step.waitForFade = true
   end
@@ -32,20 +43,22 @@ M.onScreenFadeState = function(state)
   end
   taskData.steps[taskData.currentStep]["fadeState"..state] = true
 end
-local function makeStepFadeToBlack()
+local function makeStepFadeToBlack(duration)
   return {
     name = "fadeToBlackStep",
     processTask = taskFadeStep,
     direction = "start",
-    timeout = 10
+    timeout = 10,
+    duration = duration,
   }
 end
-local function makeStepFadeFromBlack()
+local function makeStepFadeFromBlack(duration)
   return {
     name = "fadeFromBlackStep",
     processTask = taskFadeStep,
     direction = "stop",
-    timeout = 10
+    timeout = 10,
+    duration = duration,
   }
 end
 M.makeStepFadeToBlack = makeStepFadeToBlack
@@ -82,6 +95,17 @@ local function makeStepReturnTrueFunction(fun)
   }
 end
 M.makeStepReturnTrueFunction = makeStepReturnTrueFunction
+
+local function makeStepReturnTrueFunction(fun)
+  return {
+    name = "customReturnTrueStep",
+    processTask = taskCustomReturnTrueFunctionStep,
+    fun = fun,
+  }
+end
+M.makeUiMessageStep = function(message)
+  return makeStepReturnTrueFunction(function() ui_message(message) return true end)
+end
 
 -- vehicle spawning helper
 local function taskVehicleSpawnStep(step)
@@ -192,13 +216,7 @@ end
 M.taskLoadLevelStep = taskLoadLevelStep
 M.makeLoadLevelStep = makeLoadLevelStep
 
---[[
-stepper.startStepSequence(
-{
-  stepper.makeStepFadeToBlack(),
-  stepper.makeStepSpawnVehicleSimple("pickup","vehicles/pickup/d15_4wd_A.pc",function() print("Hello")end), stepper.makeStepFadeFromBlack()
-  })
-]]
+
 
 -- starting a sequence
 local function startStepSequence(steps, callbackWhenFinished)

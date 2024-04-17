@@ -10,8 +10,7 @@ local max = math.max
 local sensorId                                  -- The unique Id number for this GPS sensor.
 local GFXUpdateTime                             -- The GFX step update time (ie how often readings data is available to the user).
 local nodeIndex1, nodeIndex2, nodeIndex3        -- The indices of the three nodes which comprise the sensor attach triangle.
-local b1, b2, b3                                -- The three barycentric coordinates of the sensor re the triangle.
-local w1, w2, w3                                -- Positive-valued weights for the interpolation.
+local b1, b2                                    -- The barycentric coordinates of the sensor re the triangle.
 local signedProjDist                            -- The signed distance from the sensor triangle plane to the sensor.
 local isVisualised = true                       -- A flag which indicates if this GPS sensor should be visualised
 local refLon, refLat = 0.0, 0.0                 -- The (lon, latt) coordinates for the origin of the map.
@@ -25,9 +24,15 @@ local physicsUpdateTime                         -- How often the physics should 
 -- GPS readings data.
 local readings = {}                             -- The table of raw sensor readings (since the last graphics step update).
 local readingIndex = 1                          -- The index in the raw readings array at which to place the next data.
+local latestReading = {
+  time = 0.0,
+  x = 0.0,
+  y = 0.0,
+  lon = 0.0,
+  lat = 0.0 }
 
 -- Properties which are updated regularly.
-local pos = vec3(0, 0, 0)
+local pos = vec3(0, 0)
 
 -- Converts an (x, y) Euclidean grid position in metres, to a (lon, latt) spherical surface position, using a reference point in (latt, lon).
 local function xY2LonLat(x, y, refLon, refLat)
@@ -48,14 +53,14 @@ local function update(dtSim)
   local edge1, edge2 = node2 - node1, node3 - node1
   local edge1Norm, edge2Norm = edge1:normalized(), edge2:normalized()
   local normal = edge1Norm:cross(edge2Norm):normalized()
-  local projPos = b1 * node1 + b2 * node2 + b3 * node3                -- The projection of the world-space position onto the triangle plane.
+  local projPos = node1 + b1 * edge2 + b2 * edge1                     -- The projection of the world-space position onto the triangle plane.
   pos = obj:getPosition() + projPos + signedProjDist * normal         -- The current world-space position of the sensor.
 
   -- Convert the (x, y) coordinates to (lon, latt).
   local lon, lat = xY2LonLat(pos.x, pos.y, refLon, refLat)
 
   -- Gather the latest reading data.
-  local latestReading = { time = obj:getSimTime(), x = pos.x, y = pos.y, lon = lon, lat = lat }
+  latestReading = { time = obj:getSimTime(), x = pos.x, y = pos.y, lon = lon, lat = lat }
 
   -- Store the latest readings for this GPS sensor in the extension. This is used for sending back on the physics step.
   -- NOTE: this is for when polling directly through the vlua - python socket, so we get the latest reading.
@@ -75,10 +80,6 @@ local function init(data)
     nodeIndex3 = data.nodeIndex3
     b1 = data.u
     b2 = data.v
-    b3 = 1.0 - b1 - b2
-    w1 = max(0, b1)
-    w2 = max(0, b2)
-    w3 = max(0, b3)
     signedProjDist = data.signedProjDist
     refLon = data.refLon
     refLat = data.refLat
@@ -105,20 +106,20 @@ local function getSensorData()
     rawReadings = readings }
 end
 
-local function setIsVisualised(value)
-  isVisualised = value
-end
+local function getLatest() return latestReading end
 
-local function incrementTimer(dtSim)
-  timeSinceLastPoll = timeSinceLastPoll + dtSim
-end
+local function setIsVisualised(value) isVisualised = value end
+
+local function incrementTimer(dtSim) timeSinceLastPoll = timeSinceLastPoll + dtSim end
+
 
 -- Public interface:
-M.update                                    = update
-M.init                                      = init
-M.reset                                     = reset
-M.getSensorData                             = getSensorData
-M.setIsVisualised                           = setIsVisualised
-M.incrementTimer                            = incrementTimer
+M.update                                                  = update
+M.init                                                    = init
+M.reset                                                   = reset
+M.getSensorData                                           = getSensorData
+M.getLatest                                               = getLatest
+M.setIsVisualised                                         = setIsVisualised
+M.incrementTimer                                          = incrementTimer
 
 return M

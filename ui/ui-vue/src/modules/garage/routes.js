@@ -1,10 +1,17 @@
 // Garage routes --------------------------------------
-import Garage from "@/modules/garage/views/Garage.vue";
+import Garage from "@/modules/garage/views/Garage.vue"
 
 export default [
   {
-    path: "/garagemode-vue",
-    name: "garageVue",
+    path: "/garagemode/:component?",
+    name: "garagemode",
     component: Garage,
+    props: true,
   },
-];
+  {
+    path: "/garagemode/tuning",
+    name: "garagemode.tuning",
+    component: Garage,
+    props: { component: "tuning" },
+  },
+]

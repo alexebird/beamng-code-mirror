@@ -59,7 +59,7 @@ function updateCorePhysicsStepEnabled()
   -- print("Hydros: " .. tostring(hydros.isPhysicsStepUsed()))
   -- print("Beamstate: " .. tostring(beamstate.isPhysicsStepUsed()))
   -- print("---")
-  obj:setPhysicsStepEnabled(controller.isPhysicsStepUsed() or powertrain.isPhysicsStepUsed() or wheels.isPhysicsStepUsed() or thrusters.isPhysicsStepUsed() or hydros.isPhysicsStepUsed() or beamstate.isPhysicsStepUsed() or extensionsHook ~= nop)
+  obj:setPhysicsStepEnabled(controller.isPhysicsStepUsed() or powertrain.isPhysicsStepUsed() or wheels.isPhysicsStepUsed() or thrusters.isPhysicsStepUsed() or hydros.isPhysicsStepUsed() or beamstate.isPhysicsStepUsed() or protocols.isPhysicsStepUsed() or extensionsHook ~= nop)
 end
 
 function enablePhysicsStepHook()
@@ -77,6 +77,7 @@ function onPhysicsStep(dtPhys)
   thrusters.update()
   hydros.update(dtPhys)
   beamstate.update(dtPhys)
+  protocols.update(dtPhys)
   extensionsHook("onPhysicsStep", dtPhys)
 end
 
@@ -97,6 +98,7 @@ function onGraphicsStep(dtSim)
   energyStorage.updateGFX(dtSim)
   drivetrain.updateGFX(dtSim)
   beamstate.updateGFX(dtSim) -- must be after drivetrain
+  protocols.updateGFX(dtSim)
   sounds.updateGFX(dtSim)
   hydros.updateGFX(dtSim) -- must be after (input, electrics) and before props
   thrusters.updateGFX() -- should be after extensions.hook
@@ -147,6 +149,7 @@ function initSystems()
   electrics.init()
   damageTracker.init()
   beamstate.init() -- needs to go before powertrain and first controller init, needs to go after damageTracker
+  protocols.init()
   wheels.init()
   powertrain.init()
   energyStorage.init()
@@ -238,6 +241,7 @@ function init(path, initData)
   v = require("jbeam/stage2")
   electrics = require("electrics")
   beamstate = require("beamstate")
+  protocols = require("protocols")
   sensors = require("sensors")
   bullettime = require("bullettime") -- to be deprecated
   thrusters = require("thrusters")
@@ -250,16 +254,6 @@ function init(path, initData)
   mapmgr = require("mapmgr")
   fire = require("fire")
   partCondition = require("partCondition")
-
-  if settings.getValue("motionSimEnabled") then
-    extensions.load("motionSim")
-    motionSim.onExtensionLoaded = motionSim.init or motionSim.onExtensionLoaded
-    motionSim.onVehicleLoaded = motionSim.onVehicleLoaded or motionSim.init
-    motionSim.onPhysicsStep = motionSim.onPhysicsStep or motionSim.update
-    motionSim.onReset = motionSim.onReset or motionSim.reset
-    motionSim.onSettingsChanged = motionSim.onSettingsChanged or motionSim.settingsChanged
-    enablePhysicsStepHook()
-  end
 
   core_performance.popEvent() -- 0 startup
 
@@ -309,10 +303,6 @@ function init(path, initData)
 
   --Load skeleton extension that draws nice(r) beams and nodes if there are no meshes, unloads itself immediately otherwise
   extensions.load("skeleton")
-
-  if settings.getValue("outgaugeEnabled") == true then
-    extensions.load("outgauge")
-  end
 
   core_performance.pushEvent("5 postspawn")
 
@@ -370,6 +360,7 @@ end
 function onBeamDeformed(id, ratio)
   beamstate.beamDeformed(id, ratio)
   controller.beamDeformed(id, ratio)
+  extensions.hook("onBeamDeformed", id, ratio)
 end
 
 function onTorsionbarBroken(id, energy)
@@ -416,6 +407,7 @@ end
 function onDespawnObject()
   --log('D', "default.vehicleDestroy", "vehicleDestroy()")
   hydros.destroy()
+  protocols.destroy()
   if odometer then
     odometer.submitStatistic()
   end
@@ -432,6 +424,7 @@ function onVehicleReset(retainDebug)
     --log('D', "default.vehicleResetted", "vehicleResetted()")
     damageTracker.reset()
     beamstate.reset() --needs to be before any calls to beamnstate.registerExternalCouplerBreakGroup(), for example controller.lua
+    protocols.reset()
     wheels.reset()
     electrics.reset()
     powertrain.reset()
@@ -495,6 +488,7 @@ function setControllingPlayers(players)
   end
 
   bdebug.onPlayersChanged(playerInfo.anyPlayerSeated)
+  protocols.onPlayersChanged()
   ai.stateChanged()
   sounds.updateObjType()
   extensions.hook("onPlayersChanged", playerInfo.anyPlayerSeated) -- backward compatibility
@@ -518,6 +512,7 @@ function onSettingsChanged()
   controller.settingsChanged()
   input.settingsChanged()
   wheels.settingsChanged()
+  protocols.settingsChanged()
 end
 
 core_performance.popEvent() -- lua init

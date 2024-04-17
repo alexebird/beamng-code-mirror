@@ -197,8 +197,12 @@ end
 --== color things ==--
 -- color conversion helpers
 function getContrastColor(i, a)
-  local c = rainbowColor(16, i % 17, 255)
-  return color(c[1], c[2], c[3], a or 255)
+  return jetColor((i % 17) / 16)
+end
+
+function getContrastColorStringRGB(i)
+  local c1, c2, c3 = colorGetRGBA(jetColor((i % 17) / 16))
+  return stringformat("#%02x%02x%02x", c1, c2, c3)
 end
 
 --== Math ==--

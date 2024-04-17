@@ -329,7 +329,7 @@ local function getAgedPaint(paint, paintOdometer)
   agedColor[1], agedColor[2], agedColor[3] = HSVtoRGB(h, s, v)
   -- c) increase lightness, per color
   for i = 1, 3 do
-    agedColor[i] = agedColor[i] + colorBrightnessIncrease[i]
+    agedColor[i] = clamp(agedColor[i] + colorBrightnessIncrease[i], 0, 1)
   end
 
   agedPaint.baseColor = agedColor

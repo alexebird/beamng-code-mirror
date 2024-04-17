@@ -6,6 +6,7 @@
 
 local im = ui_imgui
 local toolWindowName = "Vehicle event debug"
+local maxTriggerDistance = 1000
 
 local M = { state = {} }
 M.state.cefVisible = true
@@ -40,8 +41,9 @@ local function queueCmd(vehId, cmd)
   end
 end
 
-local function _replaceCmd(cmd, actionValue)
+local function _replaceCmd(cmd, actionValue, vehicleId)
   cmd = cmd:gsub("VALUE", tostring(actionValue))
+  cmd = cmd:gsub("VEHICLEID", tostring(vehicleId))
   -- TODO: improve hardcoded filter, etc
   cmd = cmd:gsub("FILTERTYPE", '-1')
   cmd = cmd:gsub("PLAYER", '0')
@@ -55,43 +57,43 @@ local function executeLinkCommand(evt, actionValue, vehicleId)
   if evt.ctx == nil or evt.ctx == 'vlua' then
     -- send to vehicle
     if evt.onDown and actionValue == 1 then
-      local cmdStr = _replaceCmd(evt.onDown, actionValue)
+      local cmdStr = _replaceCmd(evt.onDown, actionValue, vehicleId)
       return queueCmd(vehicleId, cmdStr)
     elseif evt.onUp and actionValue == 0 then
-      local cmdStr = _replaceCmd(evt.onUp, actionValue)
+      local cmdStr = _replaceCmd(evt.onUp, actionValue, vehicleId)
       return queueCmd(vehicleId, cmdStr)
     elseif evt.onChange then
-      local cmdStr = _replaceCmd(evt.onChange, actionValue)
+      local cmdStr = _replaceCmd(evt.onChange, actionValue, vehicleId)
       return queueCmd(vehicleId, cmdStr)
     end
   elseif evt.ctx == 'elua' or evt.ctx == 'tlua' then
     -- GE
     if evt.onDown and actionValue == 1 then
-      local cmdStr = _replaceCmd(evt.onDown, actionValue)
-      be:queueLuaCommand(cmdStr)
+      local cmdStr = _replaceCmd(evt.onDown, actionValue, vehicleId)
+      Lua:queueLuaCommand(cmdStr)
       return 1
     elseif evt.onUp and actionValue == 0 then
-      local cmdStr = _replaceCmd(evt.onUp, actionValue)
-      be:queueLuaCommand(cmdStr)
+      local cmdStr = _replaceCmd(evt.onUp, actionValue, vehicleId)
+      Lua:queueLuaCommand(cmdStr)
       return 1
     elseif evt.onChange then
-      local cmdStr = _replaceCmd(evt.onChange, actionValue)
-      be:queueLuaCommand(cmdStr)
+      local cmdStr = _replaceCmd(evt.onChange, actionValue, vehicleId)
+      Lua:queueLuaCommand(cmdStr)
       return 1
     end
 
   elseif evt.ctx == 'bvlua' then
     -- to all objects
     if evt.onDown and actionValue == 1 then
-      local cmdStr = _replaceCmd(evt.onDown, actionValue)
+      local cmdStr = _replaceCmd(evt.onDown, actionValue, vehicleId)
       be:queueAllObjectLua(cmdStr)
       return 1
     elseif evt.onUp and actionValue == 0 then
-      local cmdStr = _replaceCmd(evt.onUp, actionValue)
+      local cmdStr = _replaceCmd(evt.onUp, actionValue, vehicleId)
       be:queueAllObjectLua(cmdStr)
       return 1
     elseif evt.onChange then
-      local cmdStr = _replaceCmd(evt.onChange, actionValue)
+      local cmdStr = _replaceCmd(evt.onChange, actionValue, vehicleId)
       be:queueAllObjectLua(cmdStr)
       return 1
     end
@@ -101,7 +103,7 @@ end
 
 local function executeLink(vdata, lnk, actionValue, vehicleId)
   if lnk.version and lnk.version == 2 then
-    --dump{'>>>>> triggerEvent', lnk.inputAction, actionValue, vehicleId}
+    dump({'>>>>> executeLink', lnk.inputAction, actionValue, vehicleId})
 
     if lnk.namespace == 'vehicle' then
       if not vdata.inputActions[lnk.inputAction] then
@@ -121,11 +123,11 @@ local function executeLink(vdata, lnk, actionValue, vehicleId)
       if debugUIEnabled then
         ActionMap.debugEnabled = true
       end
-      local triggerdBindigCount = ActionMap.triggerBindingByNameDigital(lnk.inputAction, actionValue > 0.9, vehicleId)
+      local triggerdBindingCount = ActionMap.triggerBindingByNameDigital(lnk.inputAction, actionValue > 0.9, os.clockhp(), vehicleId)
       if debugUIEnabled then
         ActionMap.debugEnabled = false
       end
-      if debugUIEnabled and triggerdBindigCount == 0 then
+      if debugUIEnabled and triggerdBindingCount == 0 then
         log('W', 'triggers', 'No binding triggered: ' .. tostring(lnk.inputAction) .. ' for value ' .. tostring(actionValue) )
       end
     end
@@ -517,8 +519,8 @@ local function onUpdate(dtReal, dtSim, dtRaw)
       log("E", "", "Invalid vehicle id "..dumps(currentlyUsedTrigger.v).." for vehicle trigger "..dumps(currentlyUsedTrigger.t))
       return
     end
-    --be:getPlayerVehicle(0):selectProp("rollback_lever_raise_R", 0) -- this will disable selection
-    --be:getPlayerVehicle(0):selectProp("rollback_lever_raise_L", 1) -- first state... yellow
+    --getPlayerVehicle(0):selectProp("rollback_lever_raise_R", 0) -- this will disable selection
+    --getPlayerVehicle(0):selectProp("rollback_lever_raise_L", 1) -- first state... yellow
     --vehicleObj:selectProp("rollback_lever_raise_L", 2) -- second state... red
     local to = vehicleObj:getTrigger(currentlyUsedTrigger.t)
     if not to then
@@ -531,17 +533,15 @@ local function onUpdate(dtReal, dtSim, dtRaw)
     if fpsLimiter:update(dtReal) then
       -- allow the c++ classes to draw the alpha according to the distance to this ray
       local useCursorCoordinates = M.state.cursorVisible
-      be:triggerRaycastClosest(useCursorCoordinates)
+      be:triggerRaycastClosest(maxTriggerDistance, useCursorCoordinates)
     end
   end
 end
 
 local function triggerEvent(actionStr, actionValue, triggerId, vehicleId, vdata)
-  if not vdata.triggerEventLinksDict
-    or type(vdata.triggerEventLinksDict[triggerId]) ~= 'table'
-    or type(vdata.triggerEventLinksDict[triggerId][actionStr]) ~= 'table' then
-      return
-  end
+  if not vdata.triggerEventLinksDict then return end
+  if type(vdata.triggerEventLinksDict[triggerId]) ~= 'table' then return end
+  if type(vdata.triggerEventLinksDict[triggerId][actionStr]) ~= 'table' then return end
 
   -- TODO: this is overly simplistic and serves as a prototype :)
   for _, lnk in pairs(vdata.triggerEventLinksDict[triggerId][actionStr]) do
@@ -558,6 +558,7 @@ local function triggerEvent(actionStr, actionValue, triggerId, vehicleId, vdata)
   end
 end
 
+-- executed by C++ side (typically VR controllers)
 local function triggerEventWithoutVdata(actionNum, actionValue, triggerId, vehicleId)
   local vData = extensions.core_vehicle_manager.getVehicleData(vehicleId)
   local actionStr = 'action'..tostring(actionNum)
@@ -565,14 +566,15 @@ local function triggerEventWithoutVdata(actionNum, actionValue, triggerId, vehic
 end
 
 local currentTriggerHit
+-- typically executed by the input actions "triggerAction0" 1 and 2
 local function onActionEvent(actionNumber, inputValue)
-  --dump{'triggers.onActionEvent', actionNumber, inputValue}
+  -- dump{'triggers.onActionEvent', actionNumber, inputValue}
   if not isEnabled() then return end
   if inputValue == 0 and currentlyUsedTrigger then
     currentTriggerHit = currentlyUsedTrigger
     currentlyUsedTrigger = nil
   else
-    currentTriggerHit = be:triggerRaycastClosest(M.state.cursorVisible)
+    currentTriggerHit = be:triggerRaycastClosest(maxTriggerDistance, M.state.cursorVisible)
   end
   if not currentTriggerHit then return end
 

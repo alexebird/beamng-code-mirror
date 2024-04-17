@@ -24,6 +24,7 @@ export const useInspectVehicleStore = defineStore("inspectVehicle", () => {
     needsRepair.value = data.needsRepair
     isTutorial.value = data.isTutorial
     testDroveOnce.value = data.didTestDrive
+    testDriveActive.value = false
   })
 
   events.on("updateTestDriveTimer", data => {

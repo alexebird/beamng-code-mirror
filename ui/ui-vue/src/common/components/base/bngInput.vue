@@ -1,14 +1,14 @@
 <!-- bngInput - an input control -->
 <template>
-  <div class="bng-input-wrapper">
+  <div class="bng-input-wrapper" :class="{ disabled: disabled }">
     <span v-if="externalLabel" :style="[leadingIcon ? { 'margin-left': '3em' } : {}]" class="external-label" data-testid="external-label">
       {{ externalLabel }}
     </span>
     <div class="icons-input-wrapper">
-      <bng-icon v-if="leadingIcon" class="outside-icon" :type="leadingIcon" data-testid="leading-icon" />
+      <BngIcon v-if="leadingIcon" class="outside-icon" :type="leadingIcon" data-testid="leading-icon" />
       <!-- bng-highlight-container is required for focus highlight because bng-input-container
            has overflow hidden for the prefix, suffix or trailing icon to respect the border radius -->
-      <div tabindex="0" class="bng-highlight-container" :class="{ 'bng-input-focused': isInputFieldFocused, 'has-error': hasError }">
+      <div tabindex="disabled ? -1 : 0" class="bng-highlight-container" :class="{ 'bng-input-focused': isInputFieldFocused, 'has-error': hasError }">
         <div class="bng-input-container">
           <span v-if="prefix" class="prefix-suffix-container">
             <span data-testid="prefix">{{ prefix }}</span>
@@ -27,20 +27,20 @@
               @input="onValueChanged"
               @focusin="onInputFieldFocusIn"
               @focusout="onInputFieldFocusOut"
-            />
+              :disabled="disabled"
+              :readonly="readonly"
+              v-bng-text-input />
             <div v-if="type === 'number'" class="number-actions">
-              <bng-icon
-                span
-                :type="icons.general.arrow_small_left"
+              <BngIcon
+                :type="iconsByTag.arrow.arrowLargeLeft"
+                :class="{ 'number-action-disabled': readonly }"
                 class="number-action up-action"
-                v-bng-click="{ clickCallback: onArrowUpClicked, holdCallback: onArrowUpClicked }"
-              />
-              <bng-icon
-                span
-                :type="icons.general.arrow_small_left"
+                v-bng-click="{ clickCallback: onArrowUpClicked, holdCallback: onArrowUpClicked }" />
+              <BngIcon
+                :type="iconsByTag.arrow.arrowLargeRight"
                 class="number-action down-action"
-                v-bng-click="{ clickCallback: onArrowDownClicked, holdCallback: onArrowDownClicked }"
-              />
+                :class="{ 'number-action-disabled': readonly }"
+                v-bng-click="{ clickCallback: onArrowDownClicked, holdCallback: onArrowDownClicked }" />
             </div>
             <span v-if="floatingLabel" class="floating-label" data-testid="floating-label">
               {{ floatingLabel }}
@@ -51,27 +51,20 @@
             <span data-testid="suffix">{{ suffix }}</span>
           </span>
           <span v-if="trailingIcon && !trailingIconOutside" class="trailing-icon">
-            <bng-icon 
-              :type="trailingIcon" 
-              class="input-icon" 
-              data-testid="trailing-icon" />
+            <BngIcon :type="trailingIcon" class="input-icon" data-testid="trailing-icon" />
           </span>
         </div>
       </div>
-      <bng-icon 
-        v-if="trailingIcon && trailingIconOutside" 
-        :type="trailingIcon" 
-        class="outside-icon" 
-        data-testid="external-trailing-icon" />
+      <BngIcon v-if="trailingIcon && trailingIconOutside" :type="trailingIcon" class="outside-icon" data-testid="external-trailing-icon" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from "vue"
+import { ref, computed, watch } from "vue"
 import { BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
-import { vBngClick } from "@/common/directives"
+import { iconsByTag } from "@/common/components/base/bngIcon.vue"
+import { vBngClick, vBngTextInput } from "@/common/directives"
 import { roundDec } from "@/utils/maths"
 import { useDirty } from "@/services/dirty"
 
@@ -86,33 +79,25 @@ const props = defineProps({
   },
 
   // only applicable if type is number
-  min: {
-    type: Number,
-  },
-  max: {
-    type: Number,
-  },
+  min: Number,
+  max: Number,
   step: {
     type: Number,
     default: 1,
   },
 
+  readonly: Boolean,
+
   floatingLabel: String,
   externalLabel: String,
   placeholder: String,
   initialValue: String,
-  leadingIcon: String,
+  leadingIcon: Object,
   prefix: String,
   suffix: String,
-  trailingIcon: String,
-  trailingIconOutside: {
-    type: Boolean,
-    default: false,
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
+  trailingIcon: Object,
+  trailingIconOutside: Boolean,
+  disabled: Boolean,
   validate: Function,
   errorMessage: {
     type: String,
@@ -141,14 +126,15 @@ if (props.type === "number") {
 
 defineExpose(useDirty(value))
 
-const stopValueWatcher = watch(
+watch(
   () => props.modelValue,
   () => (value.value = props.modelValue)
 )
 
-onUnmounted(stopValueWatcher)
-
+let lastNotify = props.modelValue
 function notify(val) {
+  if (props.readonly || lastNotify === val) return
+  lastNotify = val
   emitter("update:modelValue", val)
   emitter("valueChanged", val)
 }
@@ -194,7 +180,7 @@ function onInputFieldFocusIn() {
 
 function onInputFieldFocusOut() {
   isInputFieldFocused.value = false
-  emitter("valueChanged", value.value)
+  notify(value.value)
 }
 </script>
 
@@ -285,6 +271,10 @@ $icon-max-height: 1.5em;
   display: flex;
   flex-direction: column;
 
+  &.disabled {
+    pointer-events: none;
+  }
+
   > .external-label {
     display: inline-block;
     padding: 4px 0;
@@ -299,14 +289,17 @@ $icon-max-height: 1.5em;
 
     > .outside-icon {
       padding: 0 0.5em;
-      height: 1.5em;
+      //height: 1.5em;
+      font-size: 1.25em;
     }
 
     .input-icon {
       display: inline-block;
       max-height: $icon-max-height;
-      height: 1.5em;
+      // height: 1.5em;
       width: 1.5em;
+      text-align: center;
+      font-size: 1.25em;
     }
   }
 }
@@ -379,22 +372,23 @@ $icon-max-height: 1.5em;
 
         .number-action {
           display: inline-block;
-          width: 1em;
-          height: 1em;
+          font-size: 1em;
           cursor: pointer;
           line-height: 100%;
 
           &:active {
             background-color: $focused-outline-color !important;
           }
+
+          &.number-action-disabled {
+            pointer-events: none;
+            opacity: 0.5;
+          }
         }
 
-        > .up-action {
-          transform: rotate(90deg);
-        }
-
+        > .up-action,
         > .down-action {
-          transform: rotate(-90deg);
+          transform: rotate(90deg);
         }
       }
 

@@ -10,7 +10,6 @@ C.name = 'Career Vehicle Select'
 C.color = ui_flowgraph_editor.nodeColors.career
 C.icon = ui_flowgraph_editor.nodeIcons.career
 C.description = "Lets the player pick between 3 vehicles.."
-C.todo = ""
 C.behaviour = { once = true, singleActive = true}
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'flow', description = 'Inflow for this node.' },

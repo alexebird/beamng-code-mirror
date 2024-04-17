@@ -1,70 +1,65 @@
 <!-- bngIcon - a simple icon -->
 <template>
-  <span class="bngiconGlyph" v-if="glyph !== ''" :style="glyphStyle">{{props.glyph}}</span>
-  <span class="bngicon" v-else-if="span" :style="spanStyle"><slot></slot></span>
-  <img class="bngicon" v-else :src="iconImageURL" alt="" />
+  <span v-if="!asImage" :style="iconStyle" v-bind="isKnownGlyph ? {} : {unknown: type.glyph || type || NO_ICON_TYPE_GIVEN}">{{iconGlyph}}</span>
+  <BngImageAsset v-else v-bind="imageProps" />
 </template>
 
-<script>
-import { getAssetURL } from "@/utils"
-import { icons, iconTypesList } from "@/assets/icons"
-
-export { icons, iconTypesList }
-</script>
-
 <script setup>
-import { computed } from "vue"
+import { computed, useAttrs } from "vue"
+import { BngImageAsset } from "@/common/components/base"
 
 const props = defineProps({
   type: {
-    type: String,
-    validator: v => iconTypesList.includes(v),
-  },
-  span: {
-    type: Boolean,
-    default: true,
-  },
-  mask: {
-    type: Boolean,
-    default: true,
-  },
-  glyph: {
-    type: String,
-    default: "",
+    type: [String, Object],
+    default: '',
+    // TODO - fill in this validator once we have a way to validate icons?
+    //validator: v => iconTypesList.includes(v),
   },
   color: String
 })
 
-const iconImageURL = computed(() => getAssetURL(`icons/${props.type}.svg`))
-
-const glyphStyle = computed(() => ({
-  fontFamily: "bngIcons",
-  color: props.color || '#fff'
+const iconStyle = computed(() => ({
+  color: props.color || '#fff',
+  ...!isKnownGlyph.value && { "-webkit-text-stroke": '1px #f00' }
 }))
 
-const spanStyle = computed(() => ({
-  [props.mask ? "maskImage" : "backgroundImage"]: `url(${iconImageURL.value})`,
-  backgroundColor: props.color || '#fff'
+const attrs = useAttrs()
+
+const imageProps = computed(() => ({
+  ...asImage && {mask: ['mask', 'span'].includes(attrs.asImage)},
+  ...props.color && { bgColor: props.color },
+  ...!isKnownGlyph && { unknown: type.glyph || type || NO_ICON_TYPE_GIVEN, bgColor: '#f00' },
+  src: svgForIcon(props.type)
 }))
+
+const asImage = computed(() => !OFF_VALUES.includes(attrs.asImage))
+
+const iconGlyph = computed(() => isKnownGlyph.value || icons.placeholder.glyph)
+const isKnownGlyph = computed(() => props.type.glyph || (typeof props.type ==='string' && props.type))
 
 </script>
 
+<script>
+import { icons, iconsBySize, iconsByTag, getIconsWithTags } from "@/assets/fonts/bngIcons/bngIcons.js"
+
+const svgForIcon = ({ fileSvg }) => `fonts/bngIcons/${fileSvg}`
+const NO_ICON_TYPE_GIVEN = "[ No icon type given ]"
+
+const OFF_VALUES = [null, undefined, false, "0", "false", 0]
+
+export { icons, iconsBySize, iconsByTag, getIconsWithTags, svgForIcon }
+
+
+
+</script>
+
+
 <style lang="scss" scoped>
-span.bngicon {
-  align-self: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-}
-span.bngiconGlyph {
+span {
+  font-family: "bngIcons" !important;
   align-self: center;
   display: inline-block;
-  font-size: 1rem;
+  font-size: 1.5em;
+  font-weight: 100 !important;
 }
 </style>

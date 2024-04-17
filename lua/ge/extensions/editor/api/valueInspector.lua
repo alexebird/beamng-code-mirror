@@ -58,7 +58,7 @@ local function degToRad(d)
 end
 
 local function radToDeg(r)
-  return (r * 180.0) / PI;
+  return (r * 180.0) / PI
 end
 
 --TODO: move to ge_utils.lua
@@ -296,13 +296,21 @@ function C:displayMaterialPopupList(objectSet, fieldName, fieldNameId, fieldValu
   if not simSetWindowFieldId or simSetWindowFieldId ~= fieldNameId then return end
 
   if not popupWasPositioned then
-    imgui.SetNextWindowPos(imgui.ImVec2(imgui.GetMousePos().x, imgui.GetMousePos().y))
+    local mousePos = imgui.GetMousePos()
+    local displaySize = imgui.GetIO().DisplaySize
+    local windowSize = filteredFieldPopupSize
+
+    if displaySize then
+      if mousePos.x + windowSize.x > displaySize.x then mousePos.x = displaySize.x - windowSize.x end
+      if mousePos.y + windowSize.y > displaySize.y then mousePos.y = displaySize.y - windowSize.y end
+    end
+    imgui.SetNextWindowPos(imgui.ImVec2(mousePos.x, mousePos.y))
     popupWasPositioned = true
   end
 
   -- This emulates a popup window because BeginPopup doesnt work correctly with the "hovered" state of imgui windows
   local windowOpenPtr = imgui.BoolPtr(true)
-  if imgui.Begin(fieldNameId .. "MaterialSetPopup", windowOpenPtr, imgui.WindowFlags_NoCollapse + imgui.WindowFlags_NoDocking) then
+  if imgui.Begin(fieldNameId .. "MaterialSetPopup", windowOpenPtr, imgui.WindowFlags_NoCollapse + imgui.WindowFlags_NoDocking + imgui.WindowFlags_NoTitleBar) then
     loadedTextures = 0
     imgui.PushID1(fieldNameId .. "SimSetNameFilter")
     imgui.ImGuiTextFilter_Draw(simSetNameFilter, "", 200)
@@ -659,12 +667,16 @@ function C:valueEditorGui(fieldName, fieldValue, arrayIndex, fieldLabel, fieldDe
 
     if changed then
       fieldValueCached = ffi.string(self.inputTextValue)
+      if fieldName == "name" then
+        editor.editingObjectName = true
+      end
     end
     if self.editEnded[0] then
       fieldValue = ffi.string(self.inputTextValue)
       local val = fieldValueCached or fieldValue
       local changeAllowed = true
       if fieldName == "name" then
+        editor.editingObjectName = false
         if scenetree.findObject(val) then
           local msg = "'" .. val .. "' already exists in the scene, please choose another name"
           editor.logWarn(msg)
@@ -684,6 +696,11 @@ function C:valueEditorGui(fieldName, fieldValue, arrayIndex, fieldLabel, fieldDe
       if changeAllowed then
         -- we call this directly, if the callback nil, then we will get an error in the console, which is visible
         self.setValueCallback(fieldName, val, arrayIndex, customData, self.editEnded[0])
+
+        if editor.postNameChangeSelectObjectId then
+          editor.selectObjectById(editor.postNameChangeSelectObjectId)
+          editor.postNameChangeSelectObjectId = nil
+        end
       end
     end
     if nil ~= oldStrRef then self.inputTextValue = oldStrRef end
@@ -960,9 +977,9 @@ function C:valueEditorGui(fieldName, fieldValue, arrayIndex, fieldLabel, fieldDe
       if vec[2] == nil then vec[2] = "0" end
       if vec[3] == nil then vec[3] = "0" end
 
-      self.input4FloatValue[0] = radToDeg(vec[1])
-      self.input4FloatValue[1] = radToDeg(vec[2])
-      self.input4FloatValue[2] = radToDeg(vec[3])
+      self.input4FloatValue[0] = radToDeg(tonumber(vec[1]) or 0)
+      self.input4FloatValue[1] = radToDeg(tonumber(vec[2]) or 0)
+      self.input4FloatValue[2] = radToDeg(tonumber(vec[3]) or 0)
 
       local windowPos = imgui.GetWindowPos()
       local cursorPos = imgui.GetCursorPos()
@@ -1311,20 +1328,26 @@ function C:valueEditorGui(fieldName, fieldValue, arrayIndex, fieldLabel, fieldDe
   elseif customData and customData.enum ~= nil and tableSize(customData.enum) > 0 then
     local widgetsBasicComboItems = { "<Not set>" }
     local oldIndex = 0
+    local nextIdx = 2
 
-    for i = 2, #customData.enum do
-      widgetsBasicComboItems[i] = customData.enum[i].name
+    for i = 1, #customData.enum do
+      widgetsBasicComboItems[nextIdx] = customData.enum[i].name
       if customData.enum[i].name == fieldValue then
-        oldIndex = i - 1
+        oldIndex = i
       end
+      nextIdx = nextIdx + 1
     end
 
     widgetsBasicComboItems = imgui.ArrayCharPtrByTbl(widgetsBasicComboItems)
     self.comboIndex[0] = oldIndex
     if widgetsBasicComboItems then
       if imgui.Combo1(fieldNameId, self.comboIndex, widgetsBasicComboItems) then
-        local index = tonumber(self.comboIndex[0] + 1)
-        fieldValue = tostring(customData.enum[index].name)
+        local index = tonumber(self.comboIndex[0])
+        if 0 == self.comboIndex[0] then
+          fieldValue = ""
+        else
+          fieldValue = tostring(customData.enum[index].name)
+        end
         self.setValueCallback(fieldName, fieldValue, arrayIndex, customData, true)
       end
     end

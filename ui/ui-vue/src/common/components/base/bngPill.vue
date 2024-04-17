@@ -38,7 +38,7 @@ $default-border-color: var(--bng-ter-blue-gray-700);
   display: inline-flex;
   justify-content: center;
   align-items: flex-end;
-  padding: 0.5em 1em;
+  padding: 0.4em 1em;
   border-radius: 0.5em;
   color: $text-color;
   border: 1px solid $default-border-color;

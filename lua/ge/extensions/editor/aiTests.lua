@@ -118,8 +118,8 @@ local function tabRoute() -- debug navgraph route with a start position, finish 
     end
 
     if im.Button("Player Vehicle##"..marker.objectName) then
-      if be:getPlayerVehicle(0) then
-        marker:set(be:getPlayerVehicle(0):getPosition())
+      if getPlayerVehicle(0) then
+        marker:set(getPlayerVehicle(0):getPosition())
         change = true
       end
     end
@@ -194,7 +194,7 @@ local function tabRoute() -- debug navgraph route with a start position, finish 
   end
 
   if options.trackPlayerRoute[0] then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle then
       local idx, dist = route:trackVehicle(playerVehicle)
       im.Text(string.format("Idx: %d, distance: %0.1f", idx or -1, dist or -1))
@@ -204,7 +204,7 @@ local function tabRoute() -- debug navgraph route with a start position, finish 
     end
   else
     if routeTracking then
-      route:trackPosition(fromPos.pos)
+      route:trackPosition(route.path[1] and route.path[1].pos or vec3())
       routeTracking = false
     end
   end

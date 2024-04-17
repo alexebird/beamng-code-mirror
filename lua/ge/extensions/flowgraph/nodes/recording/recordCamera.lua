@@ -11,7 +11,6 @@ C.name = 'Record Camera'
 C.description = 'Records a Camera path using keyframes.'
 C.category = 'repeat_f_duration'
 
-C.todo = "WIP"
 C.pinSchema = {
   {dir = 'in', type = 'flow', name = 'snap', description = 'Trigger to create a keyframe.', impulse = true},
   {dir = 'in', type = 'flow', name = 'stop', description = 'Trigger to stop the recording save the path.', impulse = true},

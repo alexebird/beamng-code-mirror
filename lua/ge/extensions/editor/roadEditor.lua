@@ -59,6 +59,7 @@ local lastMousePos = im.ImVec2(0,0)
 local roadMaterialTagString = "RoadAndPath"
 local roadNotSelectableErrorWindowName = "roadNotSelectableErrorWindowName"
 local roadNotSelectableErrorWindowTitle = "Road Select Error"
+local shouldShowFuseOption = false
 
 local function showAIModeText()
   local vm = GFXDevice.getVideoMode()
@@ -459,6 +460,79 @@ local function splitRoads(roadAndNodeIDs)
     {originalRoadAndNodeIDs = roadAndNodeIDs}, splitRoadActionUndo, splitRoadActionRedo)
 end
 
+local function fuseRoadsActionUndo(actionData)
+  if tableIsEmpty(actionData.fuseRoadsInfo) then return end
+
+  editor.deleteRoad(actionData.fuseRoadsInfo[1].roadID)
+
+  SimObject.setForcedId(actionData.fuseRoadsInfo[1].roadID)
+  editor.createRoad(actionData.road1Nodes, actionData.road1Fields)
+
+  SimObject.setForcedId(actionData.fuseRoadsInfo[2].roadID)
+  editor.createRoad(actionData.road2Nodes, actionData.road2Fields)
+
+  for _, nodeInfo in pairs(actionData.fuseRoadsInfo) do
+    editor.selectObjectById(nodeInfo.roadID, editor.SelectMode_Add)
+  end
+end
+
+local function fuseRoadsActionRedo(actionData)
+  if tableIsEmpty(actionData.fuseRoadsInfo) then return end
+  local road1Data = actionData.fuseRoadsInfo[1]
+  local road2Data = actionData.fuseRoadsInfo[2]
+
+  local road1 = scenetree.findObjectById(road1Data.roadID)
+  local road2 = scenetree.findObjectById(road2Data.roadID)
+
+  local insertIndex = (road1Data.fuseNodeIndex == 1) and 0 or u_32_max_int
+  local road2Nodes = editor.getNodes(road2)
+  local numNodes = road2:getNodeCount()
+  if road2Data.fuseNodeIndex == 1 then
+    for _, node in ipairs(road2Nodes) do
+      insertNode(road1, node.pos, node.width, insertIndex)
+    end
+  else
+    for index = 1, tableSize(road2Nodes) do
+      local node = road2Nodes[numNodes - index + 1]
+      insertNode(road1, node.pos, node.width, insertIndex)
+    end
+  end
+
+  editor.deleteRoad(road2Data.roadID)
+  editor.selectObjectById(road1Data.roadID)
+end
+
+local function fuseRoads()
+  if tableSize(selectedRoadsIds) ~= 2 then return end
+  local selectedRoad1 = scenetree.findObjectById(selectedRoadsIds[1])
+  local selectedRoad2 = scenetree.findObjectById(selectedRoadsIds[2])
+  if not selectedRoad1 or not selectedRoad2 then return end
+  local nodesRoad1 = editor.getNodes(selectedRoad1)
+  local nodesRoad2 = editor.getNodes(selectedRoad2)
+  local edgeNodes1 = {1, selectedRoad1:getNodeCount()}
+  local edgeNodes2 = {1, selectedRoad2:getNodeCount()}
+
+  local minDist = math.huge
+  local fuseIndex1 = nil
+  local fuseIndex2 = nil
+  for _, nodeIndex1 in ipairs(edgeNodes1) do
+    for _, nodeIndex2 in ipairs(edgeNodes2) do
+      local distVec = nodesRoad1[nodeIndex1].pos - nodesRoad2[nodeIndex2].pos
+      local dist = distVec:length()
+      if minDist > dist then
+        minDist = dist
+        fuseIndex1 = nodeIndex1
+        fuseIndex2 = nodeIndex2
+      end
+    end
+  end
+
+  local fuseRoadInfoTbl = {{roadID = selectedRoadsIds[1], fuseNodeIndex = fuseIndex1}, {roadID = selectedRoadsIds[2], fuseNodeIndex = fuseIndex2}}
+  editor.history:commitAction("FuseRoads",
+    {fuseRoadsInfo = fuseRoadInfoTbl, road1Nodes = nodesRoad1, road2Nodes = nodesRoad2,
+      road1Fields = editor.copyFields(selectedRoadsIds[1]), road2Fields = editor.copyFields(selectedRoadsIds[2])}, fuseRoadsActionUndo, fuseRoadsActionRedo)
+end
+
 local function setAsDefault(decalRoadId)
 end
 
@@ -716,6 +790,15 @@ local function onEditorInspectorHeaderGui(inspectorInfo)
       if im.Button("Split Road"..buttonTextSuffix, im.ImVec2(0,0)) then
         splitRoads(roadAndNodeIDsTbl)
       end
+    end
+    im.EndChild()
+  end
+
+  if shouldShowFuseOption then
+    im.BeginChild1("RoadOps", im.ImVec2(0, 130), true)
+    im.Text("Road Operations")
+    if im.Button("Fuse Roads", im.ImVec2(0,0)) then
+      fuseRoads()
     end
     im.EndChild()
   end
@@ -1326,7 +1409,8 @@ end
 
   -- Highlight selected roads
   if not tableIsEmpty(selectedRoadsIds) then
-    for i = 1, tableSize(selectedRoadsIds) do
+    local numSelectedRoads = tableSize(selectedRoadsIds)
+    for i = 1, numSelectedRoads do
       local selectedRoad = scenetree.findObjectById(selectedRoadsIds[i])
       if not selectedRoad then goto continue end
       showRoad(selectedRoad, roadRiverGui.highlightColors.selected)
@@ -1342,6 +1426,7 @@ end
         end
       end
       ::continue::
+      shouldShowFuseOption = (numSelectedRoads == 2)
     end
   end
   lastHoveredRoadID = hoveredRoadID

@@ -85,4 +85,5 @@ M.clear = function()
   log("D","","Raw Poi Lists Cleared. New Generation: " .. rawPoiGeneration)
 end
 M.showMissionMarkersToggled = M.clear
+M.onModManagerReady = M.clear
 return M

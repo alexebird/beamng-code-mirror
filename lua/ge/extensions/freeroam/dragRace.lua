@@ -618,7 +618,7 @@ local function selectRandomOpponent(sameClass)
 end
 
 local function onBeamNGTrigger(data)
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
 
   if data.triggerName == "dragTrigger" and data.subjectID == veh:getId() then
     if data.event == "enter" then
@@ -746,7 +746,7 @@ local function onExtensionLoaded()
   -- local unitType = settings.getValue('uiUnitLength')
   -- speedUnit = unitType == "metric" and 3.6 or 2.2369362920544
   started = false
-  playerVehicle = be:getPlayerVehicle(0)
+  playerVehicle = getPlayerVehicle(0)
 
 
   -- Creating a table for the TStatics that are being used to display drag time and final speed

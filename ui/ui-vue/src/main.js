@@ -1,9 +1,13 @@
 import * as Vue from "vue/dist/vue.esm-bundler.js"
 
+// Polyfills for newer JS stuff in case of CEF reversion
+import "@/utils/polyfills.js"
+
 import { createApp } from "vue"
 import { createPinia } from "pinia"
 
 import { useBridge, setBridgeDependencies } from "@/bridge"
+import logger from "@/services/logger"
 import { contextTranslatePlugin, preprocessLocaleJSON } from "@/services/translation"
 
 import Emitter from "tiny-emitter"
@@ -49,11 +53,15 @@ useGameContextStore()
 window.bngVue = {
   start: ({ i18n }) => {
     app.config.globalProperties.$game = bridge
+    app.config.globalProperties.$console = logger
+    app.config.globalProperties.$logger = logger
 
     app
       .use(i18n)
       .use(contextTranslatePlugin(app.config.globalProperties.$t || i18n.global.t))
       .provide("$game", bridge)
+      .provide("$logger", logger)
+      .provide("$console", logger)
 
       .mount("#vue-app")
   },

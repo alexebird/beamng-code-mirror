@@ -1,6 +1,6 @@
 <template>
   <div class="milestone-branches-card">
-    <bng-card class="card">
+    <BngCard class="card">
       <BngCardHeading class="header">It’s time to branch ⎇</BngCardHeading>
       <div class="content">
         <div class="branches-container">
@@ -11,7 +11,7 @@
         <BngButton accent="text">Remind me later</BngButton>
         <BngButton>Okay</BngButton>
       </template>
-    </bng-card>
+    </BngCard>
   </div>
 </template>
 

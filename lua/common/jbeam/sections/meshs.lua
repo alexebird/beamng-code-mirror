@@ -29,6 +29,20 @@ local function translationWorldToPropAxis(trans, inLocalSpace, refPos, refXPos, 
   return mat:mulP3F(trans)
 end
 
+local function getPropGlobalPosWithNodeOffsetMove(prop, pos)
+  local newPos = vec3(pos)
+  if prop.nodeOffset and type(prop.nodeOffset) == 'table' and prop.nodeOffset.x and prop.nodeOffset.y and prop.nodeOffset.z then
+    local nodeOffsetCoef = prop.ignoreNodeOffset and 0 or 1
+    newPos.x = newPos.x + fsign(newPos.x) * prop.nodeOffset.x * nodeOffsetCoef
+    newPos.y = newPos.y + prop.nodeOffset.y * nodeOffsetCoef
+    newPos.z = newPos.z + prop.nodeOffset.z * nodeOffsetCoef
+  end
+  if prop.nodeMove and type(prop.nodeMove) == 'table' and prop.nodeMove.x and prop.nodeMove.y and prop.nodeMove.z then
+    newPos.x, newPos.y, newPos.z = newPos.x + prop.nodeMove.x, newPos.y + prop.nodeMove.y, newPos.z + prop.nodeMove.z
+  end
+  return newPos
+end
+
 local function parseColor(v)
   if v == nil then
     return ColorF(0,0,0,0)
@@ -120,15 +134,21 @@ local function processProps(objID, vehicleObj, vehicle)
         end
         -- Prop baseTranslationGlobal (optional)
         if prop.baseTranslationGlobal then
-          p:setBaseTranslationGlobal(vec3(prop.baseTranslationGlobal))
+          local newPos = getPropGlobalPosWithNodeOffsetMove(prop, prop.baseTranslationGlobal)
+          prop.baseTranslationGlobalWithNodeOffsetMove = newPos
+          p:setBaseTranslationGlobal(newPos)
         end
         -- Prop baseTranslationGlobalElastic (optional)
         if prop.baseTranslationGlobalElastic then
-          p:setBaseTranslationGlobalElastic(vec3(prop.baseTranslationGlobalElastic))
+          local newPos = getPropGlobalPosWithNodeOffsetMove(prop, prop.baseTranslationGlobalElastic)
+          prop.baseTranslationGlobalElasticWithNodeOffsetMove = newPos
+          p:setBaseTranslationGlobalElastic(newPos)
         end
         -- Prop baseTranslationGlobalRigid (optional)
         if prop.baseTranslationGlobalRigid then
-          p:setBaseTranslationGlobalRigid(vec3(prop.baseTranslationGlobalRigid))
+          local newPos = getPropGlobalPosWithNodeOffsetMove(prop, prop.baseTranslationGlobalRigid)
+          prop.baseTranslationGlobalRigidWithNodeOffsetMove = newPos
+          p:setBaseTranslationGlobalRigid(newPos)
         end
 
         -- Prop translation offset (optional)
@@ -264,6 +284,17 @@ local function processFlexbodies(objID, vehicleObj, vehicle)
             f:setInitialTransformation(pos, rotRad, scale, flexbody.flatMap or false)
           end
           --f:initialize()
+
+          if flexbody.materialOverride then
+            if #flexbody.materialOverride == 2 and type(flexbody.materialOverride[1])=="string" and type(flexbody.materialOverride[2])=="string" then
+              -- f:setMaterialOverride(flexbody.materialOverride[1], flexbody.materialOverride[2])
+              log('E', "jbeam.pushToPhysics", dumps(flexbody.mesh)..".`materialOverride`: need to be array of array")
+            else
+              for i = 1, #flexbody.materialOverride do
+                f:setMaterialOverride(flexbody.materialOverride[i][1], flexbody.materialOverride[i][2])
+              end
+            end
+          end
           flexbody.meshLoaded = true
         else
           log('E', "jbeam.pushToPhysics", "unable to create flexmesh: " .. flexbody.mesh)

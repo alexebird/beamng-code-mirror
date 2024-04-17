@@ -17,7 +17,7 @@ local beamSounds = {}
 
 -- main drawing function
 local function onEditorGui()
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then return end
   local vehData = core_vehicle_manager.getPlayerVehicleData()
   if not vehData then return end

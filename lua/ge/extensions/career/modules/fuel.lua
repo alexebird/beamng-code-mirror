@@ -22,7 +22,6 @@ local overallPrice = 0
 
 local gasSoundId
 local electricSoundId
-local paySoundId
 
 local isSoundPlaying = {}
 
@@ -144,12 +143,12 @@ local function saveEnergyStorageData(data)
 end
 
 local function requestEnergyStorageData()
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   core_vehicleBridge.requestValue(veh, saveEnergyStorageData, 'energyStorage')
 end
 
 local function startAngularUI()
-  guihooks.trigger('ChangeState', {state = 'menu.refueling', params = {}})
+  guihooks.trigger('ChangeState', {state = 'refueling', params = {}})
 end
 
 local function requestRefuelingTransactionData()
@@ -160,7 +159,7 @@ local function startTransaction(_gasStation)
   if not career_modules_inventory.getCurrentVehicle() then return end
   gasStation = _gasStation
   pushActionMap("Refueling")
-  core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setIgnitionLevel', 0)
+  core_vehicleBridge.executeAction(getPlayerVehicle(0),'setIgnitionLevel', 0)
   startAngularUI()
   extensions.hook("onRefuelingStartTransaction")
 end
@@ -169,12 +168,11 @@ local function getFuelData()
   return fuelData
 end
 
-local function applyFuelData(data)
+local function applyFuelData(data, veh)
   if showUI then
     sendUpdateDataToUI()
   end
-
-  local veh = be:getPlayerVehicle(0)
+  veh = veh or getPlayerVehicle(0)
   for index, tankData in ipairs(data or fuelData) do
     core_vehicleBridge.executeAction(veh, 'setEnergyStorageEnergy', tankData.name, tankData.currentEnergy)
   end
@@ -258,7 +256,7 @@ end
 
 local function startFuelingTank(index)
   if career_modules_inventory.getCurrentVehicle() then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if veh:getVelocity():length() < 1 then
       fuelingActive[index] = true
       startingFuelData = startingFuelData or deepcopy(fuelData)
@@ -336,10 +334,10 @@ end
 
 local function payPrice()
   if overallPrice > 0 then
-    activateSound(paySoundId, true)
+    Engine.Audio.playOnce('AudioGui','event:>UI>Career>Buy_01')
   end
   stopFuelingType()
-  career_modules_playerAttributes.addAttribute("money", -overallPrice, {label = "Refuelled at "..(translateLanguage(gasStation.facility.name, gasStation.facility.name, true))})
+  career_modules_playerAttributes.addAttributes({money=-overallPrice}, {tags={"fuel","buying"},label = "Refuelled at "..(translateLanguage(gasStation.facility.name, gasStation.facility.name, true))})
   endTransaction()
   extensions.hook("onPaidRefuelling", overallPrice)
   gameplay_statistic.metricAdd("career/fuel/paidPrice.money", overallPrice)
@@ -380,7 +378,7 @@ end
 local uiFuelDataDeltaCounter = 0
 local function onUpdate(dtReal, dtSim)
   if showUI then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if veh:getVelocity():length() > 2 then
       uiCancelTransaction()
     end
@@ -450,7 +448,7 @@ local function onUpdate(dtReal, dtSim)
     end
 
     imgui.Text(string.format("Overall Price: %.2f $", overallPrice))
-    if overallPrice <= career_modules_playerAttributes.getAttribute("money").value then
+    if overallPrice <= career_modules_playerAttributes.getAttributeValue("money") then
       if imgui.Button(string.format("Pay")) then
         payPrice()
       end
@@ -461,7 +459,7 @@ local function onUpdate(dtReal, dtSim)
   end
 end
 
-local function minimumRefuelingCheck(data)
+local function setMinimumFuel(data, veh)
   local tanksData = data[1]
   for i, tank in ipairs(tanksData) do
     -- refuel the car if it is electric or nearly empty
@@ -473,16 +471,15 @@ local function minimumRefuelingCheck(data)
       ui_message("Your tank was close to empty, so it has been refueled a little bit. You should visit a fuel station", nil, "emergencyRefuel")
     end
   end
-  applyFuelData(tanksData)
-  gameplay_garageMode.initStepFinished()
+  applyFuelData(tanksData, veh)
 end
 
-local function garageModeStartStep()
-  local vehId = career_modules_inventory.getCurrentVehicleId()
+local function minimumRefuelingCheck(vehId)
+  vehId = vehId or career_modules_inventory.getCurrentVehicleId()
   if vehId then
     local veh = be:getObjectByID(vehId)
     if veh then
-      core_vehicleBridge.requestValue(veh, minimumRefuelingCheck, 'energyStorage')
+      core_vehicleBridge.requestValue(veh, function(data) setMinimumFuel(data, veh) end, 'energyStorage')
     end
   end
 end
@@ -490,7 +487,6 @@ end
 local function setupSounds()
   gasSoundId = gasSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Fueling_Petrol')
   electricSoundId = electricSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Fueling_Electric')
-  paySoundId = paySoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Buy_01')
 end
 
 local function onCareerModulesActivated(alreadyInLevel)
@@ -506,7 +502,6 @@ end
 local function onClientEndMission(levelPath)
   gasSoundId = nil
   electricSoundId = nil
-  paySoundId = nil
 end
 
 M.startTransaction = startTransaction
@@ -527,6 +522,6 @@ M.onUpdate = onUpdate
 M.onCareerModulesActivated = onCareerModulesActivated
 M.onClientStartMission = onClientStartMission
 M.onClientEndMission = onClientEndMission
-M.garageModeStartStep = garageModeStartStep
+M.minimumRefuelingCheck = minimumRefuelingCheck
 
 return M

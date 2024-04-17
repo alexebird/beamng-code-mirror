@@ -47,7 +47,7 @@ local function drawSelectionBBox(objMat, color)
   end
 
   local thickness = 4 * editor.getPreference("gizmos.general.lineThicknessScale")
-  
+
   debugDrawer:drawLineInstance(pts[1], pts[5], thickness, color)
   debugDrawer:drawLineInstance(pts[2], pts[6], thickness, color)
   debugDrawer:drawLineInstance(pts[3], pts[7], thickness, color)
@@ -434,6 +434,7 @@ local function gizmoEndDrag()
 end
 
 local function drawObjectSelectionGizmos()
+  --debugDrawer:currentRenderViewMaskSet(1)
   if editor.selection.object and not tableIsEmpty(editor.selection.object) then
     local colorX = math.abs(math.sin(colorBlinkTimer))
     local c1 = ColorF(0.3, 0.1, 0, 1)
@@ -480,6 +481,7 @@ local function drawObjectSelectionGizmos()
     end
     colorBlinkTimer = colorBlinkTimer + editor.getDeltaTime() * 3.0
   end
+  --debugDrawer:currentRenderViewMaskClear()
 end
 
 local function objectSelectActivate()
@@ -525,11 +527,76 @@ local function filterObjects(objects)
   end
 end
 
+local currentObjectToAlign
+local angleAroundUpValue = 0
+local draggingObjectToAlign = false
+local alignToSurfaceInitialTransform
+
 local function objectSelectUpdate()
   local res = getCameraMouseRay()
   local objectIdByIconClick = editor.objectIconHitId
-  local hoveredObjectID = editor.isAxisGizmoHovered() and 0 or editor.objectIconHoverId
+  local hoveredObjectID = 0
+  if not editor.isAxisGizmoHovered() then
+    hoveredObjectID = editor.objectIconHoverId or 0
+  end
+
   worldEditorCppApi.setHoveredObjectId(hoveredObjectID)
+
+  local ctrlDown = editor.keyModifiers.ctrl
+  local altDown = editor.keyModifiers.alt
+
+  if imgui.IsMouseClicked(0) or imgui.IsMouseDown(0) or draggingObjectToAlign then
+    if editor.selection.object and altDown and ctrlDown and #editor.selection.object then
+      local rayCastInfo = cameraMouseRayCast(true, defaultFlags)
+      if core_forest.getForestObject() then core_forest.getForestObject():enableCollision() end
+
+      if rayCastInfo and editor.selection.object[1] then
+        --TODO: align all objects as a group in the selection
+        local objId = editor.selection.object[1]
+        local obj = scenetree.findObjectById(objId)
+
+        if obj:getClassName() == "TerrainBlock" then return end
+
+        if not currentObjectToAlign then
+          currentObjectToAlign = obj
+          editor.disableCameraZoom = true
+          draggingObjectToAlign = true
+          currentObjectToAlign:disableCollision()
+          alignToSurfaceInitialTransform = obj:getTransform()
+        end
+        local scl = obj:getScale()
+        local rot = quatFromDir(rayCastInfo.normal)
+        local mtx = MatrixF(0)
+        local mtxCorrection = MatrixF(0)
+        local mtxAngleAroundUp = MatrixF(0)
+        -- I need to add this 90deg x axis correction, dont know why quatFromDir doesnt properly create the rotation at default up (0,0,1)
+        mtxCorrection:setFromEuler(vec3((90 * math.pi) / 180.0, 0, 0))
+        angleAroundUpValue = angleAroundUpValue + imgui.GetIO().MouseWheel * 5 -- TODO: add this to prefs
+        mtxAngleAroundUp:setFromEuler(vec3(0, 0, (angleAroundUpValue * math.pi) / 180.0))
+        mtx:setFromQuatF(QuatF(rot.x, rot.y, rot.z, rot.w))
+        mtx = mtx:mul(mtxCorrection)
+        mtx = mtx:mul(mtxAngleAroundUp)
+        mtx:setPosition(rayCastInfo.pos)
+
+        if not imgui.IsMouseDown(0) and draggingObjectToAlign then
+          draggingObjectToAlign = false
+          currentObjectToAlign:enableCollision()
+          currentObjectToAlign = nil
+          angleAroundUpValue = 0
+          editor.disableCameraZoom = false
+          editor.history:beginTransaction("AlignObjectToSurface")
+          editor.history:commitAction("SetObjectTransform", {objectId = objId, newTransform = editor.matrixToTable(mtx), oldTransform = editor.matrixToTable(alignToSurfaceInitialTransform)}, objectHistoryActions.setObjectTransformUndo, objectHistoryActions.setObjectTransformRedo, true)
+          editor.history:commitAction("SetObjectScale", {objectId = objId, newScale = scl, oldScale = scl}, objectHistoryActions.setObjectScaleUndo, objectHistoryActions.setObjectScaleRedo, true)
+          editor.history:endTransaction()
+        else
+          obj:setTransform(mtx)
+          obj:setScaleXYZ(scl.x, scl.y, scl.z)
+        end
+        updateObjectSelectionAxisGizmo()
+      end
+      return
+    end
+  end
 
   if imgui.IsMouseClicked(0)
       and (res or objectIdByIconClick)
@@ -550,7 +617,11 @@ local function objectSelectUpdate()
       local object = scenetree.findObjectById(objectIdByIconClick)
       if worldEditorCppApi.getClassIsSelectable(object:getClassName())
          and editor.isObjectSelectable(object) then
-        editor.selectObjectById(objectIdByIconClick, selectMode)
+        if not editor.editingObjectName then
+          editor.selectObjectById(objectIdByIconClick, selectMode)
+        else
+          editor.postNameChangeSelectObjectId = objectIdByIconClick
+        end
       end
     else
       local hoveredObject = nil
@@ -569,7 +640,7 @@ local function objectSelectUpdate()
           -- Get the top level prefab as the hovered object
           local prefab
           repeat
-            prefab = Prefab.getPrefabByChild(hoveredObject)
+            prefab = Engine.Prefab.findPrefabForChild(hoveredObject)
             if prefab then
               hoveredObject = prefab
             end
@@ -577,7 +648,11 @@ local function objectSelectUpdate()
         end
       end
       if hoveredObject and editor.isObjectSelectable(hoveredObject) then
-        editor.selectObjectById(hoveredObject:getID(), selectMode)
+        if not editor.editingObjectName then
+          editor.selectObjectById(hoveredObject:getID(), selectMode)
+        else
+          editor.postNameChangeSelectObjectId = hoveredObject:getID()
+        end
         clickedHoveredObject = true
       else
         editor.clearObjectSelection()
@@ -948,6 +1023,7 @@ local function onEditorInitialized()
   editor.editModes.objectSelect.auxShortcuts[editor.AuxControl_Delete] = "Delete objects"
   editor.editModes.objectSelect.auxShortcuts[bit.bor(editor.AuxControl_Shift, editor.AuxControl_Duplicate)] = "Duplicate at cam pos"
   editor.editModes.objectSelect.auxShortcuts["Shift + Drag Gizmo"] = "Duplicate objects"
+  editor.editModes.objectSelect.auxShortcuts[bit.bor(editor.AuxControl_Ctrl, editor.AuxControl_Alt)] = "Align object to surfaces on LMB down + Wheel (rotates around up axis)"
   registerApi()
 
   if editor.getPreference("gizmos.general.localCoordinatesModeDefault") then

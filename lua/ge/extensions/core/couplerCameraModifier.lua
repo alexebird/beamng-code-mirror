@@ -117,7 +117,7 @@ local function onUpdate()
 
   if obj2 == nil or obj1 == nil then onCouplerDetached() return end
 
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local playerVehiclePos = vehicle:getPosition()
 
   local obj1refNodePos = obj1:getNodePosition(core_camera.getCameraDataById(objId1).orbit.refNodes.ref)

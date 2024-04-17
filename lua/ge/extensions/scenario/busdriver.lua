@@ -232,7 +232,7 @@ local function onRaceStart()
   -- log('I', logTag,'onRaceStart called')
   reset()
   initBusLine()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     playerVehicle:queueLuaCommand('controller.setFreeze(0)')
   end
@@ -421,7 +421,7 @@ local function onRaceResult(final)
   if playerWon == true then
     local scenario = scenario_scenarios.getScenario()
     local vehicle = core_vehicles.getCurrentVehicleDetails()
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     local record = {
       playerName = core_vehicles.getVehicleLicenseText(playerVehicle),
       vehicleBrand = vehicle.model.Brand,
@@ -448,7 +448,7 @@ local function onVehicleSwitched(oldId, newId, player)
   log('I', logTag,'onVehicleSwitched called: '..dumps(oldId, newId, player))
   if player == 0 then
     reset()
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle then
       playerVehicle:queueLuaCommand('controller.setFreeze(1)')
     else
@@ -511,7 +511,7 @@ local function onPreRender(dt, dtSim)
     monitorMarker = currentAlphaMarker ==1
   end
 
-  local pv = be:getPlayerVehicle(0)
+  local pv = getPlayerVehicle(0)
   if not pv then return end
 
   -- update ratings
@@ -665,7 +665,7 @@ local prevCamera = nil
 local function onBusUpdate(state)
   -- log('E', logTag..".onBusUpdate",'event='..dumps(state))
   if state.event == "onTriggerTick" and not stopComplete and nextStop and nextStop[1] == state.triggerName then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if not origSpawnAABB then
       origSpawnAABB = playerVehicle:getSpawnLocalAABB()
     end
@@ -767,7 +767,7 @@ local function onBusUpdate(state)
       setpointAlphaMarker = 1
     end
   elseif state.event == "onDepartedStop" then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if origSpawnAABB then playerVehicle:setSpawnLocalAABB(origSpawnAABB) end
   end
 end
@@ -777,7 +777,7 @@ local function onScenarioLoaded(scenario)
 
   if scenario.busdriver.simulatePassengers then
     -- getting current vehicle
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     local configPath = playerVehicle:getField('partConfig', '0')
     -- reading in config file so we can add seat ballast
     local vehicleConfig = jsonReadFile(configPath)
@@ -798,7 +798,7 @@ local function onExtensionUnloaded()
   core_groundMarkers.setFocus(nil)
 
   --we freeze in the reset(), we need to unfreeze manually
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     playerVehicle:queueLuaCommand('controller.setFreeze(0)')
   end

@@ -10,18 +10,18 @@ local pinName = 'idToIgnore_'
 
 C.name = 'Remove Other Vehicles'
 C.description = 'Will remove every vehicles except from the one(s) specified'
-C.todo = "Vehicles spawned outside the FG won't be removed"
 C.category = 'once_instant'
 
 C.color = ui_flowgraph_editor.nodeColors.vehicle
 C.icon = ui_flowgraph_editor.nodeIcons.vehicle
 C.pinSchema = {
-  {dir = 'in', type = 'number', name = pinName..'1', description= "Vehicle id that won't be removed"},
+  {dir = 'in', type = 'number', name = pinName..'1', description = "Vehicle id that won't be removed"},
 }
-
 
 function C:init()
   self.count = 1
+  self.onlyDrivableVehs = false
+  self.onlyFlowgraphVehs = false
 end
 
 function C:drawCustomProperties()
@@ -34,7 +34,25 @@ function C:drawCustomProperties()
   if im.InputInt('##count'..self.id, ptr) then
     if ptr[0] < 1 then ptr[0] = 1 end
     self:updatePins(self.count, ptr[0])
-    reason = "Changed Value count to " .. ptr[0]
+    reason = "Changed Value count to " .. tostring(ptr[0])
+  end
+
+  im.NextColumn()
+  im.Text("Only Drivable Vehicles")
+  im.NextColumn()
+  ptr = im.BoolPtr(self.onlyDrivableVehs)
+  if im.Checkbox('##onlyDrivableVehs'..self.id, ptr) then
+    self.onlyDrivableVehs = ptr[0]
+    reason = "Changed Value onlyDrivableVehs to " .. tostring(ptr[0])
+  end
+
+  im.NextColumn()
+  im.Text("Only Flowgraph Vehicles")
+  im.NextColumn()
+  ptr = im.BoolPtr(self.onlyFlowgraphVehs)
+  if im.Checkbox('##onlyFlowgraphVehs'..self.id, ptr) then
+    self.onlyFlowgraphVehs = ptr[0]
+    reason = "Changed Value onlyFlowgraphVehs to " .. tostring(ptr[0])
   end
   im.Columns(1)
   im.PopID()
@@ -54,45 +72,69 @@ function C:updatePins(old, new)
   else
     for i = old+1, new do
       --direction, type, name, default, description, autoNumber
-      self:createPin('in','number',pinName..i)
+      self:createPin('in', 'number', pinName..i)
     end
   end
   self.count = new
 end
 
 function C:workOnce()
-  local everyVehicleId = self.mgr.modules.vehicle:getSpawnedVehicles()
-
-  gameplay_traffic.deleteVehicles()
-
-  if #everyVehicleId == 0 then
-    return
+  local vehIds = {}
+  if self.onlyDrivableVehs then
+    for _, v in ipairs(getAllVehiclesByType()) do
+      table.insert(vehIds, v:getId())
+    end
+  else
+    for _, v in ipairs(getAllVehicles()) do
+      table.insert(vehIds, v:getId())
+    end
   end
 
-  for _, id in ipairs(everyVehicleId) do
+  if self.onlyFlowgraphVehs then
+    local tempIds = {}
+    local idKeys = tableValuesAsLookupDict(vehIds)
+    for _, v in ipairs(self.mgr.modules.vehicle:getSpawnedVehicles()) do
+      if idKeys[v] then
+        table.insert(tempIds, v)
+      end
+    end
+    vehIds = tempIds
+  end
+
+  for _, id in ipairs(vehIds) do
     local delete = true
 
-    -- if there's at least one value to ignore
-    if self.pinIn[pinName..1].value or self.count >= 1 then
-      for i = 1, self.count do
-        if self.pinIn[pinName..i].value == id then
-          delete = false
-          break;
-        end
+    for i = 1, self.count do
+      if self.pinIn[pinName..i] and self.pinIn[pinName..i].value == id then
+        delete = false
+        break
       end
     end
 
     if delete then
-      local source = scenetree.findObjectById(id)
+      local obj = scenetree.findObjectById(id)
 
-      if source then
+      if obj then
         if editor and editor.onRemoveSceneTreeObjects then
-          editor.onRemoveSceneTreeObjects({source:getId()})
+          editor.onRemoveSceneTreeObjects({obj:getId()})
         end
-        source:delete()
+        obj:delete()
       end
     end
   end
+end
+
+function C:_onSerialize(res)
+  res.count = self.count
+  res.onlyDrivableVehs = self.onlyDrivableVehs
+  res.onlyFlowgraphVehs = self.onlyFlowgraphVehs
+end
+
+function C:_onDeserialized(data)
+  self:updatePins(self.count, data.count)
+  self.count = data.count
+  self.onlyDrivableVehs = data.onlyDrivableVehs
+  self.onlyFlowgraphVehs = data.onlyFlowgraphVehs
 end
 
 return _flowgraph_createNode(C)

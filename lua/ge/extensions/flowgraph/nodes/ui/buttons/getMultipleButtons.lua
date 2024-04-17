@@ -12,7 +12,6 @@ C.color = ui_flowgraph_editor.nodeColors.button
 C.description = "Handle a selection of buttons created previously."
 C.category = 'repeat_instant'
 
-C.todo = "TODO"
 C.pinSchema = {
   {dir = 'in', type = 'number', name = 'buttonId_1', description = 'ID of the button.'},
   {dir = 'out', type = 'flow', name = 'clicked_1', description = 'Puts out flow if the buttonId_1 is clicked', impulse = true},

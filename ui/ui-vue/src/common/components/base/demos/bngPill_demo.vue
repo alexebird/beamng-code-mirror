@@ -1,19 +1,19 @@
 <template>
   <div style="margin-top: 1em; width: 90%">
     Plain Pill
-    <bng-pill> All </bng-pill>
+    <BngPill> All </BngPill>
   </div>
   <div style="margin-top: 1em; width: 90%">
     Plain Pill Marked
-    <bng-pill :marked="true"> All </bng-pill>
+    <BngPill :marked="true"> All </BngPill>
   </div>
   <div style="margin-top: 1em; width: 90%">
     Interactive Pill
-    <bng-pill @click="onClick"> All </bng-pill>
+    <BngPill @click="onClick"> All </BngPill>
   </div>
   <div style="margin-top: 1em; width: 90%">
     Interactive Pill Marked
-    <bng-pill :marked="true" @click="onClick"> All </bng-pill>
+    <BngPill :marked="true" @click="onClick"> All </BngPill>
   </div>
 </template>
 

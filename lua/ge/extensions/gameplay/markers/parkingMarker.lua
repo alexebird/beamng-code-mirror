@@ -120,7 +120,6 @@ end
 
 
 local distance = 0
-local highestBBPointZ = 0
 local nearDist, farDist = 15,60
 local bigScaleDist, smallScaleDist = 100, 1000
 local function distanceToHeight(dist)
@@ -145,7 +144,7 @@ function C:update(data)
   if not self.focus or data.bigMapActive then
     iconHeight = self.iconPositionSmoother:get(
       (self.overlap
-        and (highestBBPointZ-self.pos.z+iconHeightTopOffset)
+        and (data.highestBBPointZ-self.pos.z+iconHeightTopOffset)
         or  ((distance > farDist) and 0 or iconHeightBottom))
       * (0.5 + 0.5*cruisingFactor), data.dt)
     self.iconPos = self.pos + vec3(0,0,iconHeight)
@@ -154,12 +153,11 @@ function C:update(data)
     local iconHeightFar = distanceToHeight(distance)
     iconHeight = self.iconPositionSmoother:get(
       (self.overlap
-        and ((highestBBPointZ-self.pos.z+iconHeightTopOffset) * (0.5 + 0.5*cruisingFactor))
+        and ((data.highestBBPointZ-self.pos.z+iconHeightTopOffset) * (0.5 + 0.5*cruisingFactor))
         or  ((distance > nearDist) and iconHeightFar or iconHeightBottom))
       , data.dt)
 
     -- camera-oriented vectors
-    --local x, y, z = data.camRot * xVector, data.camRot * yVector, data.camRot * zVector
     tmpX:set(1,0,0)
     tmpX:setRotate(data.camRot)
     tmpY:set(0,1,0)
@@ -174,15 +172,11 @@ function C:update(data)
     tmpNormal:setScaled(-1)
     tmpNormal:setCross(tmpNormal, tmpX)
     tmpNormal:normalize()
-    --local pNorm = (-(z*math.tan(fovRadians/2)+y)):cross(x):normalized()
 
     -- icon position with added height
     self.iconPos:set(self.pos)
     self.iconPos:setAddXYZ(0,0,iconHeight)
-    --local iconPos = self.pos + vec3(0,0,iconHeight)
 
-
-    --local distToIcon = (iconPos - camPos):dot(y)
     tmpVec:set(self.iconPos)
     tmpVec:setSub(data.camPos)
 
@@ -194,32 +188,20 @@ function C:update(data)
     tmpVec:set(self.pos)
     tmpVec:setAddXYZ(0,0,iconHeight)
     self.iconOff:setSub(tmpVec)
---    self.iconOff = iconPos- (self.pos + vec3(0,0,iconHeight))
 
     -- project icon position on plane
     local dist = intersectsRay_Plane(self.iconPos, zVector, data.camPos, tmpNormal)
 
-
     dist = clamp(dist, -iconHeight, 0)
---    local projected = iconPos + vec3(0,0,dist)
-
-    --self.iconPos = projected - self.iconOff
     self.iconPos:setAddXYZ(0,0,dist)
     self.iconPos:setSub(self.iconOff)
-
-
   end
-
-
   if self.iconInfo then
-
     local customSize = 1
     if self.focus then
       self.iconOff:normalize()
       self.iconOff:setScaled(bounce((os.clockhp() * 0.9)%1) * 0.4 * linearScale(distance, nearDist, nearDist +3, 1, 0))
       self.iconPos:setAdd(self.iconOff)
-      --self.iconInfo.worldPosition:setAdd(self.iconOff)
-      --self.iconInfo.worldPosition = self.iconPos + self.iconOff:normalized() * bounce((os.clockhp() * 0.9)%1) * 0.4 * linearScale(distance, nearDist, nearDist +3, 1, 0)
       customSize = linearScale(distance, bigScaleDist, smallScaleDist, 1, 0.65)
     end
     self.iconInfo.customSizeFactor = customSize
@@ -230,7 +212,6 @@ function C:update(data)
 
     local rayLength =  tmpVec:length()
     local iconVisible = castRayStatic(self.iconPos, tmpVec, rayLength, nil) >= rayLength
-
 
     if not self.focus then
       lineColorF.alpha = self.iconAlphaSmoother:get((not self.visible or not iconVisible or (distance > farDist) or data.bigMapActive) and 0 or 1, data.dt) * (0.5 + 0.5*cruisingFactor)
@@ -249,7 +230,6 @@ function C:update(data)
     end
 
   end
-
   if self.lastAlpha ~= cruisingFactor then
     outlineTmp = scenetree.findObjectById(self.outlineId)
     if outlineTmp  then
@@ -280,32 +260,15 @@ function C:checkParking(data)
   self.overlap = false
 
   if distance < (nearDist) then
-
-    tmpX:set(data.bbp3)
-    tmpX:setSub(data.bbp0)
-    tmpX:setScaled(0.5)
-    tmpY:set(data.bbp1)
-    tmpY:setSub(data.bbp0)
-    tmpY:setScaled(0.5)
-    tmpZ:set(data.bbp4)
-    tmpZ:setSub(data.bbp0)
-    tmpZ:setScaled(0.5)
-
-    tmpCorner:set(data.bbp0)
-    tmpCorner:setAdd(tmpX)
-    tmpCorner:setAdd(tmpY)
-    tmpCorner:setAdd(tmpZ)
-
     if self.mode == "contained" then
-      self.overlap = (data.cruisingSpeedFactor < 1) and containsOBB_OBB(self.pos, self.xVec, self.yVec, self.zVec, tmpCorner, tmpX, tmpY, tmpZ)
+      self.overlap = (data.cruisingSpeedFactor < 1) and containsOBB_OBB(self.pos, self.xVec, self.yVec, self.zVec, data.bbCenter, data.bbHalfAxis0, data.bbHalfAxis1, data.bbHalfAxis2)
     elseif self.mode == "overlap" then
-      self.overlap = (data.cruisingSpeedFactor < 1) and overlapsOBB_OBB(self.pos, self.xVec, self.yVec, self.zVec, tmpCorner, tmpX, tmpY, tmpZ)
+      self.overlap = (data.cruisingSpeedFactor < 1) and overlapsOBB_OBB(self.pos, self.xVec, self.yVec, self.zVec, data.bbCenter, data.bbHalfAxis0, data.bbHalfAxis1, data.bbHalfAxis2)
     end
 
     if self.overlap then
       --self:drawAxisBox(corner - vehX - vehY - vehZ, vehX*2, vehY*2, vehZ*2, color(64,64,128,64))
       --self:drawAxisBox(self.pos - self.xVec - self.yVec - self.zVec, self.xVec*2, self.yVec*2, self.zVec*2, color(self.overlap and 0 or 255, self.overlap and 255 or 0, 0,64))
-      highestBBPointZ = math.max(data.bbp0.z,math.max(data.bbp1.z,math.max(data.bbp2.z,math.max(data.bbp3.z,math.max(data.bbp4.z,math.max(data.bbp5.z,math.max(data.bbp6.z,data.bbp7.z)))))))
       distance = 0
     end
   end
@@ -339,7 +302,6 @@ function C:createObjects()
     iconRendererObj:loadIconAtlas("core/art/gui/images/iconAtlas.png", "core/art/gui/images/iconAtlas.json");
   end
   self.iconRendererId = iconRendererObj:getId()
-
 end
 
 function C:hide()
@@ -351,7 +313,6 @@ function C:hide()
     outlineTmp.instanceColor = ColorF(1,1,1,0):asLinear4F()
     outlineTmp:updateInstanceRenderData()
   end
-
 
   if self.iconRendererId then
     iconRendererObj = scenetree.findObject(self.iconRendererId)

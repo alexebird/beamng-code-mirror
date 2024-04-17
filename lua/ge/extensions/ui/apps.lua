@@ -52,7 +52,7 @@ local function getAvailableLayouts()
     if FS:fileExists(userFilePath) then
       -- copy over original if the user file version is older.
       local userLayout = jsonReadFile(userFilePath)
-      if userLayout.version and type(userLayout.version) == 'number' and userLayout.version < origLayout.version then
+      if userLayout and userLayout.version and type(userLayout.version) == 'number' and userLayout.version < origLayout.version then
         log("I","",string.format("Old layout was replaced by a never version. File: %s, user-version %0.3f, game-version: %0.3f", userFilePath, userLayout.version, origLayout.version))
         FS:copyFile(originalFilePath, userFilePath)
       end

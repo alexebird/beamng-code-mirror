@@ -12,7 +12,6 @@ C.color = ui_flowgraph_editor.nodeColors.button
 C.description = "Handle a selection of buttons created previously."
 C.category = 'once_instant'
 
-C.todo = "TODO"
 C.pinSchema = {
   {dir = 'in', type = 'bool', name = 'hideWhenDone_1', description = 'If true, the button will be hidden once it has been clicked once.'},
   {dir = 'in', type = 'string', name = 'label_1', default = "Button_1", description = 'Displayed named of the button.'},

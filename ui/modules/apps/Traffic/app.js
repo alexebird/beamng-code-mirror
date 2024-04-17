@@ -81,7 +81,7 @@ angular.module('beamng.apps')
 
       this.refresh = function () {
         bngApi.engineLua(`core_vehicle_manager.reloadAllVehicles()`)
-        bngApi.engineLua(`be:queueAllObjectLua("recovery.loadHome()")`)
+        bngApi.engineLua(`be:queueAllObjectLua("recovery.loadHome(false)")`)
       }
     },
     controllerAs: 'ctrl'

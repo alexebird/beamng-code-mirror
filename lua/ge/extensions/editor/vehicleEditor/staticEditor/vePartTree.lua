@@ -534,7 +534,7 @@ local function renderPickTransformBeams(hitNodes, part, imguiNotHovered, rayDir,
 end
 
 local function renderPickTransformJBeams()
-  debugDrawer:setTargetRenderViews(extensions.editor_vehicleEditor_staticEditor_veStaticRenderView.getTargetAllMainRVs())
+  --debugDrawer:setTargetRenderViews(extensions.editor_vehicleEditor_staticEditor_veStaticRenderView.getTargetAllMainRVs())
 
   local imguiNotHovered = true--not im.IsAnyItemHovered() and not im.IsWindowHovered(im.HoveredFlags_AnyWindow)
   local res, pos, dir = extensions.editor_vehicleEditor_staticEditor_veStaticRenderView.getMainRenderViewMouseRay() --getCameraMouseRay()
@@ -555,7 +555,7 @@ local function renderPickTransformJBeams()
     end
   end
 
-  debugDrawer:clearTargetRenderViews()
+  --debugDrawer:clearTargetRenderViews()
 end
 
 local tableFlags = bit.bor(im.TableFlags_BordersV, im.TableFlags_BordersOuterH, im.TableFlags_RowBg, im.TableFlags_NoBordersInBody, im.TableFlags_Resizable)
@@ -574,7 +574,7 @@ local function onEditorGui()
 
   if editor.beginWindow(wndName, wndName) then
     im.Checkbox("Raw Data", viewRawData)
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if veh and ast and ast.transient.luaData then
       im.SameLine()
       if im.SmallButton('Sync with AST') then

@@ -13,6 +13,7 @@ C.category = 'once_p_duration'
 
 C.pinSchema = {
   { dir = 'in', type = 'string', name = 'filepath', description = 'Defines the file path to load the project from.' },
+  { dir = 'in', type = 'bool', name = 'startNextFrame', description = 'If true, the project will be started next frame. If false, will be started immediately.' },
 }
 
 C.tags = {}
@@ -38,8 +39,14 @@ function C:_executionStopped()
 end
 
 function C:workOnce()
-  local mgr = core_flowgraphManager.loadManager("flowgraphEditor/" .. self.pinIn.filepath.value .. ".flow.json")
-  mgr:setRunning(true)
+  local file, valid = self.mgr:getRelativeAbsolutePath({self.pinIn.filepath.value,self.pinIn.filepath.value..".flow.json", "flowgraphEditor/" .. self.pinIn.filepath.value .. ".flow.json"})
+  local mgr = core_flowgraphManager.loadManager(file)
+  if self.pinIn.startNextFrame.value then
+    core_flowgraphManager.startNextFrame(mgr)
+  else
+    mgr:setRunning(true)
+  end
+
   self.target = mgr
 end
 

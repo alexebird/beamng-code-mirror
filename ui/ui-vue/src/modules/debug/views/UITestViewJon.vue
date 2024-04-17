@@ -1,6 +1,6 @@
 <!--*** Test Page for Jon -->
 <template>
-
+{{ ff }}
   <div class="demo">
     <h1><code>ui_nav</code> DOM event demo</h1>
     <h2>{{ $t("jon.msg3", {aa:"jon.test"})}}</h2>
@@ -22,6 +22,8 @@
       <div ref="domel" id="inner2" @uis_nav="uiNavInner2">Inner 2 <button>Focus me</button></div>
     </div>
 
+  <button @click="popup">Popup</button>
+
   <div id="scrolly">
     fefjwifjweijf fjwiefj owjijf jijoiwj<br/>fejwifjwioefjwoijfiojweiofjoiwejfoiwjeiofjowiejfoijweoifjoiwejfoiwejfoijweoifjoiewjfoiewjfoiwjefoijwoeifjewoi fejwifjewifjwiejfi fdejji djewijfiweji<br />
     Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
@@ -39,8 +41,22 @@
 <script></script>
 
 <script setup>
-import { ref, inject, onMounted } from "vue"
+import { ref, inject, onMounted, getCurrentInstance } from "vue"
 import storage from "@/services/tempStorage"
+
+import { openConfirmation } from "@/services/popup"
+
+async function popup() {
+  const res = await openConfirmation("", "Are you sure?", [
+    { label: $translate.instant("ui.common.yes"), value: true, extras: {accent:'secondary'} },
+    { label: $translate.instant("ui.common.no"), value: false },
+  ])
+}
+
+
+import { $translate} from '@/services/translation'
+console.log($translate.contextTranslate("jon.zzz", {poopy:'abcde'}))
+console.log(getCurrentInstance())
 
 import logger from "@/services/logger"
 

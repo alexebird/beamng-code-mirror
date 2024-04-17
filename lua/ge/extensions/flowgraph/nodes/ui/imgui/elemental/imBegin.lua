@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Opens an imgui window. Make sure to end it with im End."
 C.category = 'repeat_instant' -- technically once_instant, but unsure how to reset
 
-C.todo = ""
 C.pinSchema = {
     { dir = 'out', type = 'flow', name = 'wasClosed', description = 'Outflow once when the user attempts to close this window.', impulse = true },
     { dir = 'in', type = 'string', name = 'title', description = 'Defines the title of the window.' },

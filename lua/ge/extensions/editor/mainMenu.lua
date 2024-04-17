@@ -156,21 +156,6 @@ local function fileMenu()
     end
     imgui.EndMenu()
   end
-
-  if editor.beginWindow(revertLevelToOriginalWindowName, revertLevelToOriginalWindowTitle) then
-    imgui.Text("Are you sure you want to revert current level to original content?")
-    imgui.TextColored(imgui.ImVec4(1, 1, 0, 1), "Warning: You will lose all your changes to the level!")
-    if imgui.Button("Yes") then
-      editor.hideWindow(revertLevelToOriginalWindowName)
-      FS:directoryRemove(editor.getLevelPath())
-      editor.openLevel(editor.getLevelPath())
-    end
-    imgui.SameLine()
-    if imgui.Button("No") then
-      editor.hideWindow(revertLevelToOriginalWindowName)
-    end
-  end
-  editor.endWindow()
 end
 
 local function editMenu()
@@ -474,41 +459,6 @@ local function viewMenu()
     end
     imgui.EndMenu()
   end
-
-  if editor.beginWindow(saveLayoutWindowName, saveLayoutWindowTitle) then
-    imgui.PushItemWidth(imgui.GetContentRegionAvailWidth())
-      if imgui.InputText("##SaveLayout", layoutName, 128, imgui.InputTextFlags_EnterReturnsTrue) then
-        editor.hideWindow(saveLayoutWindowName)
-        editor_layoutManager.saveWindowLayout(ffi.string(layoutName))
-      end
-      if imgui.Button("Save") then
-        editor.hideWindow(saveLayoutWindowName)
-        editor_layoutManager.saveWindowLayout(ffi.string(layoutName))
-      end
-  end
-  editor.endWindow()
-
-  if editor.beginWindow(deleteLayoutWindowName, deleteLayoutWindowTitle) then
-    for _, layoutPath in ipairs(editor_layoutManager.getWindowLayouts()) do
-      if imgui.MenuItem1(string.match(layoutPath, ".+/(.+)"), nil, imgui_false, imgui_true) then
-        editor_layoutManager.deleteWindowLayout(layoutPath)
-      end
-    end
-  end
-  editor.endWindow()
-
-  if editor.beginWindow(resetLayoutsWindowName, resetLayoutsWindowTitle) then
-    imgui.Text("This will delete all window layouts files and set the Default factory layout.")
-    if imgui.Button("Continue") then
-      editor.hideWindow(resetLayoutsWindowName)
-      editor_layoutManager.resetLayouts()
-    end
-    imgui.SameLine()
-    if imgui.Button("Cancel") then
-      editor.hideWindow(resetLayoutsWindowName)
-    end
-  end
-  editor.endWindow()
 end
 
 local function editorTitleGui()
@@ -673,6 +623,56 @@ The editor is used to edit and create new content/levels for the game.
     editor.endModalWindow()
   end
   end
+
+  if editor.beginWindow(revertLevelToOriginalWindowName, revertLevelToOriginalWindowTitle) then
+    imgui.Text("Are you sure you want to revert current level to original content?")
+    imgui.TextColored(imgui.ImVec4(1, 1, 0, 1), "Warning: You will lose all your changes to the level!")
+    if imgui.Button("Yes") then
+      editor.hideWindow(revertLevelToOriginalWindowName)
+      FS:directoryRemove(editor.getLevelPath())
+      editor.openLevel(editor.getLevelPath())
+    end
+    imgui.SameLine()
+    if imgui.Button("No") then
+      editor.hideWindow(revertLevelToOriginalWindowName)
+    end
+  end
+  editor.endWindow()
+
+  if editor.beginWindow(saveLayoutWindowName, saveLayoutWindowTitle) then
+    imgui.PushItemWidth(imgui.GetContentRegionAvailWidth())
+      if imgui.InputText("##SaveLayout", layoutName, 128, imgui.InputTextFlags_EnterReturnsTrue) then
+        editor.hideWindow(saveLayoutWindowName)
+        editor_layoutManager.saveWindowLayout(ffi.string(layoutName))
+      end
+      if imgui.Button("Save") then
+        editor.hideWindow(saveLayoutWindowName)
+        editor_layoutManager.saveWindowLayout(ffi.string(layoutName))
+      end
+  end
+  editor.endWindow()
+
+  if editor.beginWindow(deleteLayoutWindowName, deleteLayoutWindowTitle) then
+    for _, layoutPath in ipairs(editor_layoutManager.getWindowLayouts()) do
+      if imgui.MenuItem1(string.match(layoutPath, ".+/(.+)"), nil, imgui_false, imgui_true) then
+        editor_layoutManager.deleteWindowLayout(layoutPath)
+      end
+    end
+  end
+  editor.endWindow()
+
+  if editor.beginWindow(resetLayoutsWindowName, resetLayoutsWindowTitle) then
+    imgui.Text("This will delete all window layouts files and set the Default factory layout.")
+    if imgui.Button("Continue") then
+      editor.hideWindow(resetLayoutsWindowName)
+      editor_layoutManager.resetLayouts()
+    end
+    imgui.SameLine()
+    if imgui.Button("Cancel") then
+      editor.hideWindow(resetLayoutsWindowName)
+    end
+  end
+  editor.endWindow()
 end
 
 --- Add a new item in the main menu's `Window`.

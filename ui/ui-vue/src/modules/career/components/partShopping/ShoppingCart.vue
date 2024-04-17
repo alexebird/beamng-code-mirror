@@ -10,9 +10,11 @@
         </tr>
         <tr v-for="part in partShoppingData.shoppingCart.partsInList">
           <td>
-            <BngButton v-if="part.sourcePart" :disabled="partShoppingData.tutorialSlots" @click="lua.career_modules_partShopping.removePartBySlot(part.slot)"
-              >remove</BngButton
-            >
+            <BngButton
+              v-if="part.sourcePart"
+              :disabled="partShoppingData.tutorialPartNames"
+              @click="lua.career_modules_partShopping.removePartBySlot(part.slot)"
+              >remove</BngButton>
           </td>
           <td class="article">{{ part.description.description }}</td>
           <td class="price">{{ units.beamBucks(part.finalValue) }}</td>
@@ -30,7 +32,7 @@
         <tr>
           <th></th>
           <th class="article" style="padding-top: 5px; font-size: 1.3em">Total</th>
-          <th class="price" style="padding-top: 5px; font-size: 1.3em">{{ units.beamBucks(partShoppingData.shoppingCart.total) }}</th>
+          <th class="price" style="padding-top: 5px; font-size: 1.3em"><BngUnit :beambucks="partShoppingData.shoppingCart.total" /></th>
         </tr>
       </table>
     </div>
@@ -41,55 +43,45 @@
           !partShoppingData.shoppingCart.partsInList.length ||
           partShoppingData.shoppingCart.total > partShoppingData.playerMoney
         "
-        @click="setPopupType('purchase')"
-      >
+        @click="confirmPurchase">
         Purchase Parts
       </BngButton>
-      <BngButton :disabled="partShoppingData.tutorialSlots" @click="setPopupType('cancel')" :accent="'secondary'">Cancel</BngButton>
+      <BngButton :disabled="partShoppingData.tutorialPartNames" @click="confirmCancel" accent="secondary">Cancel</BngButton>
     </template>
   </BngCard>
-
-  <div v-if="popupType != ''">
-    <div v-bng-blur class="blurBackground"></div>
-    <BngCard class="modalPopup">
-      <div v-if="popupType == 'purchase'">
-        <h3 style="padding: 10px">Do you sure you want to purchase these parts? The replaced parts will be put into your inventory.</h3>
-        <BngButton @click="applyShopping"> Yes </BngButton>
-        <BngButton @click="setPopupType('')" accent="attention"> No </BngButton>
-      </div>
-      <div v-else-if="popupType == 'cancel'">
-        <h3 style="padding: 10px">Are you sure you want to cancel? All changes to your vehicle will be reversed.</h3>
-        <BngButton @click="cancelShopping"> Yes </BngButton>
-        <BngButton @click="setPopupType('')" accent="attention"> No </BngButton>
-      </div>
-    </BngCard>
-  </div>
 </template>
 
 <script setup>
 import { computed, ref } from "vue"
 import { lua, useBridge } from "@/bridge"
-import { BngButton, BngCard, BngCardHeading } from "@/common/components/base"
-
-import { vBngBlur } from "@/common/directives"
+import { BngButton, BngCard, BngCardHeading, BngUnit } from "@/common/components/base"
+import { openConfirmation } from "@/services/popup"
+import { $translate } from "@/services/translation"
 
 const { units } = useBridge()
 
-const popupType = ref(false)
+const CONFIRM_BUTTONS = [
+  { label: $translate.instant("ui.common.yes"), value: true },
+  { label: $translate.instant("ui.common.no"), value: false, extras: { accent: "attention" } },
+]
 
-const setPopupType = _popupType => {
-  popupType.value = _popupType
+const confirmPurchase = async () => {
+  ;(await confirm("Are you sure you want to purchase these parts?")) && applyShopping()
 }
 
-const applyShopping = () => {
-  setPopupType("")
-  lua.career_modules_partShopping.applyShopping()
+const confirmCancel = async () => {
+  if (props.partShoppingData.shoppingCart.partsInList.length) {
+    ;(await confirm("Are you sure you want to cancel?<br />All changes to your vehicle will be reversed")) && cancelShopping()
+  } else {
+    cancelShopping()
+  }
 }
 
-const cancelShopping = () => {
-  setPopupType("")
-  lua.career_modules_partShopping.cancelShopping()
-}
+const confirm = async message => await openConfirmation("", message, CONFIRM_BUTTONS)
+
+const applyShopping = () => lua.career_modules_partShopping.applyShopping()
+
+const cancelShopping = () => lua.career_modules_partShopping.cancelShopping()
 
 const props = defineProps({
   partShoppingData: Object,
@@ -132,27 +124,5 @@ const salesTax = computed(() => (props.partShoppingData.shoppingCart.taxes ? pro
   overflow-y: auto;
   max-height: 80%;
   height: -webkit-fill-available;
-}
-
-.blurBackground {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  top: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.781);
-}
-
-.modalPopup {
-  position: fixed;
-  top: 50vh;
-  left: 50vw;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.8);
-  & :deep(.card-cnt) {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
 }
 </style>

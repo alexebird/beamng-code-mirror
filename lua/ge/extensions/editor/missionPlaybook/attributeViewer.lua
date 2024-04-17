@@ -62,17 +62,17 @@ local function onEditorGui(dt)
       if plotInvalid then
         local plot = {}
         local names = {}
-        for pg = 1, #book.results do
-          local row = {pg}
-          for keyIdx, key in ipairs(sortedKeys) do
+        for keyIdx, key in ipairs(sortedKeys) do
+          local row = {}
+            for pg = 1, #book.results do
             if key ~= "money" then
-              table.insert(row, book.results[pg].attributes[key].value or 0)
-              table.insert(names, key)
+              table.insert(row, {pg, book.results[pg].attributes[key].value or 0})
             end
           end
+          table.insert(names, key)
           table.insert(plot, row)
         end
-        plotHelperUtil:setData(plot)
+        plotHelperUtil:setDataMulti(plot)
         plotHelperUtil:setSeriesNames(names)
         plotInvalid = false
       end
@@ -91,7 +91,8 @@ end
 
 local plotParams = {
   autoScale = true,
-  showCatmullRomCurve = true
+  showCatmullRomCurve = true,
+  catmullromCurveLines = 1,
 }
 local function onEditorInitialized()
   editor.registerWindow(toolWindowName, im.ImVec2(500,500))

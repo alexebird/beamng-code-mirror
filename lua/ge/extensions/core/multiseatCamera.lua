@@ -50,6 +50,7 @@ local function onUpdate()
     local vid = be:getPlayerVehicleID(0)
     core_camera.setTargetMode(vid, 'notCenter', vec3(0, 0, 0))
     core_camera.setDistance(vid, maxDistance)
+    core_camera.setMaxDistance(vid, math.huge)
     core_camera.setFOV(vid, 40)
     core_camera.setRef(vid, targetCenter, left, back)
   end

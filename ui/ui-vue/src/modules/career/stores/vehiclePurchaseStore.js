@@ -67,6 +67,10 @@ export const useVehiclePurchaseStore = defineStore("vehiclePurchase", () => {
     lua.career_modules_vehicleShopping.buyFromPurchaseMenu(purchaseType.value, makeDelivery)
   }
 
+  function getInventory() {
+    return lua.career_modules_inventory.getVehicles()
+  }
+
   function chooseTradeInVehicle() {
     lua.career_modules_vehicleShopping.openInventoryMenuForTradeIn()
   }
@@ -91,24 +95,25 @@ export const useVehiclePurchaseStore = defineStore("vehiclePurchase", () => {
   listen(true)
 
   return {
-    vehicleInfo,
-    playerMoney,
-    inventoryHasFreeSlot,
-    tradeInVehicleInfo,
-    tradeInEnabled,
-    locationSelectionEnabled,
-    forceTradeIn,
-    forceNoDelivery,
-    ownsRequiredInsurance,
-    prices,
-    makeDelivery,
     buyRequiredInsurance,
     buyVehicle,
+    cancel,
     chooseTradeInVehicle,
+    dispose,
+    forceNoDelivery,
+    forceTradeIn,
+    getInventory,
+    inventoryHasFreeSlot,
+    locationSelectionEnabled,
+    makeDelivery,
+    ownsRequiredInsurance,
+    playerMoney,
+    prices,
     removeTradeInVehicle,
     requestPurchaseData,
-    cancel,
-    dispose,
-    toggleInsurancePurchase
+    toggleInsurancePurchase,
+    tradeInEnabled,
+    tradeInVehicleInfo,
+    vehicleInfo,
   }
 })

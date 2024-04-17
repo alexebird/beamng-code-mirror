@@ -148,7 +148,7 @@ end
 
 local function updateHighlighting()
   if #partSlots == 0 or not vBundle then return end
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then
     log('E', '', 'vehicle not found')
     return
@@ -172,7 +172,7 @@ end
 
 local function respawnWithConfig(config)
   --dump{'respawnWithConfig: ', config}
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then
     log('E', '', 'vehicle not found')
     return
@@ -185,7 +185,7 @@ local function respawnWithConfig(config)
 end
 
 local function selectPart(partName)
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then
     log('E', '', 'vehicle not found')
     return
@@ -216,7 +216,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
     --availablePartsForSlot = nil
     updateHighlighting()
   end
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then return end
 
   updateAnimations(dtReal, dtSim, dtRaw)
@@ -321,7 +321,7 @@ local function onModeChanged(val)
     partNavHistory = {}
   else
     popActionMap("vehicleEdit")
-    local vehicle = be:getPlayerVehicle(0)
+    local vehicle = getPlayerVehicle(0)
     if vehicle then
       vehicle:setMeshAlpha(1, '')
     end
@@ -352,7 +352,7 @@ local function toggleShowWindow()
   windowOpen[0] = not windowOpen[0]
   onModeChanged(windowOpen[0])
 
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if vehicle then
     vehicle:toggleEditMode()
   end

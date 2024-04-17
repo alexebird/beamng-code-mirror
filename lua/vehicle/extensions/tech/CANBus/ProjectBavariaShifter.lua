@@ -151,7 +151,8 @@ local function applyInputs(leverState, parkButtonState)
         if gear == "S" then
           controller.mainController.shiftToGearIndex(6)
         elseif gear == "M" and electrics.values.gearIndex > 1 then
-          controller.mainController.shiftDown()
+          controller.mainController.shiftDownOnDown()
+          controller.mainController.shiftDownOnUp()
         end
       end
     elseif leverState == leverStates.backwardMS then
@@ -159,7 +160,8 @@ local function applyInputs(leverState, parkButtonState)
         if gear == "S" then
           controller.mainController.shiftToGearIndex(6)
         elseif gear == "M" then
-          controller.mainController.shiftUp()
+          controller.mainController.shiftUpOnDown()
+          controller.mainController.shiftUpOnUp()
         end
       end
     end

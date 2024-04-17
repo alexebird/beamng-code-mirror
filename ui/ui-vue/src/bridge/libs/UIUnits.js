@@ -40,16 +40,16 @@ export default class {
   api = {}
 
   constructor(eventBus, api) {
-  	this.eventBus = eventBus
-  	this.api = api
-    this.eventBus.on('SettingsChanged', (data) => this.onSettingsChanged(data))
+    this.eventBus = eventBus
+    this.api = api
+    this.eventBus.on('SettingsChanged', data => this.onSettingsChanged(data))
     api.engineLua('settings.notifyUI()')
   }
 
   onSettingsChanged(data) {
-    for (let i in this.uiUnits) {
-      if (data.values[i] !== undefined) {
-        this.uiUnits[i] = data.values[i]
+    for (const name in this.uiUnits) {
+      if (typeof data.values[name] !== "undefined") {
+        this.uiUnits[name] = data.values[name]
       }
     }
   }
@@ -65,12 +65,13 @@ export default class {
    * @description returns a string with value and unit to be directly included in html
    */
   buildString(func, val, numDecs, system) {
-    if (func === 'division' || func === 'buildString' || func === 'date' || typeof this[func] !== 'function') {
+    const unsupported = ["division", "buildString", "date"]
+    if (unsupported.includes(func) || typeof this[func] !== 'function') {
       //console.log(arguments)
       throw new Error('Cannot use this function to build a string')
     }
 
-    if (this.mapping[func] !== undefined && system === undefined) {
+    if (typeof this.mapping[func] !== "undefined" && typeof system === "undefined") {
       system = this.uiUnits[this.mapping[func]]
     }
 
@@ -91,10 +92,11 @@ export default class {
   }
 
   division(func1, func2, val1, val2, numDecs, system1, system2) {
-    if ((func1 === 'division' || func1 === 'weightPower' || func1 === 'buildString' || func1 === 'date' || typeof this[func1] !== 'function'
-      && func2 === 'division' || func2 === 'weightPower' || func2 === 'buildString' || func2 === 'date' || typeof this[func2] !== 'function')) {
+    const unsupported = ["division", "weightPower", "buildString", "date"]
+    if (unsupported.includes(func1) || typeof this[func1] !== "function"
+      || unsupported.includes(func2) || typeof this[func2] !== "function") {
       //console.log(arguments)
-      throw new Error('Cannot use these functions')
+      throw new Error("Cannot use these functions")
     }
 
     let helper1 = this[func1](val1, system1)
@@ -103,7 +105,7 @@ export default class {
     if (helper1 !== null && helper2 !== null) {
       let newVal = helper1.val / helper2.val
       return {
-        val: (numDecs !== undefined ? Utils.roundDec(newVal) : newVal),
+        val: (typeof numDecs !== "undefined" ? Utils.roundDec(newVal) : newVal),
         unit: `${helper1.unit}/${helper2.unit}`
       }
     } else {
@@ -167,7 +169,7 @@ export default class {
   area(squareMeters, system = this.uiUnits.uiUnitLength) {
     if(system === 'metric') {
       if(squareMeters < 1000) return { val: squareMeters, unit: 'sq m'}
-      else return { val: squareMeters * 0.001 * 0.001, unit: ' sq km'}
+      else return { val: squareMeters * 0.001 * 0.001, unit: 'sq km'}
     } else if (system === 'imperial') {
       let sqrYards = squareMeters * 1.0936 * 1.0936
       if(sqrYards < 1760) return { val: sqrYards, unit: 'sq yd'}
@@ -203,10 +205,10 @@ export default class {
 
   pressure(x, system = this.uiUnits.uiUnitPressure) {
     switch (system) {
-      case 'inHg': return { val: x * 0.2953, unit: 'in.Hg' }
-      case 'bar':  return { val: x * 0.01, unit: 'Bar' }
+      case 'inHg': return { val: x * 0.2953,   unit: 'in.Hg' }
+      case 'bar':  return { val: x * 0.01,     unit: 'Bar' }
       case 'psi':  return { val: x * 0.145038, unit: 'PSI' }
-      case 'kPa':  return { val: x, unit: 'kPa' }
+      case 'kPa':  return { val: x,            unit: 'kPa' }
       default: return null
     }
   }
@@ -220,8 +222,8 @@ export default class {
    */
   weight(x, system = this.uiUnits.uiUnitWeight) {
     switch (system) {
-      case 'kg': return {val: x,              unit: 'kg'  }
-      case 'lb': return {val: 2.20462262 * x, unit: 'lbs' }
+      case 'kg': return { val: x,              unit: 'kg'  }
+      case 'lb': return { val: 2.20462262 * x, unit: 'lbs' }
       default: return null
     }
   }
@@ -235,8 +237,8 @@ export default class {
    */
   consumptionRate(x, system = this.uiUnits.uiUnitConsumptionRate) {
     switch (system) {
-      case 'metric':   return {val: ( 1e+5 * x > 50000 ) ? 'n/a' : 1e+5 * x, unit: 'L/100km' }
-      case 'imperial': return {val: (x === 0 ? 0 : 235 * 1e-5 / x)         , unit: 'MPG'}
+      case 'metric':   return { val: 1e5 * x > 5e4 ? 'n/a' : 1e5 * x, unit: 'L/100km' }
+      case 'imperial': return { val: (x === 0 ? 0 : 235 * 1e-5 / x),  unit: 'MPG'}
       default: return null
     }
   }
@@ -266,8 +268,8 @@ export default class {
   power(x, system = this.uiUnits.uiUnitPower) {
     switch (system) {
       case 'kw':   return { val: 0.735499 * x, unit: 'kW' }
-      case 'hp':   return { val: x, unit: 'PS' }
-      case 'bhp': return { val: 0.98632 * x, unit: 'bhp' }
+      case 'hp':   return { val: x,            unit: 'PS' }
+      case 'bhp':  return { val: 0.98632 * x,  unit: 'bhp' }
       default: return null
     }
   }
@@ -283,8 +285,8 @@ export default class {
     if(system === 'metric') system = 'kg'
     else if(system === 'imperial') system = 'lb'
     switch (system) {
-      case 'kg': return {val: x,              unit: 'Nm'}
-      case 'lb': return {val: 0.7375621495*x, unit: 'lb-ft'}
+      case 'kg': return {val: x,                unit: 'Nm'}
+      case 'lb': return {val: 0.7375621495 * x, unit: 'lb-ft'}
       default: return null
     }
   }
@@ -293,8 +295,8 @@ export default class {
     if(system === 'metric') system = 'j'
     else if(system === 'imperial') system = 'ft lb'
     switch (system) {
-      case 'j':     return {val: x,              unit: 'J'   }
-      case 'ft lb': return {val: 0.7375621495*x, unit: 'ft lb'}
+      case 'j':     return {val: x,                unit: 'J'   }
+      case 'ft lb': return {val: 0.7375621495 * x, unit: 'ft lb'}
       default: return null
     }
   }
@@ -311,9 +313,9 @@ export default class {
   beamBucks(x) {
     return Intl.NumberFormat("en-US", {
       style: "decimal",
-      maximumFractionDigits:2,
-      minimumFractionDigits:2
-    }).format(+x) 
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2
+    }).format(+x)
   }
 
   // backward compatibility:

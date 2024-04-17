@@ -11,8 +11,7 @@ local maxVehicleRangeSq = 2500.0                                          -- The
 
 local M = {}
 
-local max, min, abs, sqrt, acos, deg = math.max, math.min, math.abs, math.sqrt, math.acos, math.deg
-local NaN = 0/0
+local max, min, abs, sqrt, acos = math.max, math.min, math.abs, math.sqrt, math.acos
 
 -- Module state.
 local sensorId                                                            -- The unique Id number for ideal RADAR sensor.
@@ -23,14 +22,25 @@ local physicsUpdateTime                                                   -- How
 local readings, readingIndex = {}, 1                                      -- Container and counter to store the raw sensor readings (since the last graphics step update).
 
 -- Player vehicle state.
-local pos = vec3(0, 0, 0)                                                 -- The player vehicle position.
-local fwd, up, right = vec3(0, 0, 0), vec3(0, 0, 0), vec3(0, 0, 0)        -- The player vehicle orthogonal frame.
-local vehWidth, vehLength = 0.0, 0.0                                      -- The player vehicle dimensions.
-local vehFront, vehRear = vec3(0, 0, 0), vec3(0, 0, 0)                    -- The player vehicle front/rear bumper midpoint positions.
-local vel, acc = vec3(0, 0, 0), vec3(0, 0, 0)                             -- The player vehicle velocity and acceleration vectors.
-local lastVelPlayer = vec3(0, 0, 0)                                       -- An initial starting value for the player vehicle velocity.
+local pos = vec3(0, 0)                                                    -- The player vehicle position.
+local fwd, right = vec3(0, 0), vec3(0, 0)                                 -- The player vehicle orthogonal frame.
+local vehFront = vec3(0, 0)                                               -- The player vehicle front/rear bumper midpoint positions.
+local vel, acc = vec3(0, 0), vec3(0, 0)                                   -- The player vehicle velocity and acceleration vectors.
+local lastVelPlayer = vec3(0, 0)                                          -- An initial starting value for the player vehicle velocity.
 local lastDt = 0.0                                                        -- The previous time step size (used for velocity and acceleration computations).
 local lastPos, lastVel = {}, {}                                           -- Tables to store the last-known position and velocity data, for all other vehicles in the simulator.
+
+local nullReading = {
+    vehicleID = 0, width = 0, length = 0,
+    distToPlayerVehicleSq = 0, relDistX = 0, relDistY = 0,
+    vel = { x = 0, y = 0, z = 0 }, acc = { x = 0, y = 0, z = 0 },
+    relVelX = 0, relVelY = 0, relAccX = 0, relAccY = 0 }
+
+local latestReading = {
+  closestVehicles1 = nullReading,
+  closestVehicles2 = nullReading,
+  closestVehicles3 = nullReading,
+  closestVehicles4 = nullReading }
 
 -- Projects a vector onto another vector.
 local function project(a, b) return (a:dot(b) / b:dot(b)) * b end
@@ -67,13 +77,11 @@ local function reset()
   timeSinceLastPoll = timeSinceLastPoll % math.max(GFXUpdateTime, 1e-30)
 end
 
-local function getSensorData()
-  return { readings = readings, GFXUpdateTime = GFXUpdateTime, timeSinceLastPoll = timeSinceLastPoll }
-end
+local function getSensorData() return { readings = readings, GFXUpdateTime = GFXUpdateTime, timeSinceLastPoll = timeSinceLastPoll } end
 
-local function incrementTimer(dtSim)
-  timeSinceLastPoll = timeSinceLastPoll + dtSim
-end
+local function getLatest() return latestReading end
+
+local function incrementTimer(dtSim) timeSinceLastPoll = timeSinceLastPoll + dtSim end
 
 -- The ideal RADAR sensor physics step update callback.
 local function update(dtSim)
@@ -89,11 +97,8 @@ local function update(dtSim)
   pos = obj:getPosition()
   vel = obj:getVelocity()
   fwd = obj:getForwardVector():normalized()
-  up = obj:getDirectionVectorUp():normalized()
   right = obj:getDirectionVectorRight():normalized()
-  vehWidth, vehLength = obj:getInitialWidth(), obj:getInitialLength()
   vehFront = obj:getFrontPosition()
-  vehRear = vehFront - (fwd * vehLength)
   local playerPosToFront = vehFront - pos
   local lastDtInv = 1.0 / max(1e-12, lastDt)
   acc = (vel - lastVelPlayer) * lastDtInv                                                                         -- Use FD once to get acceleration.
@@ -126,7 +131,6 @@ local function update(dtSim)
         if distToPlayerVehicleSq < maxVehicleRangeSq then                                                         -- Only consider vehicles which are within the set range.
           local upB = obj:getObjectDirectionVectorUp(k)                                                           -- The other vehicle's frame.
           upB:normalize()
-          local rightB = fwdB:cross(upB)
           local widthB, lengthB = obj:getObjectInitialWidth(k), obj:getObjectInitialLength(k)                     -- The other vehicle's dimensions.
           local frontB = obj:getObjectFrontPosition(k)                                                            -- The other vehicle's front/rear bumper midpoint positions.
           local rearB = frontB - (fwdB * lengthB)
@@ -138,13 +142,12 @@ local function update(dtSim)
           vehicles[ctr] = {
             vehicleID = k,
             width = widthB, length = lengthB,
-            distToPlayerVehicleSq = distToPlayerVehicleSq,
+            distToPlayerVehicleSq = distToPlayerVehicleSq or 0.0,
             relDistX = relDistX, relDistY = relDistY,
             vel = velB,
             relVelX = relVelX, relVelY = relVelY,
             acc = accB,
-            relAccX = relAccX, relAccY = relAccY,
-            playerPosToFront }
+            relAccX = relAccX, relAccY = relAccY }
           ctr = ctr + 1
         end
       end
@@ -152,7 +155,7 @@ local function update(dtSim)
   end
 
   -- Sort the candidate vehicles by their squared distance to the player vehicle, ascending.
-  local vClosest1, vClosest2, vClosest3, vClosest4 = {}, {}, {}, {}
+  local vClosest1, vClosest2, vClosest3, vClosest4 = nullReading, nullReading, nullReading, nullReading
   local sortMap = getKeysSortedByDistanceSq(vehicles, sortAscending)
   if sortMap[1] ~= nil then
     vClosest1 = vehicles[sortMap[1]]
@@ -168,13 +171,12 @@ local function update(dtSim)
   end
 
   -- Populate the latest reading table, and include a timestamp.
-  local latestReading = {
+  latestReading = {
     time = obj:getSimTime(),
     closestVehicles1 = vClosest1,
     closestVehicles2 = vClosest2,
     closestVehicles3 = vClosest3,
-    closestVehicles4 = vClosest4,
-    all4vehicles = vehicles }
+    closestVehicles4 = vClosest4 }
 
   -- Store the latest readings for this ideal RADAR sensor in the extension. This is used for sending back on the physics step.
   extensions.tech_idealRADARSensor.cacheLatestReading(sensorId, latestReading)
@@ -188,10 +190,11 @@ end
 
 
 -- Public interface:
-M.init = init
-M.reset = reset
-M.getSensorData = getSensorData
-M.incrementTimer = incrementTimer
-M.update = update
+M.init =                                                  init
+M.reset =                                                 reset
+M.getSensorData =                                         getSensorData
+M.getLatest =                                             getLatest
+M.incrementTimer =                                        incrementTimer
+M.update =                                                update
 
 return M

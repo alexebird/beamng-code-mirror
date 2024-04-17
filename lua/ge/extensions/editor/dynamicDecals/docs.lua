@@ -13,7 +13,7 @@ local im = ui_imgui
 local tool = nil
 local helper = nil
 
-local windowName = "Dynamic Decals Tool - Documentation"
+local windowName = "Vehicle Livery Editor - Documentation"
 local lateSetupTimer = 2
 local docsSectionsBase = {children = {}}
 local docsSections = {children = {}}
@@ -402,6 +402,7 @@ end
 M.showWindow = function()
   sortSectionChildren(docsSections)
   docsSectionsBase = deepcopy(docsSections)
+
   editor.showWindow(windowName)
 end
 

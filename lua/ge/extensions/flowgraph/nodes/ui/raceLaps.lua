@@ -23,7 +23,7 @@ C.tags = {}
 
 function C:work()
   if self.pinIn.cur.value then
-    guihooks.trigger('RaceLapChangeCustom', {current = self.pinIn.cur.value, count = self.pinIn.max.value})
+    guihooks.trigger('RaceLapChange', {current = self.pinIn.cur.value, count = self.pinIn.max.value})
   else
     guihooks.trigger('RaceLapClear')
   end

@@ -55,7 +55,6 @@ local packers = setmetatable({}, {
     error("pack '" .. k .. "' is unimplemented")
   end
 })
-m.packers = packers
 
 packers['nil'] = function()
   bufTmp:put(char(0xC0)) -- nil

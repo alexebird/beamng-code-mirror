@@ -11,24 +11,21 @@
           :value="refuelStore.currentFuelLevel"
           :label="refuelStore.isFuelling ? $t(mainSettings.fuellingOngoingLabel) : ''"
           :minLabel="refuelStore.minEnergyLabel"
-          :maxLabel="refuelStore.maxEnergyLabel"
-        />
+          :maxLabel="refuelStore.maxEnergyLabel" />
       </div>
       <FuelNozzle
         :refuel-type="refuelStore.currentFuelType"
         :nozzle-mode="refuelStore.nozzleMode"
         @triggerDown="refuelStore.changeFlowRate(1)"
-        @triggerUp="refuelStore.changeFlowRate(0)"
-      />
+        @triggerUp="refuelStore.changeFlowRate(0)" />
       <FuelInfo :total-cost="refuelStore.overallPrice" :price-per-unit="refuelStore.currentFuelData.pricePerUnit" :unit-label="mainSettings.unitLabel" />
       <div class="settings content" v-if="refuelStore.showFuelTypeSettings || refuelStore.showAmountSettings">
-        <FuelTypeSettings v-if="refuelStore.showFuelTypeSettings" :html-id="'filters-container-1'" :fuel-options="refuelStore.fuelOptions" />
+        <FuelTypeSettings v-if="refuelStore.showFuelTypeSettings" :fuel-options="refuelStore.fuelOptions" />
         <FuelAmountSettings
           v-if="refuelStore.showAmountSettings"
           :min-slider="refuelStore.minSlider"
           :max-slider="refuelStore.maxSlider"
-          :unit-label="mainSettings.unitLabel"
-        />
+          :unit-label="mainSettings.unitLabel" />
       </div>
       <template #buttons>
         <!-- <BngButton accent="text" :icon="icons.device.xbox.btn_b" @click="emits('onCancelClicked')">Cancel</BngButton>
@@ -39,13 +36,11 @@
       </template>
     </BngCard>
   </LayoutSingle>
-  <BngCard class="profileStatus">
-    <CareerStatus />
-  </BngCard>
+  <CareerStatus class="profileStatus" />
 </template>
 
 <script>
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { icons } from "@/assets/icons"
 
 const fuellingModes = {
   fuel: {
@@ -78,7 +73,7 @@ import FuelAmountSettings from "../components/FuelAmountSettings.vue"
 import { CareerStatus } from "@/modules/career/components"
 
 const refuelStore = useRefuelStore()
-// const emits = defineEmits(['okClick', 'cancelClick', 'startRefuel', 'stopRefuel'])
+// const emit = defineEmits(['okClick', 'cancelClick', 'startRefuel', 'stopRefuel'])
 
 const mainSettings = computed(() => fuellingModes[refuelStore.currentFuelType])
 // const mainSettings = computed(() => fuellingModes[props.mode])
@@ -136,6 +131,7 @@ $fontsize: 16px;
 }
 
 .profileStatus {
+  border-radius: var(--bng-corners-2);
   position: absolute;
   top: 0;
   right: 0;

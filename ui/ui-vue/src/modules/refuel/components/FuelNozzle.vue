@@ -1,7 +1,10 @@
 <template>
-  <BngIcon span :class="nozzleClass" :type="typeSettings.nozzleIconType" :color="modeSettings.color">
-    <BngButton :disabled="!modeSettings.buttonEnabled" :icon="buttonIcon" @mousedown="emits('triggerDown')" @mouseup="emits('triggerUp')" accent="text" />
-  </BngIcon>
+  <BngImageAsset mask :class="nozzleClass" :src="nozzleImageURL" :bg-color="modeSettings.color">
+    <BngButton class="empty" :disabled="!modeSettings.buttonEnabled" @mousedown="emit('triggerDown')" @mouseup="emit('triggerUp')" accent="text">
+      <BngBinding action="fuelVehicle" deviceMask="xinput" :disabled="!modeSettings.buttonEnabled" accent="text" />
+      <BngIcon v-if="!gotGamepad" :type="icons.plus" title="Activate" />
+    </BngButton>
+  </BngImageAsset>
 </template>
 
 <script>
@@ -22,18 +25,26 @@ const nozzleModes = {
 
 const fuellingModes = {
   fuel: {
-    nozzleIconType: icons.general.fuel_nozzle,
+    nozzleIconType: oldIcons.general.fuel_nozzle,
   },
   charge: {
-    nozzleIconType: icons.general.recharge_connector,
+    nozzleIconType: oldIcons.general.recharge_connector,
   },
 }
 </script>
 
 <script setup>
 import { computed } from "vue"
-import { BngButton, BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngButton, BngImageAsset, BngBinding, BngIcon, icons } from "@/common/components/base"
+import { icons as oldIcons } from "@/assets/icons"
+import useControls from "@/services/controls"
+
+const Controls = useControls()
+
+const gotGamepad = computed(() => {
+  const helper = Controls.makeViewerObj({ action: "fuelVehicle", deviceMask: "xinput" })
+  return !!helper
+})
 
 const props = defineProps({
   refuelType: {
@@ -44,14 +55,11 @@ const props = defineProps({
     type: String,
     default: "off",
   },
-  buttonIcon: {
-    type: String,
-    default: icons.device.xbox.btn_rt,
-  },
 })
 
-const emits = defineEmits(["triggerDown", "triggerUp"])
+const emit = defineEmits(["triggerDown", "triggerUp"])
 
+const nozzleImageURL = computed(() => `icons/${typeSettings.value.nozzleIconType}.svg`)
 const typeSettings = computed(() => fuellingModes[props.refuelType])
 const modeSettings = computed(() => nozzleModes[props.nozzleMode])
 const nozzleClass = computed(() => ({ nozzle: true, [props.refuelType]: true }))
@@ -72,6 +80,7 @@ const nozzleClass = computed(() => ({ nozzle: true, [props.refuelType]: true }))
     & .bng-button {
       top: 38.5%;
       left: 34%;
+      width: 2.75em;
     }
   }
   height: 25em !important;

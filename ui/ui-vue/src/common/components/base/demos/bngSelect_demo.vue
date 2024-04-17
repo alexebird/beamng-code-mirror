@@ -1,7 +1,7 @@
 <template>
   <div>
-    <bng-select mute :options="[1, 2, 3]" @valueChanged="demo" />
-    <bng-select
+    <BngSelect mute :options="[1, 2, 3]" @valueChanged="demo" />
+    <BngSelect
       :value="false"
       @valueChanged="demo"
       :options="[
@@ -13,7 +13,7 @@
         value: ([, value]) => value,
       }"
     />
-    <bng-select
+    <BngSelect
       @valueChanged="demo"
       loop
       value="LOOPING"

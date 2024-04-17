@@ -30,10 +30,12 @@ function C:init(sites, name, forceId)
 end
 
 function C:onSerialize()
+  local rot = self.rotOrig or self.rot
+
   local ret = {
     name = self.name,
     pos = { self.pos.x, self.pos.y, self.pos.z },
-    rot = { self.rot.x, self.rot.y, self.rot.z, self.rot.w },
+    rot = { rot.x, rot.y, rot.z, rot.w },
     scl = { self.scl.x, self.scl.y, self.scl.z },
     isMultiSpot = self.isMultiSpot,
     spotAmount = self.multiSpotData.spotAmount,
@@ -89,6 +91,13 @@ function C:drawDebug(drawMode, clr)
 
   local camSqDist = self.pos:squaredDistance(core_camera.getPosition())
   local drawDist = editor.isEditorActive() and editor.getPreference("gizmos.visualization.visualizationDrawDistance") or 300
+
+  local alpha = drawMode == 'normal' and 0.4 or 1
+  local textDrawDist = drawMode == 'highlight' and math.huge or square(drawDist)
+  if drawMode ~= 'faded' and camSqDist <= textDrawDist then
+    debugDrawer:drawTextAdvanced(self.pos, String(self.name), ColorF(1, 1, 1, alpha), true, false, ColorI(0, 0, 0, alpha * 255))
+  end
+
   if camSqDist > square(drawDist) then return end
 
   clr = clr or self.color:toTable()
@@ -152,15 +161,6 @@ function C:drawDebug(drawMode, clr)
               vec3(pos + x - y + z / 2),
               clrI)
     end
-
-    if drawMode == 'highlight' then
-
-    end
-
-    local alpha = (drawMode == 'normal') and 0.4 or 1
-    if i == 0 and drawMode ~= 'faded' and camSqDist <= square(math.max(50, drawDist * 0.5)) then
-      debugDrawer:drawTextAdvanced(pos, String(self.name), ColorF(1, 1, 1, alpha), true, false, ColorI(0, 0, 0, alpha * 255))
-    end
   end
 end
 
@@ -193,36 +193,43 @@ function C:generateMultiSpots(parkingSpotList)
   end
 
   self.wasGenerated = true
-  for i = 1, self.multiSpotData.spotAmount - 1 do -- skips original spot
-    local rot = self.rot
-    local dirVec
-    if self.multiSpotData.spotDirection == "Left" then
-      dirVec = rot * vec3(-i * (self.scl.x + self.multiSpotData.spotOffset), 0, 0)
-    elseif self.multiSpotData.spotDirection == "Right" then
-      dirVec = rot * vec3(i * (self.scl.x + self.multiSpotData.spotOffset), 0, 0)
-    elseif self.multiSpotData.spotDirection == "Front" then
-      dirVec = rot * vec3(0, i * (self.scl.y + self.multiSpotData.spotOffset), 0)
-    elseif self.multiSpotData.spotDirection == "Back" then
-      dirVec = rot * vec3(0, -i * (self.scl.y + self.multiSpotData.spotOffset), 0)
+  self.rotOrig = quat(self.rot)
+  self.rot = quatFromEuler(0, 0, self.multiSpotData.spotRotation) * self.rotOrig
+  self:calcVerts()
+
+  for i = 1, self.multiSpotData.spotAmount do
+    if i > 1 then -- generates a new parking spot
+      local dirVec
+      local j = i - 1
+
+      if self.multiSpotData.spotDirection == "Left" then
+        dirVec = self.rotOrig * vec3(-j * (self.scl.x + self.multiSpotData.spotOffset), 0, 0)
+      elseif self.multiSpotData.spotDirection == "Right" then
+        dirVec = self.rotOrig * vec3(j * (self.scl.x + self.multiSpotData.spotOffset), 0, 0)
+      elseif self.multiSpotData.spotDirection == "Front" then
+        dirVec = self.rotOrig * vec3(0, j * (self.scl.y + self.multiSpotData.spotOffset), 0)
+      elseif self.multiSpotData.spotDirection == "Back" then
+        dirVec = self.rotOrig * vec3(0, -j * (self.scl.y + self.multiSpotData.spotOffset), 0)
+      end
+
+      local pos = self.pos + dirVec
+      local rot = quatFromEuler(0, 0, self.multiSpotData.spotRotation) * self.rotOrig
+      local newSpot = parkingSpotList:create(self.name .. "." .. (i + 1))
+      newSpot:set(pos, rot, self.scl)
+
+      for _, tag in ipairs(self.customFields.sortedTags) do
+        newSpot.customFields:addTag(tag)
+      end
+
+      for _,fieldName in ipairs(self.customFields.names) do
+        local fieldValue, fieldType = self.customFields:get(fieldName)
+        newSpot.customFields:add(fieldName, fieldType, fieldValue)
+      end
+
+      newSpot.isProcedural = true
+      newSpot:calcVerts()
     end
-    local pos = self.pos + dirVec
-    rot = quatFromEuler(0,0,self.multiSpotData.spotRotation) * rot
-
-    local genPos = parkingSpotList:create(self.name .. "." .. (i + 1))
-    genPos:set(pos, rot, self.scl)
-
-    for _,tag in ipairs(self.customFields.sortedTags) do
-      genPos.customFields:addTag(tag)
-    end
-
-    for _,fieldName in ipairs(self.customFields.names) do
-      local fieldValue, fieldType = self.customFields:get(fieldName)
-      genPos.customFields:add(fieldName, fieldType, fieldValue)
-    end
-
-    genPos.isProcedural = true
   end
-
 end
 
 function C:calcVerts()
@@ -244,9 +251,9 @@ function C:containsPoint(pos)
 
   if pos:squaredDistance(self.pos) <= self.pos:squaredDistance(self.vertices[1]) then -- quick radius check, as an optimization
     local offset = pos - self.pos
-    local dx = vec3(1, 0, 0):rotated(self.rot)
-    local dy = vec3(0, 1, 0):rotated(self.rot)
-    local dz = vec3(0, 0, 1):rotated(self.rot)
+    local dx = xVector:rotated(self.rot)
+    local dy = yVector:rotated(self.rot)
+    local dz = zVector:rotated(self.rot)
 
     return math.abs(offset:dot(dx)) <= self.scl.x / 2 and math.abs(offset:dot(dx)) <= self.scl.y / 2 and math.abs(offset:dot(dx)) <= self.scl.z / 2
   end
@@ -254,8 +261,26 @@ function C:containsPoint(pos)
   return false
 end
 
-local bbPoints = { 0, 3, 7, 4 }
-local bbPointsAlt = { 7, 4, 0, 3 }
+local p1, p2, p3, p4, p5, p6, p7, p8 = vec3(), vec3(), vec3(), vec3(), vec3(), vec3(), vec3(), vec3()
+local bbPoints = {}
+local function getBBPoints(bbCenter, bbAxis0, bbAxis1, bbAxis2)
+  p1:set(bbCenter) p1:setAdd(bbAxis0) p1:setAdd(bbAxis1) p1:setSub(bbAxis2)
+  p2:set(bbCenter) p2:setAdd(bbAxis0) p2:setAdd(bbAxis1) p2:setAdd(bbAxis2)
+  p3:set(bbCenter) p3:setSub(bbAxis0) p3:setAdd(bbAxis1) p3:setAdd(bbAxis2)
+  p4:set(bbCenter) p4:setSub(bbAxis0) p4:setAdd(bbAxis1) p4:setSub(bbAxis2)
+  p5:set(bbCenter) p5:setAdd(bbAxis0) p5:setSub(bbAxis1) p5:setSub(bbAxis2)
+  p6:set(bbCenter) p6:setAdd(bbAxis0) p6:setSub(bbAxis1) p6:setAdd(bbAxis2)
+  p7:set(bbCenter) p7:setSub(bbAxis0) p7:setSub(bbAxis1) p7:setAdd(bbAxis2)
+  p8:set(bbCenter) p8:setSub(bbAxis0) p8:setSub(bbAxis1) p8:setSub(bbAxis2)
+  bbPoints[1] = p1; bbPoints[2] = p2; bbPoints[3] = p3; bbPoints[4] = p4;
+  bbPoints[5] = p5; bbPoints[6] = p6; bbPoints[7] = p7; bbPoints[8] = p8;
+  return bbPoints
+end
+
+local bbPointIds = { 0, 3, 7, 4 }
+local bbPointIdsAlt = { 7, 4, 0, 3 }
+local velocity, bbCenter, bbAxis0, bbAxis1, bbAxis2 = vec3(), vec3(), vec3(), vec3(), vec3()
+local parkingSpotDir, vehicleDir = vec3(), vec3()
 function C:checkParking(vehId, precision, drivingSpeed, parkingSpeed)
   local valid = false
   local res = { false, false, false, false } -- for each vertice of the parking spot
@@ -265,31 +290,41 @@ function C:checkParking(vehId, precision, drivingSpeed, parkingSpeed)
     return valid, res
   end
 
-  local speed = veh:getVelocity():squaredLength()
+  velocity:set(veh:getVelocityXYZ())
+  local speed = velocity:squaredLength()
   drivingSpeed = drivingSpeed or 5
   parkingSpeed = parkingSpeed or 1
   precision = precision or 0.8
 
   if speed <= square(drivingSpeed) then
-    local vehBB = veh:getSpawnWorldOOBB()
-    local vehPos = vehBB:getCenter()
-    local parkingDir = veh:getDirectionVector():dot(vec3(0, 1, 0):rotated(self.rot))
+    bbCenter:set(be:getObjectOOBBCenterXYZ(vehId))
 
     if precision <= 0 then
-      if self:containsPoint(vehPos) then -- vehicle center only
+      if self:containsPoint(bbCenter) then -- vehicle center only
         res = { true, true, true, true }
         valid = true
       end
     else
-      local points = parkingDir >= 0 and bbPoints or bbPointsAlt
-      valid = true
+      vehicleDir:set(veh:getDirectionVectorXYZ())
+      parkingSpotDir:set(yVector)
+      parkingSpotDir:setRotate(self.rot)
+      local parkingDir = vehicleDir:dot(parkingSpotDir)
 
-      for i, v in ipairs(points) do
-        local checkPos = linePointFromXnorm(vehPos, vehBB:getPoint(v), precision)
-        if self:containsPoint(checkPos) then
-          res[i] = true
-        else
-          valid = false
+      if math.abs(parkingDir) >= 0.707 then
+        local pointIds = parkingDir >= 0 and bbPointIds or bbPointIdsAlt -- different BB corner order for forwards versus reverse
+        valid = true
+
+        bbAxis0:set(be:getObjectOOBBHalfAxisXYZ(vehId, 0))
+        bbAxis1:set(be:getObjectOOBBHalfAxisXYZ(vehId, 1))
+        bbAxis2:set(be:getObjectOOBBHalfAxisXYZ(vehId, 2))
+        local bbPoints = getBBPoints(bbCenter, bbAxis0, bbAxis1, bbAxis2)
+        for i, pointId in ipairs(pointIds) do
+          local checkPos = linePointFromXnorm(bbCenter, bbPoints[pointId+1], precision)
+          if self:containsPoint(checkPos) then
+            res[i] = true
+          else
+            valid = false
+          end
         end
       end
     end
@@ -324,8 +359,8 @@ function C:hasAnyVehicles(playerId)
       local oobb = veh:getSpawnWorldOOBB()
       local radius = oobb:getCenter():distance(oobb:getPoint(0))
       if oobb:getCenter():squaredDistance(self.pos) <= square(radius + selfRadius) then -- check corner radii first, as an optimization
-        for i, p1 in ipairs(bbPoints) do -- this method may lack precision
-          local p2 = bbPoints[i + 1] or bbPoints[1]
+        for i, p1 in ipairs(bbPointIds) do -- this method may lack precision
+          local p2 = bbPointIds[i + 1] or bbPointIds[1]
           local pos1, pos2 = oobb:getPoint(p1), oobb:getPoint(p2)
           local checkPos = linePointFromXnorm(pos1, pos2, clamp(self.pos:xnormOnLine(pos1, pos2), 0, 1))
           if self:containsPoint(checkPos) then
@@ -338,51 +373,52 @@ function C:hasAnyVehicles(playerId)
     end
   end
 
-  return state, vehIds
+  return state, spotVehIds
 end
 
 local backwardsQuat = quat(0, 0, 1, 0)
-function C:moveResetVehicleTo(vehId, lowPrecision, backwards, addedOffsetPos, addedOffsetRot, useSafeTeleport)
+function C:moveResetVehicleTo(vehId, lowPrecision, backwards, addedOffsetPos, addedOffsetRot, useSafeTeleport, removeTraffic)
   local veh = be:getObjectByID(vehId)
   if not veh then return end
 
   addedOffsetPos = addedOffsetPos or zeroVector
   addedOffsetRot = addedOffsetRot or zeroQuat
 
-  local oobb = veh:getSpawnWorldOOBB()
-  local fl  = oobb:getPoint(0)
-  local fr  = oobb:getPoint(3)
-  local bl  = oobb:getPoint(4)
-  local flU = oobb:getPoint(1)
-
-  local xVeh = (fr -fl) xVeh:normalize()
-  local yVeh = (fl -bl) yVeh:normalize()
-  local zVeh = (flU-fl) zVeh:normalize()
-
-  local pos = veh:getPosition()
-  local posOffset = (pos - fl)
-  local localOffset = vec3(xVeh:dot(posOffset), yVeh:dot(posOffset), zVeh:dot(posOffset))
-
   local selfRot = quat(self.rot)
   if backwards then
     selfRot = selfRot * backwardsQuat
   end
 
-  local xLine, yLine, zLine = selfRot * xVector, selfRot * yVector, selfRot * zVector
-  local newFLPos = self.pos - xLine * fl:distance(fr) * 0.5 + yLine * fl:distance(bl) * 0.5
-  local newAddedOffset = xLine * addedOffsetPos.x + yLine * addedOffsetPos.y
-
-  local newOffset = xLine * localOffset.x + yLine * localOffset.y + zLine * localOffset.z
-  local newPos = newFLPos + newOffset + newAddedOffset
   local vehRot = quatFromEuler(0, 0, math.pi) * addedOffsetRot * selfRot
 
-  if lowPrecision then -- this must be used if the vehicle is loaded in the first frame, because the OOBB does not work correctly then.
-    newPos = self.pos + yLine * 2 + zLine * 0.5 -- spawn the vehicle 2m behin and 0.5m above self.
-  end
-
   if useSafeTeleport then
-    spawn.safeTeleport(veh, self.pos, vehRot, nil, nil, nil, true)
+    spawn.safeTeleport(veh, self.pos, vehRot, nil, nil, removeTraffic, true)
   else
+    local oobb = veh:getSpawnWorldOOBB()
+    local fl  = oobb:getPoint(0)
+    local fr  = oobb:getPoint(3)
+    local bl  = oobb:getPoint(4)
+    local flU = oobb:getPoint(1)
+
+    local xVeh = (fr -fl) xVeh:normalize()
+    local yVeh = (fl -bl) yVeh:normalize()
+    local zVeh = (flU-fl) zVeh:normalize()
+
+    local pos = veh:getPosition()
+    local posOffset = (pos - fl)
+    local localOffset = vec3(xVeh:dot(posOffset), yVeh:dot(posOffset), zVeh:dot(posOffset))
+
+    local xLine, yLine, zLine = selfRot * xVector, selfRot * yVector, selfRot * zVector
+    local newFLPos = self.pos - xLine * fl:distance(fr) * 0.5 + yLine * fl:distance(bl) * 0.5
+    local newAddedOffset = xLine * addedOffsetPos.x + yLine * addedOffsetPos.y
+
+    local newOffset = xLine * localOffset.x + yLine * localOffset.y + zLine * localOffset.z
+    local newPos = newFLPos + newOffset + newAddedOffset
+
+    if lowPrecision then -- this must be used if the vehicle is loaded in the first frame, because the OOBB does not work correctly then.
+      newPos = self.pos + yLine * 2 + zLine * 0.5 -- spawn the vehicle 2m behin and 0.5m above self.
+    end
+
     veh:setPositionRotation(newPos.x, newPos.y, newPos.z, vehRot.x, vehRot.y, vehRot.z, vehRot.w)
     veh:autoplace(false)
   end

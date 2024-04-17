@@ -37,7 +37,6 @@ M.dependencies = {
   "editor_dynamicDecals_layerTypes_textureFill",
   "editor_dynamicDecals_layerTypes_group",
   "editor_dynamicDecals_layerTypes_linkedSet",
-  "editor_dynamicDecals_sdf",
   "editor_dynamicDecals_debugTextures",
   "editor_dynamicDecals_debugSection",
 }
@@ -47,10 +46,11 @@ local deps = {}
 local im = ui_imgui
 local logTag = 'editor_dynamicDecalsTool'
 
-M.version = {1,0,0}
+M.version = {1,1,0}
 
 -- window names
 local toolWindowName = 'dynamicDecalsTool_MainWindow'
+local openToolWindowPopupName = 'dynamicDecalsTool_OpenMainWindowPopup'
 
 local iconSize = 20
 local iconSizeVec2 = im.ImVec2(0, 0)
@@ -58,14 +58,6 @@ local mainScrollY = 0
 
 local brushStrokeEnabled = false
 local currentMaskEditingLayerUid = nil
-
-local toolModes = {
-  none = 0,
-  decal = 1,
-  brushStroke = 2,
-  path = 3,
-}
-local toolMode = toolModes.decal
 
 local editorOnUpdateFunctions = {}
 local toolbarToolItems = {}
@@ -78,9 +70,21 @@ local debugPref = false
 
 local sections = {}
 
+M.toolModes = {
+  none = 0,
+  decal = 1,
+  brushStroke = 2,
+  path = 3,
+}
+M.toolMode = M.toolModes.decal
+
 M.doApiUpdate = true
 
 local function sectionNode(section, nodeColor)
+  if section.setScroll == true then
+    im.SetScrollHereY()
+    section.setScroll = false
+  end
   local colHeaderTitle = debugPref and string.format("!! %s %d", section.name, section.order) or section.name
   local beforeCPos = im.GetCursorPos()
   im.PushStyleColor2(im.Col_Button, nodeColor or im.ImVec4(1,102/255, 0, 0.2))
@@ -146,6 +150,22 @@ end
 local function onEditorGui()
   if not DecalShapeRenderApp then return end
 
+  if editor.beginModalWindow(openToolWindowPopupName, "Open now?") then
+    im.PushTextWrapPos(im.GetContentRegionAvailWidth())
+    im.TextUnformatted("Would you like to open the Vehicle Livery Editor now?")
+    local space = im.GetContentRegionAvailWidth()
+    local style = im.GetStyle()
+    if im.Button("Cancel", im.ImVec2((space - style.ItemSpacing.x) / 2, 0)) then
+      editor.hideWindow(openToolWindowPopupName)
+    end
+    im.SameLine()
+    if im.Button("Ok", im.ImVec2((space - style.ItemSpacing.x) / 2, 0)) then
+      editor.hideWindow(openToolWindowPopupName)
+      editor.showWindow(toolWindowName)
+    end
+  end
+  editor.endModalWindow()
+
   if editor.beginWindow(toolWindowName, "Dynamic Decals Tool") then
     imguiStyle = im.GetStyle()
     iconSize = math.ceil(im.GetFontSize()) + 2 * imguiStyle.FramePadding.y
@@ -155,10 +175,8 @@ local function onEditorGui()
     mainScrollY = im.GetScrollY()
     debugPref = editor.getPreference("dynamicDecalsTool.general.debug")
 
-    for _, fn in pairs(onEditorGuiFunctions) do
-      fn()
-    end
-
+    -- debug
+    --[[
     if im.Button("Show CEF") then
       extensions.ui_visibility.setCef(true)
     end
@@ -170,6 +188,7 @@ local function onEditorGui()
     if im.Button("Pop action map") then
       popActionMap("dynamicDecals")
     end
+    ]]
 
     local nodeColorTbl = editor.getPreference("dynamicDecalsTool.general.sectionsNodeColor")
     local nodeColor = im.ImVec4(nodeColorTbl[1], nodeColorTbl[2], nodeColorTbl[3], nodeColorTbl[4])
@@ -182,9 +201,14 @@ local function onEditorGui()
     im.Separator()
     im.Separator()
     sectionNode(advancedSection, nodeColor)
-
   end
   editor.endWindow()
+
+  if editor.isWindowVisible(toolWindowName) then
+    for _, fn in pairs(onEditorGuiFunctions) do
+      fn()
+    end
+  end
 
   for _, section in ipairs(sections) do
     -- Draw windows
@@ -279,21 +303,35 @@ local function dynamicDecalsToolEditModeToolbar()
 
   editor.uiVertSeparator(vertSeparatorHeight, im.ImVec2(0,0), 2)
 
+  if editor.uiIconImageButton(editor.icons.terrain_reall_smooth_new, nil, api.getUseSurfaceNormal() and editor.color.beamng.Value or nil, nil, nil, "ToggleUseSurfaceNormalToolbarButton") then
+    api.setUseSurfaceNormal(not api.getUseSurfaceNormal())
+  end
+  im.tooltip("Toggle 'Use Surface Normal' setting\nIf enabled the tool calculates a normal based on the vehicle mesh.")
+  im.SameLine()
+
+  if editor.uiIconImageButton(editor.icons.adjust, nil, (bit.band(api.getSettings(), api.settingsFlags.UseMousePos.value) == api.settingsFlags.UseMousePos.value) and editor.color.beamng.Value or nil, nil, nil, "ToggleUseMousePosToolbarButton") then
+    api.toggleSetting(api.settingsFlags.UseMousePos.value)
+  end
+  im.tooltip(string.format("Toggle 'Use Mouse Position' setting\n%s", api.settingsFlags.UseMousePos.description))
+
+  editor.uiVertSeparator(vertSeparatorHeight, im.ImVec2(0,0), 2)
+
   -- TODO: Let layer type modules add these icons
   -- DECAL TOOL, BRUSH STROKE TOOL, PATH TOOL
-  if editor.uiIconImageButton(editor.icons.brush, nil, toolMode == toolModes.decal and editor.color.beamng.Value or nil, nil, nil, "AddDecalToolbarButton") then
+  if editor.uiIconImageButton(editor.icons.brush, nil, M.toolMode == M.toolModes.decal and editor.color.beamng.Value or nil, nil, nil, "AddDecalToolbarButton") then
     deps.selection.deselectLayer()
-    toolMode = toolModes.decal
+    M.toolMode = M.toolModes.decal
     deps.gizmo.setTransformMode(deps.gizmo.transformModes.none)
     -- disable path layer
     M.enablePathLayer(0)
+    api.setProjectDynamicDecalsState(true)
   end
   im.tooltip("Decal tool")
 
   im.SameLine()
-  if editor.uiIconImageButton(editor.icons.palette, nil, toolMode == toolModes.brushStroke and editor.color.beamng.Value or nil, nil, nil, "BrushStrokeToolToolbarButton") then
+  if editor.uiIconImageButton(editor.icons.palette, nil, M.toolMode == M.toolModes.brushStroke and editor.color.beamng.Value or nil, nil, nil, "BrushStrokeToolToolbarButton") then
     deps.selection.deselectLayer()
-    toolMode = toolModes.brushStroke
+    M.toolMode = M.toolModes.brushStroke
     deps.gizmo.setTransformMode(deps.gizmo.transformModes.none)
     -- disable path layer
     M.enablePathLayer(0)
@@ -303,7 +341,7 @@ local function dynamicDecalsToolEditModeToolbar()
   im.SameLine()
   if editor.uiIconImageButton(editor.icons.tb_left_curve_longer, nil, api.getEnablePathLayer() and editor.color.beamng.Value or nil, nil, nil, "PathToolToolbarButton") then
     deps.selection.deselectLayer()
-    toolMode = toolModes.path
+    M.toolMode = M.toolModes.path
     deps.gizmo.setTransformMode(deps.gizmo.transformModes.none)
     M.enablePathLayer(1)
   end
@@ -387,6 +425,11 @@ local function dynamicDecalsToolEditModeToolbar()
   if api.getLockDepth() then
     im.SameLine()
     im.TextColored(editor.color.warning.Value, "DEPTH BUFFER LOCKED")
+  end
+
+  if api.getLockSurfaceNormal() then
+    im.SameLine()
+    im.TextColored(editor.color.warning.Value, "SURFACE NORMAL LOCKED")
   end
 
   -- Layer Masking
@@ -497,14 +540,22 @@ local function onEditorInitialized()
 
   editor.addWindowMenuItem("Vehicle Livery Creator", onWindowMenuItem)
   editor.registerWindow(toolWindowName, im.ImVec2(400, 400))
+  -- registerWindow(windowName, defaultSize, defaultPos, defaultVisibleBoolean, modal, centered
+  editor.registerWindow(openToolWindowPopupName, im.ImVec2(240, 120), nil, nil, false, true)
 
   editor.editModes.dynamicDecalsEditMode =
   {
     displayName = "Edit Dynamic Decals",
     onActivate = function()
+      -- TODO:  Display window asking the user if the main window should be opened now.
+      --        Can't be added now since editor.isWindowVisible is creating a recursive loop.
+      if not editor.isWindowVisible(toolWindowName) then
+        editor.showWindow(openToolWindowPopupName)
+      end
+
       editor.selectCamera(editor.CameraType_Game)
-      -- settings.updateMaterials()
     end,
+
     -- onDeactivate = dynamicDecalsEditModeDeactivate,
     onUpdate = dynamicDecalsEditModeUpdate,
     onToolbar = dynamicDecalsToolEditModeToolbar,
@@ -586,7 +637,7 @@ local function onEditorToolWindowShow(windowName)
     editor.showWindow("Decal Stack / Layers##window")
     deps.browser.showWindow()
 
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if not playerVehicle then
       return
     end
@@ -745,22 +796,27 @@ end
     If a window was registered a button will be displayed in the section to open the window. Window size can be set in table object.
 ]]
 M.registerSection = function(name, guiFn, order, defaultOpen, window, buttons)
-  -- TODO: Disabled for now since a click on the button to open the docs makes the docs' TOC disappear
-  table.insert(sections, {name = name, guiFn = guiFn, order = order or 1000, defaultOrder = order or 1000, open = defaultOpen, window = window, buttons = buttons or {}})
+  table.insert(sections, {name = name, guiFn = guiFn, order = order or 1000, defaultOrder = order or 1000, open = defaultOpen, window = window, buttons = buttons or {}, setScroll = false})
 end
 
-M.setSectionOpenState = function(name, newState)
+M.setSectionOpenState = function(name, newState, setScroll)
   for _, section in ipairs(sections) do
     if name == section.name then
       if newState == true and section.order >= 1000 then
         advancedSection.open = true
       end
       section.open = newState
+      if setScroll then
+        section.setScroll = newState
+      end
       return
     end
   end
   if name == advancedSection.name then
     advancedSection.open = newState
+    if setScroll then
+      advancedSection.setScroll = newState
+    end
     return
   end
 end
@@ -831,7 +887,7 @@ M.applyDecal = function(value)
       api.addPathDataPoint()
     end
   -- brush stroke
-  elseif toolMode == toolModes.brushStroke then
+  elseif M.toolMode == M.toolModes.brushStroke then
     brushStrokeEnabled = value == 1 and true or false
     api.setEnableBrushStroke(brushStrokeEnabled)
     if brushStrokeEnabled == false then
@@ -884,6 +940,10 @@ end
 
 M.lockDepth = function(value)
   api.setLockDepth(value == 1 and true or false)
+end
+
+M.lockSurfaceNormal = function(value)
+  api.setLockSurfaceNormal(value == 1 and true or false)
 end
 
 M.enableBrushStroke = function(value)

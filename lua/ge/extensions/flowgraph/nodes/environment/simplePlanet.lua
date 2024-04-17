@@ -11,7 +11,6 @@ C.color = ui_flowgraph_editor.nodeColors.vehicle
 C.icon = ui_flowgraph_editor.nodeIcons.vehicle
 
 C.description = 'Creates a planet with the given parameters.'
-C.todo = "This node needs testing to see if it actually works correctly"
 C.category = 'once_p_duration'
 
 C.pinSchema = {
@@ -50,7 +49,7 @@ function C:workOnce()
   if self.pinIn.vehId.value then
     self.vehicle = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    self.vehicle = be:getPlayerVehicle(0)
+    self.vehicle = getPlayerVehicle(0)
   end
 
   local command = 'obj:setPlanets({'
@@ -60,13 +59,8 @@ function C:workOnce()
   self.vehicle:queueLuaCommand(command)
 end
 
-function C:executionStopped()
+function C:_executionStopped()
   self:onNodeReset()
 end
-
-
-function C:drawMiddle(builder, style)
-end
-
 
 return _flowgraph_createNode(C)

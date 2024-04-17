@@ -224,6 +224,7 @@ local mapObjects = {}
 local dir
 local xPlus, yMinus = vec3(1,0,0), vec3(0,-1,0)
 local controlId, cameraHandler
+local mapUpdateUIData = {}
 local function onGuiUpdate(dtReal, dtSim, dtRaw)
   table.clear(mapObjects)
   for k, v in pairs(map.getTrackedObjects() or {}) do
@@ -269,7 +270,9 @@ local function onGuiUpdate(dtReal, dtSim, dtRaw)
   end
   -- guard agains sending wrong data in the first frame, when there is no camera - but a vehicle, that is not tracked by the map yet
   if not mapObjects[controlId] then return end
-  guihooks.trigger('NavigationMapUpdate', {controlID=controlId, objects=mapObjects})  -- TODO: convert into stream
+  mapUpdateUIData.controlID = controlId
+  mapUpdateUIData.objects = mapObjects
+  guihooks.trigger('NavigationMapUpdate', mapUpdateUIData)  -- TODO: convert into stream
   --guihooks.triggerStream('NavigationMapUpdate', {controlID=controlId, objects=mapObjects})
 end
 
@@ -382,7 +385,7 @@ end
 
 local function requestVehicleDashboardMap(dashboard, initmap, vehId)
   if not dashboard then return end
-  local targetVeh = vehId and scenetree.findObjectById(vehId) or  be:getPlayerVehicle(0)
+  local targetVeh = vehId and scenetree.findObjectById(vehId) or  getPlayerVehicle(0)
   if targetVeh then
     local nodes = getNodes()
     local mapTable = {

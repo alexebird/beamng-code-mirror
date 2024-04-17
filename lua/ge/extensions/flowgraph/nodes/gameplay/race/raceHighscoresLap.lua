@@ -63,7 +63,7 @@ function C:work()
       if self.pinIn.vehId.value then
         veh = scenetree.findObjectById(self.pinIn.vehId.value)
       else
-        veh = be:getPlayerVehicle(0)
+        veh = getPlayerVehicle(0)
       end
       local vData = core_vehicle_manager.getVehicleData(self.pinIn.vehId.value)
       local mData = core_vehicles.getModel(veh.jbeam)

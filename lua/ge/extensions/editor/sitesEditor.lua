@@ -38,8 +38,8 @@ local function loadSites(loadPath)
     local dir, filename, ext = path.split(loadPath)
     previousFilepath = dir
     for _, window in ipairs(windows) do
-      currentWindow:setSites(currentSites)
-      currentWindow:unselect()
+      window:setSites(currentSites)
+      window:unselect()
     end
     currentWindow:selected()
   end
@@ -84,8 +84,8 @@ local function onEditorGui()
         if im.MenuItem1("New") then
           currentSites = require('/lua/ge/extensions/gameplay/sites/sites')("New Sites")
           for _, window in ipairs(windows) do
-            currentWindow:setSites(currentSites)
-            currentWindow:unselect()
+            window:setSites(currentSites)
+            window:unselect()
           end
           currentWindow:selected()
           previousFilepath = "/gameplay/sites/"
@@ -153,6 +153,38 @@ local function onEditorGui()
           end
           currentSites.parkingSpots:sort()
         end
+        if im.MenuItem1("Enumerate Parking Spots") then
+          local spotsByName = {}
+          for i, e in ipairs(currentSites.parkingSpots.sorted) do
+            spotsByName[e.name] = spotsByName[e.name] or {}
+            table.insert(spotsByName[e.name], e)
+          end
+          for name, list in pairs(spotsByName) do
+            if #list > 1 then
+              local l = 1
+              if #list >= 10 then l = 2 end
+              if #list >= 100 then l = 3 end
+              if #list >= 1000 then l = 4 end
+              local c = 1
+              for _, spot in ipairs(list) do
+                spot.name = string.format("%s%0"..l.."d", name, c)
+                c = c+1
+              end
+            end
+          end
+          currentSites.parkingSpots:sort()
+        end
+        if im.MenuItem1("Parkingspot Names by Zone Containment (can take long)") then
+          for _, zone in ipairs(currentSites.zones.sorted) do
+            for _, ps in ipairs(currentSites.parkingSpots.sorted) do
+              if zone:containsPoint2D(ps.pos) then
+                ps.name = zone.name
+              end
+            end
+          end
+          currentSites.parkingSpots:sort()
+        end
+
         im.EndMenu()
       end
 
@@ -215,8 +247,8 @@ local function managerSites()
           if im.MenuItem1(siteName) then
             currentSites = extensions.gameplay_sites_sitesManager.loadSites(site)
             for _, window in ipairs(windows) do
-              currentWindow:setSites(currentSites)
-              currentWindow:unselect()
+              window:setSites(currentSites)
+              window:unselect()
             end
             currentWindow:selected()
             previousFilepath = currentSites.dir

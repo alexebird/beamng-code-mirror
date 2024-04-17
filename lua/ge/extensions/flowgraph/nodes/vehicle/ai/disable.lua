@@ -29,7 +29,7 @@ function C:work()
   if self.pinIn.aiVehId.value and self.pinIn.aiVehId.value ~= 0 then
     source = scenetree.findObjectById(self.pinIn.aiVehId.value)
   else
-    source = be:getPlayerVehicle(0)
+    source = getPlayerVehicle(0)
   end
   if self.data.useScriptStop then
     source:queueLuaCommand('ai:scriptStop('..tostring(self.data.handBrakeWhenFinished)..','..tostring(self.data.straightenWheelsWhenFinished)..')')

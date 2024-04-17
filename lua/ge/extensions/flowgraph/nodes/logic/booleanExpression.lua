@@ -10,7 +10,7 @@ C.name = "Boolean Expression"
 C.icon = "fg_gate_icon_and"
 C.description = "Parses a mathematical expression."
 C.category = 'simple'
-C.todo = "add a safe mode for when input is nil. Or change so it only calculates when input is not nil."
+C.todo = "If input is nil, either have a safe mode or ignore the calculation."
 
 C.pinSchema = {
   { dir = 'in', type = 'bool',  name = 'a', description = 'A term of the expression.' },

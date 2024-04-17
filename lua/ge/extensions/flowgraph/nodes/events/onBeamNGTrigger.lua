@@ -8,7 +8,6 @@ local C = {}
 
 C.name = 'on BeamNGTrigger'
 C.description = "Listens to onBeamNGTrigger events and lets flow through in such an event. Can filter trigger names"
-C.todo = "name filtering should be a pin, maybe merge this node with custom trigger."
 C.category = 'repeat_instant'
 
 C.color = ui_flowgraph_editor.nodeColors.event
@@ -24,7 +23,7 @@ C.pinSchema = {
 C.legacyPins = {
   out = {
     vehicleId = 'vehId'
-  },
+  }
 }
 
 
@@ -42,9 +41,9 @@ function C:onBeamNGTrigger(data)
   end
 
   self.pinOut.vehId.value = data.subjectID
-  self.pinOut.vehicleName.value =  data.subjectName
-  self.pinOut.triggerId.value =  data.triggerID
-  self.pinOut.triggerName.value =  data.triggerName
+  self.pinOut.vehicleName.value = data.subjectName
+  self.pinOut.triggerId.value = data.triggerID
+  self.pinOut.triggerName.value = data.triggerName
 
   if data.event == "enter" then
     self.enterFlag = true

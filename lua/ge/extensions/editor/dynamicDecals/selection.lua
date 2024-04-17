@@ -16,58 +16,6 @@ local tool = nil
 -- reference to the dynamics decal api
 local api = nil
 
-local function selectMaskLayer(id, maskedLayerUid)
-  if not id then editor.logWarn(string.format("%s.selectMaskLayer(): 'id' argument must not be empty.", logTag)) return end
-  if not maskedLayerUid then editor.logWarn(string.format("%s.selectMaskLayer(): 'maskedLayerUid' argument must not be empty.", logTag)) return end
-  editor.selection = {}
-  editor.selection["dynamicDecalLayer"] = {}
-  local maskedLayerData = deepcopy(api.getLayerByUid(maskedLayerUid))
-  local layerData = deepcopy(maskedLayerData.mask.layers[id])
-
-  editor.selection["dynamicDecalLayer"][layerData.uid] = layerData
-
-  -- Reset gizmo transform functions
-  gizmo.translateFn = nil
-  gizmo.rotateFn = nil
-  gizmo.scaleFn = nil
-
-  if layerData.type == api.layerTypes.decal or layerData.type == api.layerTypes.brushStroke or layerData.type == api.layerTypes.path or layerData.type == api.layerTypes.group then
-    gizmo.data.type = "drag"
-    gizmo.data.uid = layerData.uid
-
-    api.projectDynamicDecals = false
-    local vehicleObj = be:getPlayerVehicle(0)
-
-    if layerData.type == api.layerTypes.decal then
-      gizmo.data.objectType = "decal"
-      gizmo.transform = api.getDecalWorldTransform(layerData)
-
-      gizmo.translateFn = function(newGizmoTransform)
-        api.setDecalLocalPos(layerData, vehicleObj:getRefNodeMatrix():inverse():mulP3F(newGizmoTransform:getPosition()))
-        maskedLayerData.mask.layers[id] = layerData
-        api.setLayer(maskedLayerData, true)
-      end
-      gizmo.rotateFn = function(newGizmoTransform)
-        -- local delta = vec3(worldEditorCppApi.getAxisGizmoRotateOffset())
-        -- -- api.rotateLayer(layerData, delta)
-        -- layerData.decalRotation = layerData.decalRotation + delta.y
-        -- api.setLayer(layerData, true)
-      end
-      gizmo.scaleFn = function(newGizmoTransform)
-        if gizmo.getDragCount() > 0 then
-          -- local delta = vec3(worldEditorCppApi.getAxisGizmoScaleOffset())
-          -- -- api.scaleLayer(layerData, delta)
-          -- -- print("layerData.decalScale:(", layerData.decalScale.x, layerData.decalScale.y, layerData.decalScale.z, ")", "delta:(", delta.x, delta.y, delta.z, ")")
-          -- layerData.decalScale = layerData.decalScale + vec3(delta.x, delta.y, delta.z) -- TODO x and y are swap in this code, maybe a bug in other place???
-          -- api.setLayer(layerData, true)
-        end
-      end
-    end
-
-    editor.setAxisGizmoTransform(gizmo.transform)
-  end
-end
-
 local function getDraggableChildLayer(layer)
   if layer.children then
     for _, child in ipairs(layer.children) do
@@ -100,8 +48,7 @@ local function selectLayer(uid, addToSelection)
     gizmo.data.type = "drag"
     gizmo.data.uid = layerData.uid
 
-    api.projectDynamicDecals = false
-    local vehicleObj = be:getPlayerVehicle(0)
+    local vehicleObj = getPlayerVehicle(0)
 
     if layerData.type == api.layerTypes.decal then
       gizmo.data.objectType = "decal"
@@ -169,12 +116,10 @@ local function selectLayer(uid, addToSelection)
 
     editor.setAxisGizmoTransform(gizmo.transform)
   else
-    api.projectDynamicDecals = true
     gizmo.translateFn = nil
   end
 end
 
--- TODO: At this point it deselects all layers
 local function deselectLayer(uid)
   if uid then
     if editor.selection["dynamicDecalLayer"] and editor.selection["dynamicDecalLayer"][uid] then
@@ -186,9 +131,10 @@ local function deselectLayer(uid)
   else
     editor.selection["dynamicDecalLayer"] = nil
   end
-  api.projectDynamicDecals = true
+  gizmo.setTransformMode(gizmo.transformModes.none)
   gizmo.translateFn = nil
   gizmo.data = {}
+  tool.toolMode = tool.toolModes.decal
 end
 
 local function registerEditorPreferences(prefsRegistry)
@@ -207,7 +153,6 @@ local function setup(tool_in)
   gizmo = extensions.editor_dynamicDecals_gizmo
 end
 
-M.selectMaskLayer = selectMaskLayer
 M.selectLayer = selectLayer
 M.deselectLayer = deselectLayer
 

@@ -6,6 +6,7 @@
   <div style="display: flex; height: 84%">
     <div>
       <h2>Insurance history</h2>
+      <!-- FIXME: please don't use inline styles unless absolutely necessary -->
       <div style="height: 100%; overflow-y: auto">
         <table class="historyTable">
           <tr>
@@ -32,10 +33,12 @@
       </div>
     </div>
 
+    <!-- FIXME: please don't use inline styles unless absolutely necessary -->
     <div style="margin-left: 50px">
       <h2>Insurance plans</h2>
-      <div class="policiesDiv">
+      <div class="policiesDiv" bng-nav-scroll-force>
         <div class="insuranceCard" v-for="(policy, key) in insurancePoliciesStore.policiesData" :key="key">
+          <!-- FIXME: please don't use inline styles unless absolutely necessary -->
           <div style="display: flex; justify-content: space-between">
             <h2>{{ policy.name }}</h2>
             <h2 v-if="policy.plData.owned">Insurance score : {{ policy.plData.bonus }}</h2>
@@ -56,15 +59,15 @@
                 </div>
                 <div class="career-status-value justifyContentLeft bottomMargin">
                   Premium :
-                  <BngIcon span class="icon" :title="icons.general.beambuck" :type="icons.general.beambuck"></BngIcon>
-                  {{
-                    (currEditedPolicyId == policy.id && tempPolicyPremiumDetails !== undefined && units.beamBucks(tempPolicyPremiumDetails.price.toFixed(2))) ||
-                    units.beamBucks(policy.premium)
-                  }}
+                  <BngUnit
+                    :beambucks="
+                      (currEditedPolicyId == policy.id && tempPolicyPremiumDetails !== undefined && tempPolicyPremiumDetails.price) || policy.premium
+                    " />
                 </div>
               </div>
               <div class="details" v-else>
                 <h3>Detailed pricing :</h3>
+                <!-- FIXME: please don't use inline styles unless absolutely necessary -->
                 <table style="width: 100%; text-align: center">
                   <tr>
                     <th class="detailsFirstTr">Perk</th>
@@ -73,45 +76,60 @@
                   </tr>
                   <tr v-for="(perk, perkName) in policy.perks" :key="perkName">
                     <td class="detailsLeftColumnTd">{{ perk.niceName }}</td>
+                    <!-- FIXME: please don't use inline styles unless absolutely necessary -->
                     <td style="padding-left: 30px">
                       <div style="display: flex">
                         <div
                           v-if="perk.changeability.changeable && currEditedPolicyId !== undefined && currEditedPolicyId === policy.id"
                           v-for="(choice, e) in perk.changeability.changeParams.choices"
-                          :key="e"
-                        >
-                          <BngButton :accent="getPerkDataByName(perkName, policy.id, false).value !== choice ? 'secondary' : ''" @click="changeTempPolicyPerk(perkName, choice)">{{
-                            choice
-                          }}</BngButton>
+                          :key="e">
+                          <BngButton
+                            :accent="getPerkDataByName(perkName, policy.id, false).value !== choice ? 'secondary' : ''"
+                            @click="changeTempPolicyPerk(perkName, choice)">
+                            {{
+                              (perk.unit === "distance" && choice / 1000 + " kms") ||
+                              (perk.unit === "time" && choice / 60 + " mins") ||
+                              (perk.unit === "money" && choice) ||
+                              (choice === true && "Yes") ||
+                              "No"
+                            }}
+                          </BngButton>
                         </div>
                         <div v-else>
                           <BngButton disabled>{{ getPerkDataByName(perkName, policy.id, true).value }} Not editable</BngButton>
                         </div>
                       </div>
                     </td>
+                    <!-- FIXME: please don't use inline styles unless absolutely necessary -->
                     <td style="text-align: center; padding: 0px 20px">
-                      <div class="career-status-value" v-if="perk.changeability.changeParams.influenceType === 'add'">
-                        <BngIcon span class="icon" :title="icons.general.beambuck" :type="icons.general.beambuck"></BngIcon>
-                        {{
-                          currEditedPolicyId == policy.id &&
-                          tempPolicyPremiumDetails !== undefined &&
-                          units.beamBucks(getPerkDataByName(perkName, policy.id, false).premiumInfluence)
-                        }}
+                      <div class="career-status-value" v-if="true">
+                        <BngUnit :beambucks="getPerkDataByName(perkName, policy.id, false).premiumInfluence" />
                       </div>
                     </td>
                   </tr>
                   <tr>
                     <td></td>
                     <td></td>
+                    <!-- FIXME: please don't use inline styles unless absolutely necessary -->
                     <td style="align-self: center; padding: 0px 20px">
                       <div class="career-status-value">
-                        <p>New Premium : {{ policy.plData.bonus }} x {{(currEditedPolicyId == policy.id && tempPolicyPremiumDetails !== undefined && units.beamBucks((tempPolicyPremiumDetails.price).toFixed(2))) ||
-                          units.beamBucks(policy.premium)}} = </p>
-                        <BngIcon span class="icon" :title="icons.general.beambuck" :type="icons.general.beambuck"></BngIcon>
-                        {{
-                          (currEditedPolicyId == policy.id && tempPolicyPremiumDetails !== undefined && units.beamBucks((tempPolicyPremiumDetails.price * policy.plData.bonus).toFixed(2))) ||
-                          units.beamBucks(policy.premium)
-                        }}
+                        <p>
+                          New Premium : {{ policy.plData.bonus }} x
+                          {{
+                            (currEditedPolicyId == policy.id &&
+                              tempPolicyPremiumDetails !== undefined &&
+                              units.beamBucks(tempPolicyPremiumDetails.price.toFixed(2))) ||
+                            units.beamBucks(policy.premium)
+                          }}
+                          =
+                        </p>
+                        <BngUnit
+                          :beambucks="
+                            (currEditedPolicyId == policy.id &&
+                              tempPolicyPremiumDetails !== undefined &&
+                              tempPolicyPremiumDetails.price * policy.plData.bonus) ||
+                            policy.premium
+                          " />
                       </div>
                     </td>
                   </tr>
@@ -119,6 +137,7 @@
               </div>
             </div>
           </div>
+          <!-- FIXME: please don't use inline styles unless absolutely necessary -->
           <div style="display: flex; margin-top: 15px">
             <div v-if="currDetailedPolicyId === policy.id && policy.plData.owned && !currEditedPolicyId">
               <BngButton @click="setCurrDetailedPolicyId(0)">Hide details</BngButton>
@@ -134,15 +153,17 @@
               >
               <div v-if="policy.plData.owned && currEditedPolicyId !== undefined && currEditedPolicyId === policy.id">
                 <BngButton accent="attention" @click="cancelPerksChanges()">Cancel</BngButton>
-                <BngButton accent="secondary" :disabled="insurancePoliciesStore.careerMoney < policy.paperworkFees" @click="confirmPerksChanges()"
-                  >{{ insurancePoliciesStore.careerMoney < policy.paperworkFees && "Insufficient funds" || "Confirm changes for " + policy.paperworkFees}}</BngButton
-                >
+                <BngButton accent="secondary" :disabled="insurancePoliciesStore.careerMoney < policy.paperworkFees" @click="confirmPerksChanges()">
+                  <div v-if="insurancePoliciesStore.careerMoney < policy.paperworkFees">Insufficient funds</div>
+                  <div v-else>Confirm changes for <BngUnit :beambucks="policy.paperworkFees" /></div>
+                </BngButton>
               </div>
             </div>
             <div v-else>
               <BngButton disabled>Edit perks in {{ policy.plData.nextPolicyEditTimer.toFixed(0) }} s</BngButton>
             </div>
 
+            <!-- FIXME: please don't use inline styles unless absolutely necessary -->
             <BngButton
               style="margin-left: 20px"
               :disabled="insurancePoliciesStore.careerBonusStars < policy.resetBonus.price.bonusStars.amount"
@@ -150,13 +171,12 @@
               accent="secondary"
               v-if="policy.resetBonus && policy.plData.bonus > policy.resetBonus.conditions.minBonus">
               Pay {{ policy.resetBonus.price.bonusStars && policy.resetBonus.price.bonusStars.amount + " bonus stars" }} for a favor ..
-              </BngButton
-            >
+            </BngButton>
           </div>
           <div>
             <BngButton v-if="!policy.plData.owned" :disabled="insurancePoliciesStore.careerMoney < policy.initialBuyPrice" @click="purchasePolicy(policy.id)"
-              >Purchase for {{ policy.initialBuyPrice }}</BngButton
-            >
+              >Purchase for <BngUnit :beambucks="policy.initialBuyPrice"
+            /></BngButton>
           </div>
         </div>
       </div>
@@ -167,10 +187,8 @@
 <script setup>
 import { ref } from "vue"
 import { lua, useBridge } from "@/bridge"
-import { BngButton, BngIcon } from "@/common/components/base"
+import { BngButton, BngUnit } from "@/common/components/base"
 import { useInsurancePoliciesStore } from "../../stores/insurancePoliciesStore"
-import { icons } from "@/common/components/base/bngIcon.vue"
-
 const { units } = useBridge()
 
 const insurancePoliciesStore = useInsurancePoliciesStore()
@@ -209,7 +227,9 @@ const changeTempPolicyPerk = (perkName, newValue) => {
 }
 
 const calculateTempPremium = () => {
-  lua.career_modules_insurance.calculatePremiumDetails(currEditedPolicyId.value, tempChangedPolicyPerks.value).then(value => (tempPolicyPremiumDetails.value = value))
+  lua.career_modules_insurance
+    .calculatePremiumDetails(currEditedPolicyId.value, tempChangedPolicyPerks.value)
+    .then(value => (tempPolicyPremiumDetails.value = value))
 }
 
 const purchasePolicy = policyId => {
@@ -222,14 +242,21 @@ const payBonusReset = policyId => {
 
 // helper, is here to help with my bad code, deal with the temporary perks
 const getPerkDataByName = (perkName, policyId, current) => {
-  var perkData = insurancePoliciesStore.policiesData[policyId - 1].perks[perkName]
-  var perk = {
+  let perkData = insurancePoliciesStore.policiesData[policyId - 1].perks[perkName]
+  let perk = {
     value: 0,
     premiumInfluence: 0,
   }
   if (currEditedPolicyId.value !== undefined && currEditedPolicyId.value == policyId && !current) {
     perk.value = tempChangedPolicyPerks.value[perkName]
-    perk.premiumInfluence = tempPolicyPremiumDetails.value.perksPriceDetails[perkData.name].price
+    if (typeof tempPolicyPremiumDetails.value === "undefined") {
+      lua.career_modules_insurance
+        .calculatePremiumDetails(currEditedPolicyId.value, tempChangedPolicyPerks.value)
+        .then(value => (tempPolicyPremiumDetails.value = value))
+        .then(() => (perk.premiumInfluence = tempPolicyPremiumDetails.value.perksPriceDetails[perkData.name].price))
+    } else {
+      perk.premiumInfluence = tempPolicyPremiumDetails.value.perksPriceDetails[perkData.name].price
+    }
   } else {
     perk.value = perkData.plValue
   }
@@ -284,6 +311,7 @@ tr:nth-child(even) {
   margin-left: 20px;
 }
 
+/* FIXME: There is a CSS conflict with AngularJS CSS with this class name */
 .career-status-value {
   display: flex;
   flex-flow: row nowrap;

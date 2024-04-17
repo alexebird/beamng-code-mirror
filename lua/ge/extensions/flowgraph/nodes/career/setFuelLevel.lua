@@ -46,7 +46,7 @@ function C:workOnce()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   if not veh then return end
   core_vehicleBridge.requestValue(veh,function(ret) self.fuelData = ret[1] self.receivedData = true end, 'energyStorage')
@@ -58,7 +58,7 @@ function C:work()
     if self.pinIn.vehId.value then
       veh = scenetree.findObjectById(self.pinIn.vehId.value)
     else
-      veh = be:getPlayerVehicle(0)
+      veh = getPlayerVehicle(0)
     end
     local fuelType = nil
     local allowedTypes = {gasoline = true, diesel = true, electricEnergy = true}

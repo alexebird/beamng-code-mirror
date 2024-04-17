@@ -22,6 +22,11 @@ local function copyMat(mat)
 end
 
 local function updateObjectIcons()
+  if editor.hideObjectIcons or editor.getPreference("gizmos.general.drawObjectIcons") == false then
+    editor.objectIconHitId = 0
+    return
+  end
+
   local pt2i = editor.screenToClient(Point2I(imgui.GetMousePos().x, imgui.GetMousePos().y))
   local pt = Point2F(pt2i.x, pt2i.y)
   editor.objectIconHitId = worldEditorCppApi.checkObjectIconHit(pt)
@@ -302,8 +307,7 @@ local function updateAxisGizmo(onStartGizmoDragFunc, onEndGizmoDragFunc, onGizmo
       -- if an axis gizmo element is selected, then do start a manipulation
       if hasGizmoElementHovered then
         axisGizmoEventState.mouseDown = true
-        guihooks.trigger("disableNextPauseSound")
-        simTimeAuthority.pause(true)
+        simTimeAuthority.pause(true, false)
       end
 
       axisGizmoEventState.objectSelectionManipulated = false

@@ -44,7 +44,7 @@ function C:setLevelProperties()
 end
 
 function C:onCameraChanged(focused)
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if focused then
     if vehicle then
       previousVehicleRenderDist = vehicle.renderDistance

@@ -372,36 +372,6 @@ function testZIP()
   zip:close()
 end
 
-function testHWInfo()
-  local mem = memory_info_t()
-  if Engine.Platform.getMemoryInfo(mem) then
-    local byteToGB = 1 / (1024 * 1024 * 1024)
-    print('Memory.osVirtAvailable: '..mem.osVirtAvailable * byteToGB)
-    print('Memory.osVirtUsed: '   ..mem.osVirtUsed * byteToGB)
-    print('Memory.osPhysAvailable: '..mem.osPhysAvailable * byteToGB)
-    print('Memory.osPhysUsed: '   ..mem.osPhysUsed * byteToGB)
-    print('Memory.processVirtUsed: '..mem.processVirtUsed * byteToGB)
-    print('Memory.processPhysUsed: '..mem.processPhysUsed * byteToGB)
-  end
-
-  local cpu = cpu_info_t()
-  if Engine.Platform.getCPUInfo(cpu) then
-    print('CPU.name: '..cpu.name)
-    print('CPU.cores: '..cpu.cores)
-    print('CPU.clockSpeed: '..cpu.clockSpeed)
-    print('CPU.measuredSpeed: '..cpu.measuredSpeed)
-  end
-
-  local gpu = gpu_info_t()
-  if Engine.Platform.getGPUInfo(gpu) then
-    print('GPU.name: '..gpu.name)
-    print('GPU.version: '..gpu.version)
-    print('GPU.memoryMB: '..gpu.memoryMB)
-  end
-
-  print('OS: '..Engine.Platform.getWindowsVersionName())
-end
-
 
 -- helper function that can determine if an object is part of a simgroup
 function prefabIsChildOfGroup(obj, groupName)
@@ -453,6 +423,20 @@ function collisionReloadTest()
   print("reloading the collision took: " .. h:stop() .. ' ms')
 end
 
+-- optimized getPlayerVehicle cache system, will save 64bytes of garbage generation per call. it's a replacement for be:getPlayerVehicle(), using the same arguments
+local playerVehicles = {}
+function invalidatePlayerVehicles()
+  table.clear(playerVehicles)
+end
+function getPlayerVehicle(player)
+  local veh = playerVehicles[player]
+  if veh == nil then -- nil means the cache hasn't been computed
+    veh = be:getPlayerVehicle(player) or false -- false means the cache has been computed but there's no vehicle
+    playerVehicles[player] = veh
+  end
+  return veh or nil -- replace "false" with nil
+end
+
 function vehicleSetPositionRotation(id, px, py, pz, rx, ry, rz, rw)
   local bo = be:getObjectByID(id)
   if bo then
@@ -483,7 +467,7 @@ function getVehicleColor(vehicleID)
   if vehicleID then
     vehicle = scenetree.findObjectById(vehicleID)
   else
-    vehicle = be:getPlayerVehicle(0) -- TODO: add a check whether the game is running?
+    vehicle = getPlayerVehicle(0) -- TODO: add a check whether the game is running?
   end
   if not vehicle then return "" end
   return colorTableToRoundedColorString(vehicle.color, vehicle.metallicPaintData)
@@ -494,7 +478,7 @@ function getVehicleColorPalette(index, vehicleID)
   if vehicleID then
     vehicle = scenetree.findObjectById(vehicleID)
   else
-    vehicle = be:getPlayerVehicle(0) -- TODO: add a check whether the game is running?
+    vehicle = getPlayerVehicle(0) -- TODO: add a check whether the game is running?
   end
   if not vehicle then return end
   return colorTableToRoundedColorString(vehicle["colorPalette"..index], vehicle.metallicPaintData)
@@ -534,6 +518,24 @@ function getAllVehiclesByType(typeList)
     end
   end
   return res
+end
+
+function vehiclesIterator()
+  if not allVehiclesCache then
+    getAllVehicles()
+  end
+  local vehiclesIndex = 0
+  local vehiclesCount = table.getn(allVehiclesCache)
+
+  return function()
+    while(vehiclesIndex < vehiclesCount) do
+      vehiclesIndex = vehiclesIndex + 1
+      local veh = allVehiclesCache[vehiclesIndex]
+      if veh then
+        return allVehiclesIdCache[vehiclesIndex], veh
+      end
+    end
+  end
 end
 
 function activeVehiclesIterator()
@@ -860,6 +862,9 @@ function convertVehicleColorsToPaints(colorTable)
 end
 
 function createVehiclePaint(color, metallicData)
+  if not color or not color.x then
+    color = {x = 1, y = 1, z = 1, w = 1}
+  end
   if type(metallicData) ~= 'table' then
     metallicData = {}
   end
@@ -883,7 +888,7 @@ function getVehiclePaint(vehicleId)
   if vehicleID then
     vehicle = scenetree.findObjectById(vehicleId)
   else
-    vehicle = be:getPlayerVehicle(0) -- scenetree.findObjectById() -- TODO: add a check whether the game is running?
+    vehicle = getPlayerVehicle(0) -- scenetree.findObjectById() -- TODO: add a check whether the game is running?
   end
   if not vehicle then return nil end
   return createVehiclePaint(vehicle.color, vehicle.metallicPaintData)
@@ -929,6 +934,83 @@ function validateVehicleDataColor(color)
     validatedColor = string.format("%0.2f %0.2f %0.2f %0.2f", color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1)
   end
   return validatedColor
+end
+
+-- returns the color difference value between two colors (RGB arrays)
+local function colorDifference(c1, c2)
+  -- https://stackoverflow.com/questions/9018016/how-to-compare-two-colors-for-similarity-difference/9085524#9085524
+  local avg = (c1[1] + c2[1]) * 0.5
+  local r = c1[1] - c2[1]
+  local g = c1[2] - c2[2]
+  local b = c1[3] - c2[3]
+  return math.sqrt(bit.rshift(((512 + avg) * r * r), 8) + 4 * g * g + bit.rshift(((767 - avg) * b * b), 8))
+end
+
+-- gets a random paint, with a bias for real world paints
+function getRandomPaint(vehId, commonPaintProb)
+  local obj = be:getObjectByID(vehId or 0)
+  local model = obj and obj.jbeam or 'pessima' -- if vehId or vehicle is nil, uses this vehicle paint data as a fallback
+  local config = obj and tostring(obj.partConfig)
+  if not obj then
+    log('W', 'getRandomPaint', 'Vehicle not found, now using default paint data')
+  end
+  local paintName, paint
+  commonPaintProb = commonPaintProb or 0
+
+  local commonPaints = {
+    {0.83, 0.83, 0.83, 1}, -- white
+    {0, 0, 0, 1}, -- black
+    {0.33, 0.33, 0.33, 1}, -- grey
+    {0.65, 0.65, 0.65, 1}, -- silver
+    {0, 0.1, 0.42, 1}, -- blue
+    {0.58, 0.12, 0.12, 1} -- red
+  }
+
+  local modelData = core_vehicles.getModel(model).model
+  local modelDataPaints = modelData and modelData.paints or {}
+  local paintNames = tableKeys(modelDataPaints)
+
+  if math.random() <= commonPaintProb then -- if true, selects a color that is typically found in the real world (commonPaints)
+    local n = square(math.random()) * 6 -- selects a common paint, with diminishing likelihood
+    if n > 0.2 then -- arbitrary cutoff value for common paints (if lower, selects the assigned default paint of the vehicle)
+      local bestVal = math.huge
+      local bestPaintName
+      local c = commonPaints[math.ceil(n)]
+      local c1 = {c[1] * 255, c[2] * 255, c[3] * 255}
+
+      for k, v in pairs(modelDataPaints) do
+        local bc = v.baseColor
+        if bc[1] == c[1] and bc[2] == c[2] and bc[3] == c[3] then -- exact match (ends the loop early)
+          bestPaintName = k
+          break
+        else
+          local c2 = {bc[1] * 255, bc[2] * 255, bc[3] * 255}
+          local val = colorDifference(c1, c2)
+          if val < bestVal then
+            bestVal = val
+            bestPaintName = k
+          end
+        end
+      end
+
+      if bestPaintName then
+        paintName = bestPaintName
+      end
+    else
+      if config then
+        local _, configKey = path.splitWithoutExt(config)
+        local configData = core_vehicles.getModel(model).configs[configKey or 0]
+        paintName = configData and configData.defaultPaintName1 or modelData.defaultPaintName1
+      else
+        paintName = 'Pearl White' -- fallback (assuming that it exists)
+      end
+    end
+  else -- selects any color from the paints table
+    paintName = paintNames[math.random(#paintNames)]
+  end
+
+  paint = modelDataPaints[paintName] or createVehiclePaint()
+  return paintName, paint
 end
 
 function fillVehicleSpawnOptionDefaults(modelName, opt)
@@ -1082,7 +1164,7 @@ function sanitizeVehicleSpawnOptions(model, opt)
 
   local playerVehicle = nil
   if not options.pos or not options.rot then
-    playerVehicle = be:getPlayerVehicle(0)
+    playerVehicle = getPlayerVehicle(0)
   end
 
   if not options.pos then
@@ -1165,7 +1247,7 @@ function extractVehicleData(vid)
   return vehicleData
 end
 
--- little helper for the raycasting function
+-- little helper for the SLOW raycasting function
 -- returns nil on no hit, otherwise table
 function castRay(origin, target, includeTerrain, renderGeometry)
   if includeTerrain == nil then includeTerrain = false end
@@ -1484,6 +1566,23 @@ function the_high_sea_crap_detector()
     end
   end
   return false
+end
+
+function getDateTimeUTCString()
+  -- ISO 8601 UTC Date and Time Format Explanation:
+  -- "2023-01-01T12:00:00.123Z" is an example of a complete timestamp in this format.
+  -- "2023-01-01" is the date (Year-Month-Day).
+  -- "T" is a delimiter separating the date and time components.
+  -- "12:00:00.123" is the time (Hour:Minute:Second.Milliseconds).
+  -- "Z" indicates that this time is in Coordinated Universal Time (UTC).
+  local t = socket.gettime()
+  return os.date("!%Y-%m-%dT%H:%M:%S", t) .. string.format(".%03dZ", (t * 1000) % 1000)
+end
+
+function parseISO8601Date(isoString)
+  local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+).(%d+)Z"
+  local year, month, day, hour, min, sec, ms = isoString:match(pattern)
+  return os.time({year=year, month=month, day=day, hour=hour, min=min, sec=sec})
 end
 
 -- returns the function parameter names and if its variadic

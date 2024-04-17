@@ -10,8 +10,6 @@ end
 local history = require("editor/api/history")()
 
 local M = {}
-local fileVersion = 1
-local debug = false
 
 local logTag = "editor_api_dynamicDecals"
 
@@ -203,27 +201,547 @@ local function createLayerName(layerData)
   return name
 end
 
-local function addLayer(layerData, pos, parentUid)
+local function addLayer(layerData, pos, parentUid, ignoreHook)
   local pos = pos or (parentUid and #M.getLayerByUid(parentUid).children + 1 or #layerStack + 1)
   table.insert(parentUid and M.getLayerByUid(parentUid).children or layerStack, pos or #layerStack + 1, layerData)
   layerCount = layerCount + 1
-  extensions.hook("dynamicDecals_onLayerAdded", layerData.uid)
+
+  if ignoreHook == nil or ignoreHook == false then
+    extensions.hook("dynamicDecals_onLayerAdded", layerData.uid)
+  end
 end
 
-local function deleteLayer(id, parentUid)
+local function deleteLayer(id, parentUid, ignoreHook)
   local layer = M.getLayerById(id, parentUid)
   local layerUid = layer.uid
   layerCount = layerCount - 1 - getChildrenCountRec(layer.children)
   local tableToRemoveFrom = parentUid and M.getLayerByUid(parentUid).children or layerStack
   if id > #tableToRemoveFrom then
-    editor.logWarn(string.format("%s.deleteLayer(): Can't delete layer. Id [%d] is out of bounds!", logTag, id))
+    print(string.format("%s.deleteLayer(): Can't delete layer. Id [%d] is out of bounds!", logTag, id))
     return
   end
   table.remove(tableToRemoveFrom, id)
-  extensions.hook("dynamicDecals_onLayerDeleted", layerUid)
+
+  if ignoreHook == nil or ignoreHook == false then
+    extensions.hook("dynamicDecals_onLayerDeleted", layerUid)
+  end
+end
+
+local function serializeLayer(layer)
+  local lyr = {}
+  if layer.type == M.layerTypes.decal then
+    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode
+    lyr["alphaMaskChannel"] = layer.alphaMaskChannel
+    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity
+    lyr["alphaMaskInvert"] = layer.alphaMaskInvert
+    lyr["alphaMaskRotation"] = layer.alphaMaskRotation
+    lyr["alphaMaskScale"] = layer.alphaMaskScale:toTable()
+    lyr["alphaMaskOffset"] = layer.alphaMaskOffset:toTable()
+    lyr["blendMode"] = layer.blendMode
+    lyr["decalPos"] = layer.decalPos
+    lyr["decalNorm"] = layer.decalNorm
+    lyr["camDirection"] = layer.camDirection
+    lyr["camPosition"] = layer.camPosition
+    lyr["color"] = layer.color:toTable()
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
+    lyr["colorTextureScale"] = layer.colorTextureScale:toTable()
+    lyr["cursorPosScreenUv"] = layer.cursorPosScreenUv
+    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
+    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
+    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
+    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
+    lyr["decalRotation"] = layer.decalRotation
+    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
+    lyr["decalScale"] = layer.decalScale
+    lyr["decalSkew"] = layer.decalSkew:toTable()
+    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
+    lyr["decalGradientColorTopLeft"] = layer.decalGradientColorTopLeft:toTable()
+    lyr["decalGradientColorTopRight"] = layer.decalGradientColorTopRight:toTable()
+    lyr["decalGradientColorBottomLeft"] = layer.decalGradientColorBottomLeft:toTable()
+    lyr["decalGradientColorBottomRight"] = layer.decalGradientColorBottomRight:toTable()
+    lyr["decalFontPath"] = layer.decalFontPath
+    lyr["decalFontCharacter"] = layer.decalFontCharacter
+    lyr["decalUv"] = layer.decalUv:toTable()
+    lyr["meshes"] = layer.meshes
+    lyr["metallicIntensity"] = layer.metallicIntensity
+    lyr["mirrored"] = layer.mirrored
+    lyr["flipMirroredDecal"] = layer.flipMirroredDecal
+    lyr["name"] = layer.name
+    lyr["normalIntensity"] = layer.normalIntensity
+    lyr["roughnessIntensity"] = layer.roughnessIntensity
+    lyr["type"] = layer.type
+    lyr["useSurfaceNormal"] = layer.useSurfaceNormal
+    lyr["viewToScreen"] = {
+      layer.viewToScreen:getColumn4F(0):toTable(),
+      layer.viewToScreen:getColumn4F(1):toTable(),
+      layer.viewToScreen:getColumn4F(2):toTable(),
+      layer.viewToScreen:getColumn4F(3):toTable()
+    }
+    lyr["worldToViewToScreen"] = {
+      layer.worldToViewToScreen:getColumn4F(0):toTable(),
+      layer.worldToViewToScreen:getColumn4F(1):toTable(),
+      layer.worldToViewToScreen:getColumn4F(2):toTable(),
+      layer.worldToViewToScreen:getColumn4F(3):toTable()
+    }
+    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX
+    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY
+    lyr["wrapColorTextureX"] = layer.wrapColorTextureX
+    lyr["wrapColorTextureY"] = layer.wrapColorTextureY
+    lyr["useZBufferDepth"] = layer.useZBufferDepth
+    lyr["zBufferDepth"] = layer.zBufferDepth
+    lyr["useLockedSurfaceNormal"] = layer.useLockedSurfaceNormal
+    lyr["surfaceNormal"] = layer.surfaceNormal
+    -- sdf
+    if layer.sdfThickness then
+      lyr["sdfThickness"] = layer.sdfThickness
+      lyr["sdfSoftness"] = layer.sdfSoftness
+      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
+      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
+      lyr["sdfOutlineColor"] = layer.sdfOutlineColor:toTable()
+    end
+  elseif layer.type == M.layerTypes.fill then
+    lyr["name"] = layer.name
+    lyr["blendMode"] = layer.blendMode
+    lyr["color"] = layer.color:toTable()
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
+    lyr["type"] = layer.type
+  elseif layer.type == M.layerTypes.textureFill then
+    lyr["name"] = layer.name
+    lyr["blendMode"] = layer.blendMode
+    lyr["color"] = layer.color:toTable()
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
+    lyr["scale"] = layer.scale:toTable()
+    lyr["offset"] = layer.offset:toTable()
+    lyr["type"] = layer.type
+    lyr["fillTexturePath"] = layer.fillTexturePath
+  elseif layer.type == M.layerTypes.group then
+    lyr["name"] = layer.name
+    lyr["type"] = layer.type
+  elseif layer.type == M.layerTypes.brushStroke then
+    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode
+    lyr["alphaMaskChannel"] = layer.alphaMaskChannel
+    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity
+    lyr["alphaMaskInvert"] = layer.alphaMaskInvert
+    lyr["alphaMaskRotation"] = layer.alphaMaskRotation
+    lyr["alphaMaskScale"] = layer.alphaMaskScale:toTable()
+    lyr["alphaMaskOffset"] = layer.alphaMaskOffset:toTable()
+    lyr["blendMode"] = layer.blendMode
+    lyr["camDirection"] = layer.camDirection
+    lyr["camPosition"] = layer.camPosition
+    lyr["color"] = layer.color:toTable()
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
+    lyr["colorTextureScale"] = layer.colorTextureScale:toTable()
+    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
+    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
+    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
+    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
+    lyr["decalRotation"] = layer.decalRotation
+    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
+    lyr["decalScale"] = layer.decalScale
+    lyr["decalSkew"] = layer.decalSkew:toTable()
+    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
+    lyr["decalGradientColorTopLeft"] = layer.decalGradientColorTopLeft:toTable()
+    lyr["decalGradientColorTopRight"] = layer.decalGradientColorTopRight:toTable()
+    lyr["decalGradientColorBottomLeft"] = layer.decalGradientColorBottomLeft:toTable()
+    lyr["decalGradientColorBottomRight"] = layer.decalGradientColorBottomRight:toTable()
+    lyr["decalFontPath"] = layer.decalFontPath
+    lyr["decalFontCharacter"] = layer.decalFontCharacter
+    lyr["decalUv"] = layer.decalUv:toTable()
+    lyr["interpolationSteps"] = layer.interpolationSteps
+    lyr["metallicIntensity"] = layer.metallicIntensity
+    lyr["mirrored"] = layer.mirrored
+    lyr["flipMirroredDecal"] = layer.flipMirroredDecal
+    lyr["name"] = layer.name
+    lyr["normalIntensity"] = layer.normalIntensity
+    lyr["roughnessIntensity"] = layer.roughnessIntensity
+    lyr["type"] = layer.type
+    lyr["viewToScreen"] = {
+      layer.viewToScreen:getColumn4F(0):toTable(),
+      layer.viewToScreen:getColumn4F(1):toTable(),
+      layer.viewToScreen:getColumn4F(2):toTable(),
+      layer.viewToScreen:getColumn4F(3):toTable()
+    }
+    lyr["worldToViewToScreen"] = {
+      layer.worldToViewToScreen:getColumn4F(0):toTable(),
+      layer.worldToViewToScreen:getColumn4F(1):toTable(),
+      layer.worldToViewToScreen:getColumn4F(2):toTable(),
+      layer.worldToViewToScreen:getColumn4F(3):toTable()
+    }
+    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX
+    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY
+    lyr["wrapColorTextureX"] = layer.wrapColorTextureX
+    lyr["wrapColorTextureY"] = layer.wrapColorTextureY
+    lyr["zBufferDepth"] = layer.zBufferDepth
+    lyr["dataPoints"] = layer.dataPoints
+    -- sdf
+    if layer.sdfThickness then
+      lyr["sdfThickness"] = layer.sdfThickness
+      lyr["sdfSoftness"] = layer.sdfSoftness
+      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
+      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
+      lyr["sdfOutlineColor"] = layer.sdfOutlineColor:toTable()
+    end
+  elseif layer.type == M.layerTypes.path then
+    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode
+    lyr["alphaMaskChannel"] = layer.alphaMaskChannel
+    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity
+    lyr["alphaMaskInvert"] = layer.alphaMaskInvert
+    lyr["alphaMaskRotation"] = layer.alphaMaskRotation
+    lyr["alphaMaskScale"] = layer.alphaMaskScale:toTable()
+    lyr["alphaMaskOffset"] = layer.alphaMaskOffset:toTable()
+    lyr["blendMode"] = layer.blendMode
+    lyr["camDirection"] = layer.camDirection
+    lyr["camPosition"] = layer.camPosition
+    lyr["color"] = layer.color:toTable()
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
+    lyr["colorTextureScale"] = layer.colorTextureScale:toTable()
+    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
+    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
+    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
+    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
+    lyr["decalRotation"] = layer.decalRotation
+    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
+    lyr["decalScale"] = layer.decalScale
+    lyr["decalSkew"] = layer.decalSkew:toTable()
+    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
+    lyr["decalGradientColorTopLeft"] = layer.decalGradientColorTopLeft:toTable()
+    lyr["decalGradientColorTopRight"] = layer.decalGradientColorTopRight:toTable()
+    lyr["decalGradientColorBottomLeft"] = layer.decalGradientColorBottomLeft:toTable()
+    lyr["decalGradientColorBottomRight"] = layer.decalGradientColorBottomRight:toTable()
+    lyr["decalFontPath"] = layer.decalFontPath
+    lyr["decalFontCharacter"] = layer.decalFontCharacter
+    lyr["decalUv"] = layer.decalUv:toTable()
+    lyr["interpolationSteps"] = layer.interpolationSteps
+    lyr["metallicIntensity"] = layer.metallicIntensity
+    lyr["mirrored"] = layer.mirrored
+    lyr["flipMirroredDecal"] = layer.flipMirroredDecal
+    lyr["name"] = layer.name
+    lyr["normalIntensity"] = layer.normalIntensity
+    lyr["orientDecals"] = layer.orientDecals
+    lyr["pathType"] = layer.pathType
+    lyr["roughnessIntensity"] = layer.roughnessIntensity
+    lyr["text"] = layer.text
+    lyr["fontPath"] = layer.fontPath
+    lyr["type"] = layer.type
+    lyr["viewToScreen"] = {
+      layer.viewToScreen:getColumn4F(0):toTable(),
+      layer.viewToScreen:getColumn4F(1):toTable(),
+      layer.viewToScreen:getColumn4F(2):toTable(),
+      layer.viewToScreen:getColumn4F(3):toTable()
+    }
+    lyr["worldToViewToScreen"] = {
+      layer.worldToViewToScreen:getColumn4F(0):toTable(),
+      layer.worldToViewToScreen:getColumn4F(1):toTable(),
+      layer.worldToViewToScreen:getColumn4F(2):toTable(),
+      layer.worldToViewToScreen:getColumn4F(3):toTable()
+    }
+    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX
+    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY
+    lyr["wrapColorTextureX"] = layer.wrapColorTextureX
+    lyr["wrapColorTextureY"] = layer.wrapColorTextureY
+    lyr["zBufferDepth"] = layer.zBufferDepth
+    lyr["textCharacterPositions"] = layer.textCharacterPositions
+    lyr["dataPoints"] = layer.dataPoints
+    -- sdf
+    if layer.sdfThickness then
+      lyr["sdfThickness"] = layer.sdfThickness
+      lyr["sdfSoftness"] = layer.sdfSoftness
+      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
+      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
+      lyr["sdfOutlineColor"] = layer.sdfOutlineColor:toTable()
+    end
+  elseif layer.type == M.layerTypes.linkedSet then
+    lyr["name"] = layer.name
+    lyr["type"] = layer.type
+    lyr["properties"] = layer.properties
+  end
+
+  -- shared properties
+  lyr["uid"] = nil
+  lyr["enabled"] = layer.enabled
+  lyr["locked"] = layer.locked
+
+  lyr["children"] = {}
+  if layer.children and #layer.children then
+    for _, childLayer in ipairs(layer.children) do
+      local childData = serializeLayer(childLayer)
+      table.insert(lyr["children"], childData)
+    end
+  end
+
+  if layer.mask then
+    lyr["mask"] = {}
+    lyr["mask"].enabled = layer.mask.enabled
+    lyr["mask"]["layers"] = {}
+
+    for _, maskLayer in ipairs(layer.mask.layers) do
+      local maskData = serializeLayer(maskLayer)
+      table.insert(lyr["mask"]["layers"], maskData)
+    end
+  end
+
+  return lyr
+end
+
+local function deserializeLayer(layer)
+  local lyr = {}
+  if layer.type == M.layerTypes.decal then
+    local mat = MatrixF(true)
+    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode or 0
+    lyr["alphaMaskChannel"] = layer.alphaMaskChannel or 3
+    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity or 1.0
+    lyr["alphaMaskInvert"] = layer.alphaMaskInvert or false
+    lyr["alphaMaskRotation"] = layer.alphaMaskRotation or 0.0
+    lyr["alphaMaskScale"] = (layer.alphaMaskScale and Point2F.fromTable(layer.alphaMaskScale) or Point2F(1,1))
+    lyr["alphaMaskOffset"] = (layer.alphaMaskOffset and Point2F.fromTable(layer.alphaMaskOffset) or Point2F(0,0))
+    lyr["blendMode"] = layer.blendMode
+    lyr["decalPos"] = layer.decalPos and vec3(layer.decalPos.x, layer.decalPos.y, layer.decalPos.z) or nil
+    lyr["decalNorm"] = layer.decalNorm and vec3(layer.decalNorm.x, layer.decalNorm.y, layer.decalNorm.z) or nil
+    lyr["camDirection"] = vec3(layer.camDirection.x, layer.camDirection.y, layer.camDirection.z)
+    lyr["camPosition"] = vec3(layer.camPosition.x, layer.camPosition.y, layer.camPosition.z)
+    lyr["color"] = Point4F.fromTable(layer.color)
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 0
+    lyr["colorTextureScale"] = (layer.colorTextureScale and Point2F.fromTable(layer.colorTextureScale) or Point2F(1,1))
+    lyr["cursorPosScreenUv"] = layer.cursorPosScreenUv
+    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
+    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
+    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
+    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
+    lyr["decalRotation"] = layer.decalRotation
+    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
+    lyr["decalScale"] = vec3(layer.decalScale.x, layer.decalScale.y, layer.decalScale.z)
+    lyr["decalSkew"] = Point2F.fromTable(layer.decalSkew)
+    lyr["decalUv"] = Point2F.fromTable(layer.decalUv)
+    lyr["decalFontPath"] = layer.decalFontPath or "/"
+    lyr["decalFontCharacter"] = layer.decalFontCharacter or "A"
+    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
+    lyr["decalGradientColorTopLeft"] = ColorI.fromTable(layer.decalGradientColorTopLeft)
+    lyr["decalGradientColorTopRight"] = ColorI.fromTable(layer.decalGradientColorTopRight)
+    lyr["decalGradientColorBottomLeft"] = ColorI.fromTable(layer.decalGradientColorBottomLeft)
+    lyr["decalGradientColorBottomRight"] = ColorI.fromTable(layer.decalGradientColorBottomRight)
+    lyr["metallicIntensity"] = layer.metallicIntensity or 1.0
+    lyr["mirrored"] = layer.mirrored or false
+    lyr["flipMirroredDecal"] = layer.flipMirroredDecal or false
+    lyr["meshes"] = layer.meshes or nil
+    lyr["name"] = (layer.name or string.format("%s", "Decal Layer"))
+    lyr["normalIntensity"] = layer.normalIntensity or 1.0
+    lyr["roughnessIntensity"] = layer.roughnessIntensity or 1.0
+    lyr["type"] = layer.type
+    lyr["useSurfaceNormal"] = layer.useSurfaceNormal == nil and true or layer.useSurfaceNormal
+    mat:setColumn4F(0, Point4F.fromTable(layer.viewToScreen[1]))
+    mat:setColumn4F(1, Point4F.fromTable(layer.viewToScreen[2]))
+    mat:setColumn4F(2, Point4F.fromTable(layer.viewToScreen[3]))
+    mat:setColumn4F(3, Point4F.fromTable(layer.viewToScreen[4]))
+    lyr["viewToScreen"] = mat:copy()
+    mat:setColumn4F(0, Point4F.fromTable(layer.worldToViewToScreen[1]))
+    mat:setColumn4F(1, Point4F.fromTable(layer.worldToViewToScreen[2]))
+    mat:setColumn4F(2, Point4F.fromTable(layer.worldToViewToScreen[3]))
+    mat:setColumn4F(3, Point4F.fromTable(layer.worldToViewToScreen[4]))
+    lyr["worldToViewToScreen"] = mat:copy()
+    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX or false
+    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY or false
+    lyr["wrapColorTextureX"] = layer.wrapColorTextureX == nil and true or layer.wrapColorTextureX
+    lyr["wrapColorTextureY"] = layer.wrapColorTextureY == nil and true or layer.wrapColorTextureY
+    lyr["useZBufferDepth"] = layer.useZBufferDepth or false
+    lyr["zBufferDepth"] = layer.zBufferDepth or -1.0
+    lyr["useLockedSurfaceNormal"] = layer.useLockedSurfaceNormal or false
+    lyr["surfaceNormal"] = layer.surfaceNormal and vec3(layer.decalPos.x, layer.decalPos.y, layer.decalPos.z) or vec3(0, 0, 0)
+    -- sdf
+    if layer.sdfThickness then
+      lyr["sdfThickness"] = layer.sdfThickness
+      lyr["sdfSoftness"] = layer.sdfSoftness
+      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
+      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
+      lyr["sdfOutlineColor"] = ColorI.fromTable(layer.sdfOutlineColor)
+    end
+  elseif layer.type == M.layerTypes.fill then
+    lyr["name"] = (layer.name or string.format("%s", "Fill Layer"))
+    lyr["blendMode"] = layer.blendMode
+    lyr["color"] = Point4F.fromTable(layer.color)
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 1
+    lyr["type"] = layer.type
+  elseif layer.type == M.layerTypes.textureFill then
+    lyr["name"] = (layer.name or string.format("%s", "Texture Fill Layer"))
+    lyr["blendMode"] = layer.blendMode
+    lyr["color"] = Point4F.fromTable(layer.color)
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 1
+    lyr["scale"] = (layer.scale and Point2F.fromTable(layer.scale) or Point2F(1,1))
+    lyr["offset"] = (layer.offset and Point2F.fromTable(layer.offset) or Point2F(0,0))
+    lyr["type"] = layer.type
+    lyr["fillTexturePath"] = layer.fillTexturePath
+  elseif layer.type == M.layerTypes.group then
+    lyr["name"] = (layer.name or string.format("%s", "Group Layer"))
+    lyr["type"] = layer.type
+  elseif layer.type == M.layerTypes.brushStroke then
+    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode or 0
+    lyr["alphaMaskChannel"] = layer.alphaMaskChannel or 3
+    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity or 1.0
+    lyr["alphaMaskInvert"] = layer.alphaMaskInvert or false
+    lyr["alphaMaskRotation"] = layer.alphaMaskRotation or 0.0
+    lyr["alphaMaskScale"] = (layer.alphaMaskScale and Point2F.fromTable(layer.alphaMaskScale) or Point2F(1,1))
+    lyr["alphaMaskOffset"] = (layer.alphaMaskOffset and Point2F.fromTable(layer.alphaMaskOffset) or Point2F(0,0))
+    lyr["blendMode"] = layer.blendMode
+    lyr["camDirection"] = vec3(layer.camDirection.x, layer.camDirection.y, layer.camDirection.z)
+    lyr["camPosition"] = vec3(layer.camPosition.x, layer.camPosition.y, layer.camPosition.z)
+    lyr["color"] = Point4F.fromTable(layer.color)
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 0
+    lyr["colorTextureScale"] = (layer.colorTextureScale and Point2F.fromTable(layer.colorTextureScale) or Point2F(1,1))
+    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
+    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
+    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
+    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
+    lyr["decalRotation"] = layer.decalRotation
+    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
+    lyr["decalScale"] = vec3(layer.decalScale.x, layer.decalScale.y, layer.decalScale.z)
+    lyr["decalSkew"] = Point2F.fromTable(layer.decalSkew)
+    lyr["decalUv"] = Point2F.fromTable(layer.decalUv)
+    lyr["decalFontPath"] = layer.decalFontPath or "/"
+    lyr["decalFontCharacter"] = layer.decalFontCharacter or "A"
+    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
+    lyr["decalGradientColorTopLeft"] = ColorI.fromTable(layer.decalGradientColorTopLeft)
+    lyr["decalGradientColorTopRight"] = ColorI.fromTable(layer.decalGradientColorTopRight)
+    lyr["decalGradientColorBottomLeft"] = ColorI.fromTable(layer.decalGradientColorBottomLeft)
+    lyr["decalGradientColorBottomRight"] = ColorI.fromTable(layer.decalGradientColorBottomRight)
+    lyr["interpolationSteps"] = layer.interpolationSteps or 2
+    lyr["metallicIntensity"] = layer.metallicIntensity or 1.0
+    lyr["mirrored"] = layer.mirrored or false
+    lyr["flipMirroredDecal"] = layer.flipMirroredDecal or false
+    lyr["name"] = (layer.name or string.format("%s", "Group Layer"))
+    lyr["normalIntensity"] = layer.normalIntensity or 1.0
+    lyr["roughnessIntensity"] = layer.roughnessIntensity or 1.0
+    lyr["type"] = layer.type
+    local mat = MatrixF(true)
+    mat:setColumn4F(0, Point4F.fromTable(layer.viewToScreen[1]))
+    mat:setColumn4F(1, Point4F.fromTable(layer.viewToScreen[2]))
+    mat:setColumn4F(2, Point4F.fromTable(layer.viewToScreen[3]))
+    mat:setColumn4F(3, Point4F.fromTable(layer.viewToScreen[4]))
+    lyr["viewToScreen"] = mat
+    mat = MatrixF(true)
+    mat:setColumn4F(0, Point4F.fromTable(layer.worldToViewToScreen[1]))
+    mat:setColumn4F(1, Point4F.fromTable(layer.worldToViewToScreen[2]))
+    mat:setColumn4F(2, Point4F.fromTable(layer.worldToViewToScreen[3]))
+    mat:setColumn4F(3, Point4F.fromTable(layer.worldToViewToScreen[4]))
+    lyr["worldToViewToScreen"] = mat
+    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX or false
+    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY or false
+    lyr["wrapColorTextureX"] = layer.wrapColorTextureX == nil and true or layer.wrapColorTextureX
+    lyr["wrapColorTextureY"] = layer.wrapColorTextureY == nil and true or layer.wrapColorTextureY
+    lyr["zBufferDepth"] = layer.zBufferDepth or -1.0
+    lyr["dataPoints"] = layer.dataPoints
+    -- sdf
+    if layer.sdfThickness then
+      lyr["sdfThickness"] = layer.sdfThickness
+      lyr["sdfSoftness"] = layer.sdfSoftness
+      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
+      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
+      lyr["sdfOutlineColor"] = ColorI.fromTable(layer.sdfOutlineColor)
+    end
+  elseif layer.type == M.layerTypes.path then
+    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode or 0
+    lyr["alphaMaskChannel"] = layer.alphaMaskChannel or 3
+    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity or 1.0
+    lyr["alphaMaskInvert"] = layer.alphaMaskInvert or false
+    lyr["alphaMaskRotation"] = layer.alphaMaskRotation or 0.0
+    lyr["alphaMaskScale"] = (layer.alphaMaskScale and Point2F.fromTable(layer.alphaMaskScale) or Point2F(1,1))
+    lyr["alphaMaskOffset"] = (layer.alphaMaskOffset and Point2F.fromTable(layer.alphaMaskOffset) or Point2F(0,0))
+    lyr["blendMode"] = layer.blendMode
+    lyr["camDirection"] = vec3(layer.camDirection.x, layer.camDirection.y, layer.camDirection.z)
+    lyr["camPosition"] = vec3(layer.camPosition.x, layer.camPosition.y, layer.camPosition.z)
+    lyr["color"] = Point4F.fromTable(layer.color)
+    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 0
+    lyr["colorTextureScale"] = (layer.colorTextureScale and Point2F.fromTable(layer.colorTextureScale) or Point2F(1,1))
+    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
+    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
+    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
+    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
+    lyr["decalRotation"] = layer.decalRotation
+    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
+    lyr["decalScale"] = vec3(layer.decalScale.x, layer.decalScale.y, layer.decalScale.z)
+    lyr["decalSkew"] = Point2F.fromTable(layer.decalSkew)
+    lyr["decalUv"] = Point2F.fromTable(layer.decalUv)
+    lyr["decalFontPath"] = layer.decalFontPath or "/"
+    lyr["decalFontCharacter"] = layer.decalFontCharacter or "A"
+    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
+    lyr["decalGradientColorTopLeft"] = ColorI.fromTable(layer.decalGradientColorTopLeft)
+    lyr["decalGradientColorTopRight"] = ColorI.fromTable(layer.decalGradientColorTopRight)
+    lyr["decalGradientColorBottomLeft"] = ColorI.fromTable(layer.decalGradientColorBottomLeft)
+    lyr["decalGradientColorBottomRight"] = ColorI.fromTable(layer.decalGradientColorBottomRight)
+    lyr["interpolationSteps"] = layer.interpolationSteps or 5
+    lyr["metallicIntensity"] = layer.metallicIntensity or 1.0
+    lyr["mirrored"] = layer.mirrored or false
+    lyr["flipMirroredDecal"] = layer.flipMirroredDecal or false
+    lyr["name"] = (layer.name or string.format("%s", "Group Layer"))
+    lyr["normalIntensity"] = layer.normalIntensity or 1.0
+    lyr["orientDecals"] = layer.orientDecals == nil and true or layer.orientDecals
+    lyr["pathType"] = layer.pathType or 1
+    lyr["roughnessIntensity"] = layer.roughnessIntensity or 1.0
+    lyr["text"] = layer.text or ""
+    lyr["fontPath"] = layer.fontPath or ""
+    lyr["type"] = layer.type
+    local mat = MatrixF(true)
+    mat:setColumn4F(0, Point4F.fromTable(layer.viewToScreen[1]))
+    mat:setColumn4F(1, Point4F.fromTable(layer.viewToScreen[2]))
+    mat:setColumn4F(2, Point4F.fromTable(layer.viewToScreen[3]))
+    mat:setColumn4F(3, Point4F.fromTable(layer.viewToScreen[4]))
+    lyr["viewToScreen"] = mat
+    mat = MatrixF(true)
+    mat:setColumn4F(0, Point4F.fromTable(layer.worldToViewToScreen[1]))
+    mat:setColumn4F(1, Point4F.fromTable(layer.worldToViewToScreen[2]))
+    mat:setColumn4F(2, Point4F.fromTable(layer.worldToViewToScreen[3]))
+    mat:setColumn4F(3, Point4F.fromTable(layer.worldToViewToScreen[4]))
+    lyr["worldToViewToScreen"] = mat
+    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX or false
+    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY or false
+    lyr["wrapColorTextureX"] = layer.wrapColorTextureX == nil and true or layer.wrapColorTextureX
+    lyr["wrapColorTextureY"] = layer.wrapColorTextureY == nil and true or layer.wrapColorTextureY
+    lyr["zBufferDepth"] = layer.zBufferDepth or -1.0
+    lyr["textCharacterPositions"] = layer.textCharacterPositions
+    lyr["dataPoints"] = layer.dataPoints
+    -- sdf
+    if layer.sdfThickness then
+      lyr["sdfThickness"] = layer.sdfThickness
+      lyr["sdfSoftness"] = layer.sdfSoftness
+      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
+      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
+      lyr["sdfOutlineColor"] = ColorI.fromTable(layer.sdfOutlineColor)
+    end
+  elseif layer.type == M.layerTypes.linkedSet then
+    lyr["name"] = (layer.name or string.format("%s", "Linked Set Layer"))
+    lyr["type"] = layer.type
+    lyr["properties"] = layer.properties or {}
+  end
+
+  --shared properties
+  lyr["uid"] = getRandomUid()
+  lyr["enabled"] = layer.enabled
+  lyr["locked"] = layer.locked or false
+
+  lyr["children"] = {}
+  if layer.children and #layer.children > 0 then
+    for _, childData in ipairs(layer.children) do
+      local childLayer = deserializeLayer(childData)
+      table.insert(lyr["children"], childLayer)
+    end
+  end
+
+  if layer.mask then
+    lyr["mask"] = {}
+    lyr["mask"].enabled = layer.mask.enabled
+    lyr["mask"]["layers"] = {}
+
+    for _, maskLayer in ipairs(layer.mask.layers) do
+      local maskData = deserializeLayer(maskLayer)
+      table.insert(lyr["mask"]["layers"], maskData)
+    end
+  end
+
+  layerCount = layerCount + 1
+
+  return lyr
 end
 
 -- decal projection : public interface
+M.debug = false
 M.ready = false
 M.blendModes = {
   {name = "Clear", value = 0},
@@ -421,6 +939,7 @@ M.properties = {
     --   layer.worldToViewToScreen:getColumn4F(2):toTable(),
     --   layer.worldToViewToScreen:getColumn4F(3):toTable()
     -- }
+    {id = "useSurfaceNormal", name = "Use Surface Normal", description = "", type = M.types.bool, default = true},
     {id = "wrapAlphaMaskX", name = "Wrap Alpha Mask X", description = "", type = M.types.bool, default = false},
     {id = "wrapAlphaMaskY", name = "Wrap Alpha Mask Y", description = "", type = M.types.bool, default = false},
     {id = "wrapColorTextureX", name = "Wrap Color Texture X", description = "", type = M.types.bool, default = true},
@@ -456,7 +975,8 @@ M.properties = {
     {id = "color", mapId = "textureFill_color", name = "Color", description = "", type = M.types.Point4F, default = {1,1,1,1}, min = {0, 0, 0, 0}, max = {1, 1, 1, 1}, widgetType = M.widgetTypes[M.types.Point4F].Color},
     {id = "colorPaletteMapId", mapId = "textureFill_colorPaletteMapId", name = "Color Palette Map Id", description = "", type = M.types.int, default = 0, min = 0, max = 3, widgetType = M.widgetTypes[M.types.int].Combo, options = {"zero", "one", "two", "three"}},
     {id = "fillTexturePath", name = "Fill Texture", description = "", type = M.types.Texture, default = "/art/dynamicDecals/textures/_one.png", defaultDir = "/art/dynamicDecals/textures/", widgetType = M.widgetTypes[M.types.Texture].ImageButton, fileTypes = {{"PNG files",".png"},{"Image files",{".png", ".jpg", ".jpeg"}}}},
-    {id = "scale", name = "Scale", description = "", type = M.types.Point2F, default = {1,1}, min = {0.1,0.1}, max = {6,6}, format = "%.2f", lockRatio = true, widgetType = M.widgetTypes[M.types.Point2F].Slider},
+    {id = "scale", name = "Scale", description = "", type = M.types.Point2F, default = {1,1}, min = {0.01, 0.01}, max = {6, 6}, format = "%.2f", lockRatio = true, widgetType = M.widgetTypes[M.types.Point2F].Slider},
+    {id = "offset", name = "Offset", description = "", type = M.types.Point2F, default = {0,0}, min = {-1.0, -1.0}, max = {1.0, 1.0}, format = "%.4f", widgetType = M.widgetTypes[M.types.Point2F].Slider},
   },
 }
 M.propertiesMap = {}
@@ -483,10 +1003,19 @@ M.getLayerNameBuildString = function()
   return layerNameBuildString
 end
 
+M.setProjectDynamicDecalsState = function(value)
+  M.projectDynamicDecals = value
+end
+
+local function deepcopyLayer(layer)
+  local a = serializeLayer(layer)
+  return deserializeLayer(a)
+end
+
 local function addMaskDecal_Undo(actionData)
   local layer = M.getLayerByUid(actionData.baseLayerUid)
   if not layer then
-    editor.logWarn(string.format("%s.addMaskDecal(): Couldn't find layer for layerUid '%s'. Couldn't undo 'addMaskDecal' action.", logTag, layerUid_string))
+    print(string.format("%s.addMaskDecal(): Couldn't find layer for layerUid '%s'. Couldn't undo 'addMaskDecal' action.", logTag, actionData.baseLayerUid))
     return
   end
 
@@ -504,7 +1033,7 @@ end
 local function addMaskDecal_Redo(actionData)
   local layer = M.getLayerByUid(actionData.baseLayerUid)
   if not layer then
-    editor.logWarn(string.format("%s.addMaskDecal(): Couldn't find layer for layerUid '%s'. No layer mask decal has been added.", logTag, layerUid_string))
+    print(string.format("%s.addMaskDecal(): Couldn't find layer for layerUid '%s'. No layer mask decal has been added.", logTag, actionData.baseLayerUid))
     return
   end
 
@@ -516,20 +1045,24 @@ end
 
 M.addMaskDecal = function(layerUid_string)
   if not layerUid_string then
-    editor.logWarn(string.format("%s.addMaskDecal(): 'layerUid' must be set. No layer mask decal has been added.", logTag))
+    print(string.format("%s.addMaskDecal(): 'layerUid' must be set. No layer mask decal has been added.", logTag))
     return
   end
   local layer = M.getLayerByUid(layerUid_string)
   if not layer then
-    editor.logWarn(string.format("%s.addMaskDecal(): Couldn't find layer for layerUid '%s'. No layer mask decal has been added.", logTag, layerUid_string))
+    print(string.format("%s.addMaskDecal(): Couldn't find layer for layerUid '%s'. No layer mask decal has been added.", logTag, layerUid_string))
     return
   end
 
   local decalData = decalProjection:getDecalData(app:getCameraM(), app:getProjM())
   decalData.uid = getRandomUid()
   decalData.name = string.format("%s", "Decal Mask Layer")
+  decalData.enabled = true
+  decalData.locked = false
   decalData.children = {}
-  editor.logDebug(string.format("%s.addMaskDecal()\ndecalData:\n%s\n### ######## ###", logTag, dumps(decalData)))
+  if M.debug then
+    print(string.format("%s.addMaskDecal()\ndecalData:\n%s\n### ######## ###", logTag, dumps(decalData)))
+  end
 
   local actionData = {
     baseLayerUid = layerUid_string,
@@ -560,10 +1093,34 @@ M.addDecal = function(params)
 
   local decalData = decalProjection:getDecalData(app:getCameraM(), app:getProjM())
   decalData.uid = getRandomUid()
-  decalData.name = params.name and params.name or createLayerName(decalData)
-  decalData.parentUid = params.parentUid and params.parentUid or nil
+  decalData.name = params.name or createLayerName(decalData)
+  decalData.enabled = true
+  decalData.locked = false
+  decalData.parentUid = params.parentUid or nil
   decalData.children = {}
-  editor.logDebug(string.format("%s.addDecal()\ndecalData:\n%s\n### ######## ###", logTag, dumps(decalData)))
+
+  -- add all enabled meshes to decalData.meshes
+  if M.areAllMeshesEnabled() == false then
+    local vehicleObj = getPlayerVehicle(0)
+    if vehicleObj then
+
+      local sMeshes = M.getShapeMeshes()
+      local meshNames = {}
+      for name, enabled in pairs(sMeshes) do
+        if enabled then
+          table.insert(meshNames, name)
+        end
+      end
+
+      decalData.meshes = {
+        [vehicleObj.jbeam] = meshNames
+      }
+    end
+  end
+
+  if M.debug then
+    print(string.format("%s.addDecal()\ndecalData:\n%s\n### ######## ###", logTag, dumps(decalData)))
+  end
 
   history:commitAction(
     "Add Decal",
@@ -571,6 +1128,8 @@ M.addDecal = function(params)
     addDecal_Undo,
     addDecal_Redo
   )
+
+  return decalData
 end
 
 M.addPathDataPoint = function()
@@ -590,7 +1149,11 @@ M.addPathDataPoint = function()
     layerData.text = M.getPathLayerText()
     layerData.fontPath = M.getPathLayerFontPath()
     layerData.name = createLayerName(layerData)
-    editor.logDebug(string.format("%s.addPathDataPoint()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+    layerData.enabled = true
+    layerData.locked = false
+    if M.debug then
+      print(string.format("%s.addPathDataPoint()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+    end
     addLayer(layerData)
 
     currentPathLayer = layerData.uid
@@ -599,6 +1162,7 @@ M.addPathDataPoint = function()
   end
 
   M.reprojectLayers()
+  if layerData.name then return layerData end
 end
 
 local function addFillLayer_Undo(actionData)
@@ -621,14 +1185,17 @@ M.addFillLayer = function(params)
     color = M.getFillLayerColor(),
     colorPaletteMapId = M.getFillLayerColorPaletteMapId(),
     enabled = true,
+    locked = false,
     uid = getRandomUid(),
     type = M.layerTypes.fill,
     children = {},
   }
-  layerData.name = params.name and params.name or createLayerName(layerData)
-  layerData.parentUid = params.parentUid and params.parentUid or nil
+  layerData.name = params.name or createLayerName(layerData)
+  layerData.parentUid = params.parentUid or nil
 
-  editor.logDebug(string.format("%s.addFillLayer()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  if M.debug then
+    print(string.format("%s.addFillLayer()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  end
 
   history:commitAction(
     string.format("Add Fill Layer (%s)", layerData.uid),
@@ -636,6 +1203,8 @@ M.addFillLayer = function(params)
     addFillLayer_Undo,
     addFillLayer_Redo
   )
+
+  return layerData
 end
 
 local function addTextureFillLayer_Undo(actionData)
@@ -650,20 +1219,28 @@ local function addTextureFillLayer_Redo(actionData)
   addLayer(actionData)
 end
 
-M.addTextureFillLayer = function()
+M.addTextureFillLayer = function(params)
+  params = params or {}
+
   local layerData = {
     blendMode = M.blendModesMap.Normal,
     color = M.getFillLayerColor(),
     colorPaletteMapId = M.getFillLayerColorPaletteMapId(),
     fillTexturePath = M.getFillTexturePath(),
     scale = M.getTextureFillLayerScale(),
+    offset = M.getTextureFillOffset(),
     enabled = true,
+    locked = false,
     uid = getRandomUid(),
     type = M.layerTypes.textureFill,
     children = {},
   }
-  layerData.name = createLayerName(layerData)
-  editor.logDebug(string.format("%s.addTextureFillLayer()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  layerData.name = params.name or createLayerName(layerData)
+  layerData.parentUid = params.parentUid or nil
+
+  if M.debug then
+    print(string.format("%s.addTextureFillLayer()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  end
 
   history:commitAction(
     "Add Texture Fill Layer",
@@ -671,6 +1248,8 @@ M.addTextureFillLayer = function()
     addTextureFillLayer_Undo,
     addTextureFillLayer_Redo
   )
+
+  return layerData
 end
 
 local function addGroup_Undo(actionData)
@@ -686,13 +1265,17 @@ M.addGroup = function(params)
 
   local layerData = {
     enabled = true,
+    locked = false,
     uid = getRandomUid(),
     type = M.layerTypes.group,
     children = {},
   }
-  layerData.name = params.name and params.name or createLayerName(layerData)
-  layerData.parentUid = params.parentUid and params.parentUid or nil
-  editor.logDebug(string.format("%s.addGroup()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  layerData.name = params.name or createLayerName(layerData)
+  layerData.parentUid = params.parentUid or nil
+
+  if M.debug then
+    print(string.format("%s.addGroup()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  end
 
   history:commitAction(
     "Add Group Layer",
@@ -700,6 +1283,8 @@ M.addGroup = function(params)
     addGroup_Undo,
     addGroup_Redo
   )
+
+  return layerData
 end
 
 local function addLinkedSet_Undo(actionData)
@@ -710,16 +1295,23 @@ local function addLinkedSet_Redo(actionData)
   addLayer(actionData)
 end
 
-M.addLinkedSet = function()
+M.addLinkedSet = function(params)
+  params = params or {}
+
   local layerData = {
     enabled = true,
+    locked = false,
     uid = getRandomUid(),
     type = M.layerTypes.linkedSet,
     properties = {},
     children = {},
   }
-  layerData.name = createLayerName(layerData)
-  editor.logDebug(string.format("%s.addLinkedSet()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  layerData.name = params.name or createLayerName(layerData)
+  layerData.parentUid = params.parentUid or nil
+
+  if M.debug then
+    print(string.format("%s.addLinkedSet()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  end
 
   history:commitAction(
     "Add Linked Set Layer",
@@ -727,6 +1319,8 @@ M.addLinkedSet = function()
     addLinkedSet_Undo,
     addLinkedSet_Redo
   )
+
+  return layerData
 end
 
 local function addBrushStrokeLayer_Undo(actionData)
@@ -738,13 +1332,20 @@ local function addBrushStrokeLayer_Redo(actionData)
   addLayer(actionData)
 end
 
-M.addBrushStrokeLayer = function()
+M.addBrushStrokeLayer = function(params)
+  params = params or {}
+
   local layerData = M.getBrushStrokeLayerData()
   layerData.uid = getRandomUid()
+  layerData.locked = false
   layerData.type = M.layerTypes.brushStroke
   layerData.children = {}
-  layerData.name = createLayerName(layerData)
-  editor.logDebug(string.format("%s.addBrushStrokeLayer()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  layerData.name = params.name or createLayerName(layerData)
+  layerData.parentUid = params.parentUid or nil
+
+  if M.debug then
+    print(string.format("%s.addBrushStrokeLayer()\nlayerData:\n%s\n### ######## ###", logTag, dumps(layerData)))
+  end
 
   history:commitAction(
     "Add Brush Stroke Layer",
@@ -752,9 +1353,11 @@ M.addBrushStrokeLayer = function()
     addBrushStrokeLayer_Undo,
     addBrushStrokeLayer_Redo
   )
+
+  return layerData
 end
 
-local function findMaterials()
+local function findPartMaterials()
   local data = core_vehicle_manager.getPlayerVehicleData()
   if data and data.chosenParts and data.chosenParts.paint_design then
     local id = data.chosenParts.paint_design
@@ -771,10 +1374,10 @@ local function setVehicleMaterialJob(job)
   coroutine.yield()
 
   -- set default material based on the current vehicle
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   if vehicleObj then
 
-    local partMaterials = findMaterials()
+    local partMaterials = findPartMaterials()
     if partMaterials and #partMaterials > 0 then
       local materials = {}
       for _, mat in ipairs(partMaterials) do
@@ -786,7 +1389,9 @@ local function setVehicleMaterialJob(job)
       for k, materialName in pairs(mNames) do
         if materials[materialName] then
           M.addMaterialIdx(k)
-          editor.logDebug(string.format("%s - Material '%s' has been added", logTag, materialName))
+          if M.debug then
+            print(string.format("%s - Material '%s' has been added", logTag, materialName))
+          end
         end
       end
     else
@@ -797,7 +1402,9 @@ local function setVehicleMaterialJob(job)
         if materialName == vehicleName then
           mat0 = k
           M.setMaterialIdx(mat0)
-          editor.logDebug(string.format("%s - Material set to '%s'", logTag, materialName))
+          if M.debug then
+            print(string.format("%s - Material set to '%s'", logTag, materialName))
+          end
           return
         end
         if string.endswith(materialName, "main") then
@@ -810,15 +1417,19 @@ local function setVehicleMaterialJob(job)
 
       if mat1 then
         M.setMaterialIdx(mat1[1])
-        editor.logDebug(string.format("%s - Material set to '%s'", logTag, mat1[2]))
+        if M.debug then
+          print(string.format("%s - Material set to '%s'", logTag, mat1[2]))
+        end
         return
       end
       if mat2 then
         M.setMaterialIdx(mat2[1])
-        editor.logDebug(string.format("%s - Material set to '%s'", logTag, mat2[2]))
+        if M.debug then
+          print(string.format("%s - Material set to '%s'", logTag, mat2[2]))
+        end
         return
       end
-      editor.logWarn(string.format("%s - Not able to set the default material", logTag))
+      print(string.format("%s - Not able to set the default material", logTag))
 
     end
   end
@@ -855,7 +1466,7 @@ M.setup = function()
     decalProjection = DecalProjection("", Point2I(4096, 2048), 1, reconstructData.materialIdx or 0)
     app = {}
     app.getCameraM = function(self)
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       -- convert camera from world to vehicle space
       if veh then
         return veh:getRefNodeMatrix():fullInverse():mul(getCameraTransform())
@@ -867,7 +1478,7 @@ M.setup = function()
       return getCameraProjMatrix()
     end
     app.setTextureSet = function(self, id, set)
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       if veh then
         veh:setTextureSet(id, set)
         decalProjection:setShape(veh:getDecalProjectionShape())
@@ -875,7 +1486,7 @@ M.setup = function()
     end
     app.onUpdate = function(self)
       -- we need to update all pointers to be sure old shape is alive
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       if veh then
         app:setTextureSet("@DynamicTexture", app.textureSet)
         decalProjection:setShape(veh:getDecalProjectionShape())
@@ -909,7 +1520,7 @@ end
 M.setLayerVisibility = function(layerUid_string, visibility_bool)
   if visibility_bool == nil then print(string.format("%s.setLayerVisibility(): 'visibility_bool' argument must be given.", logTag)) return end
   local layer = M.getLayerByUid(layerUid_string)
-  layer.enabled = visibility_bool or true
+  layer.enabled = visibility_bool == true and true or false
   if layer.uid == highlightedDecal.uid then
     M.disableDecalHighlighting()
   end
@@ -961,8 +1572,15 @@ M.changeDecalRotation = function(clockwise_bool, step_radian_number)
 end
 
 M.bakeLayers = function(layers)
-  local res = decalProjection:bakeLayers(layers)
-  editor.logDebug(string.format("%s.bakeLayers(layers)\nresult:\n%s\n### ######## ###", logTag, dumps(res)))
+  local vehicleObj = getPlayerVehicle(0)
+  if not vehicleObj then
+    print(string.format("%s.bakeLayers(layers): Can't bake layers, vehicle's missing.", logTag))
+    return
+  end
+  local res = decalProjection:bakeLayers(layers, (vehicleObj and vehicleObj.jbeam or nil))
+  if M.debug then
+    print(string.format("%s.bakeLayers(layers)\nresult:\n%s\n### ######## ###", logTag, dumps(res)))
+  end
   return res
 end
 
@@ -974,7 +1592,9 @@ end
 
 M.highlightLayer = function(layer_table)
   if layer_table.uid == highlightedDecal.uid then return end
-  editor.logDebug(string.format("%s.highlightLayer(decal)\ndecal:\n%s\n### ######## ###", logTag, dumps(layer_table)))
+  if M.debug then
+    print(string.format("%s.highlightLayer(decal)\ndecal:\n%s\n### ######## ###", logTag, dumps(layer_table)))
+  end
   highlightedDecal = layer_table
   decalProjection:setHighlightedDecal(layer_table)
 end
@@ -982,7 +1602,9 @@ end
 M.highlightLayerByUid = function(layerUid_string)
   if layerUid_string == highlightedDecal.uid then return end
   local layer = M.getLayerByUid(layerUid_string)
-  editor.logDebug(string.format("%s.highlightLayerByUid(decal)\ndecal:\n%s\n### ######## ###", logTag, dumps(layer)))
+  if M.debug then
+    print(string.format("%s.highlightLayerByUid(decal)\ndecal:\n%s\n### ######## ###", logTag, dumps(layer)))
+  end
   highlightedDecal = layer
   decalProjection:setHighlightedDecal(layer)
 end
@@ -1017,6 +1639,10 @@ M.reprojectLayers = function()
   timer:stopAndReset()
   decalProjection:clearBakedTextures()
   local res = M.bakeLayers(layerStack)
+  if not res then
+    print(string.format("%s.reprojectLayers(): Failed", logTag))
+    return
+  end
   -- todo: check if there were issues during baking
   if res.status ~= M.layerBakingStatusCode.Ok then
 
@@ -1044,6 +1670,14 @@ local function getLayerByUidRec(layerUid, layers)
   local res
   for k, layer in ipairs(layers) do
     if layer.uid == layerUid then return layer end
+
+    -- TODO: Added this to be able to edit mask layers as well. There should be a better way to do it e.g. only search mask layers as well when a flag is set.
+    if layer.mask then
+      for kk, maskLayer in ipairs(layer.mask.layers) do
+        if maskLayer.uid == layerUid then return maskLayer end
+      end
+    end
+
     if layer.children then
       res = getLayerByUidRec(layerUid, layer.children)
       if res then return res end
@@ -1053,40 +1687,46 @@ local function getLayerByUidRec(layerUid, layers)
 end
 
 M.getLayerByUid = function(layerUid_string)
-  return getLayerByUidRec(layerUid_string, layerStack)
-end
+  local res = getLayerByUidRec(layerUid_string, layerStack)
+  if not res then
+    print(string.format("%s.getLayerByUid(layerUid_string): No layer found with given uid '%s'", logTag, layerUid_string))
+  end
 
-M.getLayerById = function(layerId_number, parentUid_string)
-  local res = (parentUid_string and M.getLayerByUid(parentUid_string).children[layerId_number] or layerStack[layerId_number])
   return res
 end
 
-local function _setLayerInLayerStackChildrenRec(layerUid, layer, layerData)
-  if layer.children then
-    for k, child in ipairs(layer.children) do
-      if child.uid == layerUid then
-        layer.children[k] = layerData
-        extensions.hook("dynamicDecals_onLayerUpdated", layerUid)
-        return
-      end
-      _setLayerInLayerStackChildrenRec(layerUid, child, layerData)
-    end
-  end
+M.getLayerById = function(layerId_number, parentUid_string)
+  return (parentUid_string and M.getLayerByUid(parentUid_string).children[layerId_number] or layerStack[layerId_number])
 end
 
-local function _setLayerInLayerStack(layerUid, layerData)
-  for k, layer in ipairs(layerStack) do
+local function _setLayerInCollection(collection, layerUid, layerData)
+  for k, layer in ipairs(collection) do
     if layer.uid == layerUid then
-      layerStack[k] = layerData
+      collection[k] = layerData
       extensions.hook("dynamicDecals_onLayerUpdated", layerUid)
       return
     end
-    _setLayerInLayerStackChildrenRec(layerUid, layer, layerData)
+
+    -- TODO: Added this to be able to edit mask layers as well. There should be a better way to do it e.g. only search mask layers as well when a flag is set.
+    if layer.mask then
+      for kk, maskLayer in ipairs(layer.mask.layers) do
+        if maskLayer.uid == layerUid then
+          layer.mask.layers[kk] = layerData
+          extensions.hook("dynamicDecals_onLayerUpdated", layerUid)
+          return
+        end
+      end
+    end
+
+    if layer.children then
+      _setLayerInCollection(layer.children, layerUid, layerData)
+    end
+
   end
 end
 
 local function setLayer_Undo(actionData)
-  _setLayerInLayerStack(actionData.layerUid, actionData.fromLayerData)
+  _setLayerInCollection(layerStack, actionData.layerUid, actionData.fromLayerData)
 
   if actionData.doReproject then
     M.reprojectLayers()
@@ -1094,7 +1734,7 @@ local function setLayer_Undo(actionData)
 end
 
 local function setLayer_Redo(actionData)
-  _setLayerInLayerStack(actionData.layerUid, actionData.toLayerData)
+  _setLayerInCollection(layerStack, actionData.layerUid, actionData.toLayerData)
 
   if actionData.doReproject then
     M.reprojectLayers()
@@ -1102,7 +1742,13 @@ local function setLayer_Redo(actionData)
 end
 
 M.setLayer = function(layerData_table, doReproject_bool)
-  local fromLayerData = deepcopy(M.getLayerByUid(layerData_table.uid))
+  local fromLayer = M.getLayerByUid(layerData_table.uid)
+  if not fromLayer then
+    print(string.format("%s.setLayer(layerData_table, doReproject_bool): Couldn't find layer for layerUid '%s'. Can't update layer.", logTag, layerData_table.uid))
+    return
+  end
+
+  local fromLayerData = deepcopy(fromLayer)
   local toLayerData = deepcopy(layerData_table)
 
   history:commitAction(
@@ -1116,19 +1762,21 @@ M.setLayer = function(layerData_table, doReproject_bool)
     setLayer_Undo,
     setLayer_Redo
   )
+
+  extensions.hook("dynamicDecals_setLayer", layerData_table.uid)
 end
 
 local function moveLayer_Undo(actionData)
   local item = layerStack[actionData.to]
-  deleteLayer(actionData.to, actionData.toParentUid)
-  addLayer(item, actionData.from, actionData.fromParentUid)
+  deleteLayer(actionData.to, actionData.toParentUid, true)
+  addLayer(item, actionData.from, actionData.fromParentUid, true)
   M.reprojectLayers()
 end
 
 local function moveLayer_Redo(actionData)
   local layer = (actionData.fromParentUid and M.getLayerByUid(actionData.fromParentUid).children[actionData.from] or layerStack[actionData.from])
-  deleteLayer(actionData.from, actionData.fromParentUid)
-  addLayer(layer, actionData.to, actionData.toParentUid)
+  deleteLayer(actionData.from, actionData.fromParentUid, true)
+  addLayer(layer, actionData.to, actionData.toParentUid, true)
   M.reprojectLayers()
   extensions.hook("dynamicDecals_moveLayer", actionData.from, actionData.fromParentUid, actionData.to, actionData.toParentUid)
 end
@@ -1139,7 +1787,9 @@ end
 -- number to
 -- string toParentUid
 M.moveLayer = function(from_number, fromParentUid_string, to_number, toParentUid_string)
-  print(string.format("moveLayer, from: %d fromParentUid: %s, to: %d toParentUid: %s", from_number or -1, fromParentUid_string or "nil", to_number or -1, toParentUid_string or "nil"))
+  if M.debug then
+    print(string.format("moveLayer, from: %d fromParentUid: %s, to: %d toParentUid: %s", from_number or -1, fromParentUid_string or "nil", to_number or -1, toParentUid_string or "nil"))
+  end
 
   local layer = M.getLayerById(from_number, fromParentUid_string)
   -- Chech if user tries to make the layer its own child layer
@@ -1218,7 +1868,7 @@ local function duplicateLayer_Redo(actionData)
 end
 
 M.duplicateLayer = function(layerId_number, parentUid_string)
-  local newLayerData = deepcopy(M.getLayerById(layerId_number, parentUid_string))
+  local newLayerData = deepcopyLayer(M.getLayerById(layerId_number, parentUid_string))
   setRandomLayerUidRec(newLayerData)
   newLayerData.name = string.format("%s %s", newLayerData.name, "Copy")
 
@@ -1246,7 +1896,7 @@ local function duplicateAndMirrorLayer_Redo(actionData)
 end
 
 M.duplicateAndMirrorLayer = function(layerId_number, parentUid_string, mirrorChildren)
-  local newLayerData = deepcopy(M.getLayerById(layerId_number, parentUid_string))
+  local newLayerData = deepcopyLayer(M.getLayerById(layerId_number, parentUid_string))
   newLayerData = decalProjection:mirrorLayerData(newLayerData, mirrorChildren)
   setRandomLayerUidRec(newLayerData)
   newLayerData.name = string.format("%s %s", newLayerData.name, "Mirrored Copy")
@@ -1291,6 +1941,10 @@ M.isWrapColorTextureYEnabled = function()
   return (bit.band(decalProjection:getSettings(), M.settingsFlags.WrapColorTextureY.value) == M.settingsFlags.WrapColorTextureY.value)
 end
 
+M.isUseMousePos = function()
+  return (bit.band(decalProjection:getSettings(), M.settingsFlags.UseMousePos.value) == M.settingsFlags.UseMousePos.value)
+end
+
 M.toggleSetting = function(value_int)
   return decalProjection:toggleSetting(value_int)
 end
@@ -1314,8 +1968,9 @@ end
 M.exportSkin = function(vehicleName, skinName)
   -- local directory = "/vehicles/" .. vehicleName .. "/" .. skinName .. "/"
   -- Export in mods folder for the time being
-  local directory = "/mods/unpacked/" .. skinName .. "/vehicles/" .. vehicleName .. "/" .. skinName .. "/"
-  decalProjection:exportTextures(directory, skinName, "png")
+  local modDirectory = "/mods/unpacked/" .. skinName .. "/vehicles/" .. vehicleName .. "/" .. skinName .. "/"
+  local directory = "/vehicles/" .. vehicleName .. "/" .. skinName .. "/"
+  decalProjection:exportTextures(modDirectory, skinName, "png")
 
   local uvLayer = decalProjection:getUvLayer()
   local mNames = M.getShapeMaterialNames()
@@ -1338,7 +1993,7 @@ M.exportSkin = function(vehicleName, skinName)
 
       local mat = createObject('Material')
       mat:assignFieldsFromObject(dynDecalMaterial)
-      mat:setFilename(directory .. vehicleName .. "_" .. skinName .. "_skin.materials.json")
+      mat:setFilename(modDirectory .. vehicleName .. "_" .. skinName .. "_skin.materials.json")
 
       local skin = matName .. ".skin." .. skinName
       mat:setField('name', 0, skin)
@@ -1378,12 +2033,12 @@ M.exportSkin = function(vehicleName, skinName)
       scenetree.dynamicDecals_PersistMan:saveDirty()
 
     else
-      editor.logWarn(string.format("%s : Can't find Dynamic Decals preset material: %s", logTag, matSkinPresetName))
+      print(string.format("%s : Can't find Dynamic Decals preset material: %s", logTag, matSkinPresetName))
     end
   end
 
   if found == 0 then
-    editor.logWarn(string.format("%s : No materials skin preset has been found", logTag))
+    print(string.format("%s : No materials skin preset has been found", logTag))
     return
   end
 
@@ -1398,9 +2053,9 @@ M.exportSkin = function(vehicleName, skinName)
       globalSkin = skinName
     }
   }
-  jsonWriteFile(directory .. vehicleName .. "_" .. skinName .. "_skin.jbeam", jbeamData, true)
+  jsonWriteFile(modDirectory .. vehicleName .. "_" .. skinName .. "_skin.jbeam", jbeamData, true)
 
-  editor.logInfo(string.format("%s : Skin files exported to '%s'", logTag, directory))
+  print(string.format("%s : Skin files exported to '%s'", logTag, modDirectory))
 
   -- ToDo: Replace this when the mod manager can see the skin mod automatically
   core_modmanager.checkUpdate()
@@ -1480,6 +2135,11 @@ M.setEnabled = function(enabled)
     decalProjection:flushDynamicTextures()
     decalProjection:combineTextures(app.textureSet)
   end
+end
+
+M.onEditorDeactivated = function()
+  decalProjection:flushDynamicTextures()
+  decalProjection:combineTextures(app.textureSet)
 end
 
 M.toggleEnabled = function()
@@ -1642,12 +2302,12 @@ M.setUvLayer = function(uvLayerId_int)
   M.reprojectLayers()
 end
 
-M.getMaterialIndices = function()
-  return decalProjection:getMaterialIdx()
+M.clearMaterialIdx = function()
+  decalProjection:clearMaterialIdx()
 end
 
-M.getMaterialIdx = function()
-  return decalProjection:getMaterialIdx()[1]
+M.getMaterialIndices = function()
+  return decalProjection:getMaterialIdx()
 end
 
 M.setMaterialIdx = function(materialIdx_int)
@@ -1658,8 +2318,8 @@ M.addMaterialIdx = function(materialIdx_int)
   decalProjection:addMaterialIdx(materialIdx_int)
 end
 
-M.clearMaterialIdx = function()
-  decalProjection:clearMaterialIdx()
+M.removeMaterialIdx = function(materialIdx_int)
+  decalProjection:removeMaterialIdx(materialIdx_int)
 end
 
 M.getMeshObjectCount = function()
@@ -1734,6 +2394,18 @@ M.getTextureFillLayerScale = function()
   return decalProjection.textureFillLayerScale
 end
 
+M.setTextureFillLayerScale = function(value_Point2F)
+  decalProjection.textureFillLayerScale = value_Point2F
+end
+
+M.getTextureFillOffset = function()
+  return decalProjection.textureFillOffset
+end
+
+M.setTextureFillOffset = function(value_Point2F)
+  decalProjection.textureFillOffset = value_Point2F
+end
+
 M.getBrushStrokeInterpolationSteps = function()
   return decalProjection.brushStrokeInterpolationSteps
 end
@@ -1750,14 +2422,9 @@ M.setPathLayerInterpolationSteps = function(value_u32)
   decalProjection.pathLayerInterpolationSteps = value_u32
 end
 
-M.setTextureFillLayerScale = function(value_Point2F)
-  decalProjection.textureFillLayerScale = value_Point2F
-end
-
 M.getShapeMaterialNames = function()
   return decalProjection:getShapeMaterialNames()
 end
--- END decal shape render app : public interface END
 
 M.getLockDepth = function()
   return decalProjection.lockDecalMatrixZBuffer
@@ -1769,6 +2436,26 @@ end
 
 M.getDepth = function()
   return decalProjection:getDecalMatrixZBufferValue()
+end
+
+M.getLockSurfaceNormal = function()
+  return decalProjection.lockSurfaceNormal
+end
+
+M.setLockSurfaceNormal = function(value_bool)
+  decalProjection.lockSurfaceNormal = value_bool
+end
+
+M.getSurfaceNormal = function()
+  return decalProjection:getDecalMatrixSurfaceNormalValue()
+end
+
+M.getUseSurfaceNormal = function()
+  return decalProjection.useSurfaceNormal
+end
+
+M.setUseSurfaceNormal = function(value_bool)
+  decalProjection.useSurfaceNormal = value_bool
 end
 
 M.setEnableBrushStroke = function(value_bool)
@@ -1831,12 +2518,20 @@ M.getShapeMeshes = function()
   return decalProjection:getShapeMeshes()
 end
 
-M.setMeshEnabledState = function(id_int, value_bool)
-  decalProjection:setMeshEnabledState(id_int, value_bool)
+M.enableAllMeshes = function()
+  decalProjection:enableAllMeshes()
 end
 
-M.toggleMeshEnabledState = function(id_int)
-  return decalProjection:toggleMeshEnabledState(id_int)
+M.disableAllMeshes = function()
+  decalProjection:disableAllMeshes()
+end
+
+M.areAllMeshesEnabled = function()
+  return decalProjection:areAllMeshesEnabled()
+end
+
+M.setMeshEnable = function(name_string, value_bool)
+  decalProjection:setMeshEnable(name_string, value_bool)
 end
 
 M.getDecalWorldPos = function(decal)
@@ -2111,7 +2806,7 @@ M.moveLayerLocalPos = function(layerUid, newLocalPosition, includeChildren, refe
     moveLayerLocalPos_path(layer, newLocalPosition, includeChildren)
   elseif layer.type == M.layerTypes.group then
     if not referenceLayerUid then
-      editor.logError("'referenceLayerUid' is needed in order to be able to move the layers")
+      print("'referenceLayerUid' is needed in order to be able to move the layers")
       return
     end
     moveLayerLocalPos_group(layer, newLocalPosition, includeChildren, referenceLayerUid)
@@ -2157,267 +2852,6 @@ M.scaleLayer = function(layer, delta_vec3)
   M.reprojectLayers()
 end
 
-local function serializeLayer(layer)
-  local lyr = {}
-  if layer.type == M.layerTypes.decal then
-    lyr["uid"] = nil
-    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode
-    lyr["alphaMaskChannel"] = layer.alphaMaskChannel
-    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity
-    lyr["alphaMaskInvert"] = layer.alphaMaskInvert
-    lyr["alphaMaskRotation"] = layer.alphaMaskRotation
-    lyr["alphaMaskScale"] = layer.alphaMaskScale:toTable()
-    lyr["alphaMaskOffset"] = layer.alphaMaskOffset:toTable()
-    lyr["blendMode"] = layer.blendMode
-    lyr["decalPos"] = layer.decalPos
-    lyr["decalNorm"] = layer.decalNorm
-    lyr["camDirection"] = layer.camDirection
-    lyr["camPosition"] = layer.camPosition
-    lyr["color"] = layer.color:toTable()
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
-    lyr["colorTextureScale"] = layer.colorTextureScale:toTable()
-    lyr["cursorPosScreenUv"] = layer.cursorPosScreenUv
-    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
-    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
-    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
-    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
-    lyr["decalRotation"] = layer.decalRotation
-    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
-    lyr["decalScale"] = layer.decalScale
-    lyr["decalSkew"] = layer.decalSkew:toTable()
-    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
-    lyr["decalGradientColorTopLeft"] = layer.decalGradientColorTopLeft:toTable()
-    lyr["decalGradientColorTopRight"] = layer.decalGradientColorTopRight:toTable()
-    lyr["decalGradientColorBottomLeft"] = layer.decalGradientColorBottomLeft:toTable()
-    lyr["decalGradientColorBottomRight"] = layer.decalGradientColorBottomRight:toTable()
-    lyr["decalFontPath"] = layer.decalFontPath
-    lyr["decalFontCharacter"] = layer.decalFontCharacter
-    lyr["decalUv"] = layer.decalUv:toTable()
-    lyr["enabled"] = layer.enabled
-    lyr["metallicIntensity"] = layer.metallicIntensity
-    lyr["mirrored"] = layer.mirrored
-    lyr["flipMirroredDecal"] = layer.flipMirroredDecal
-    lyr["name"] = layer.name
-    lyr["normalIntensity"] = layer.normalIntensity
-    lyr["roughnessIntensity"] = layer.roughnessIntensity
-    lyr["type"] = layer.type
-    lyr["viewToScreen"] = {
-      layer.viewToScreen:getColumn4F(0):toTable(),
-      layer.viewToScreen:getColumn4F(1):toTable(),
-      layer.viewToScreen:getColumn4F(2):toTable(),
-      layer.viewToScreen:getColumn4F(3):toTable()
-    }
-    lyr["worldToViewToScreen"] = {
-      layer.worldToViewToScreen:getColumn4F(0):toTable(),
-      layer.worldToViewToScreen:getColumn4F(1):toTable(),
-      layer.worldToViewToScreen:getColumn4F(2):toTable(),
-      layer.worldToViewToScreen:getColumn4F(3):toTable()
-    }
-    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX
-    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY
-    lyr["wrapColorTextureX"] = layer.wrapColorTextureX
-    lyr["wrapColorTextureY"] = layer.wrapColorTextureY
-    lyr["useZBufferDepth"] = layer.useZBufferDepth
-    lyr["zBufferDepth"] = layer.zBufferDepth
-    -- sdf
-    if layer.sdfThickness then
-      lyr["sdfThickness"] = layer.sdfThickness
-      lyr["sdfSoftness"] = layer.sdfSoftness
-      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
-      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
-      lyr["sdfOutlineColor"] = layer.sdfOutlineColor:toTable()
-    end
-
-  elseif layer.type == M.layerTypes.fill then
-    lyr["uid"] = nil
-    lyr["name"] = layer.name
-    lyr["blendMode"] = layer.blendMode
-    lyr["color"] = layer.color:toTable()
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
-    lyr["enabled"] = layer.enabled
-    lyr["type"] = layer.type
-  elseif layer.type == M.layerTypes.textureFill then
-    lyr["uid"] = nil
-    lyr["name"] = layer.name
-    lyr["blendMode"] = layer.blendMode
-    lyr["color"] = layer.color:toTable()
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
-    lyr["enabled"] = layer.enabled
-    lyr["scale"] = layer.scale:toTable()
-    lyr["type"] = layer.type
-    lyr["fillTexturePath"] = layer.fillTexturePath
-  elseif layer.type == M.layerTypes.group then
-    lyr["uid"] = nil
-    lyr["name"] = layer.name
-    lyr["enabled"] = layer.enabled
-    lyr["type"] = layer.type
-  elseif layer.type == M.layerTypes.brushStroke then
-    lyr["uid"] = nil
-    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode
-    lyr["alphaMaskChannel"] = layer.alphaMaskChannel
-    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity
-    lyr["alphaMaskInvert"] = layer.alphaMaskInvert
-    lyr["alphaMaskRotation"] = layer.alphaMaskRotation
-    lyr["alphaMaskScale"] = layer.alphaMaskScale:toTable()
-    lyr["alphaMaskOffset"] = layer.alphaMaskOffset:toTable()
-    lyr["blendMode"] = layer.blendMode
-    lyr["camDirection"] = layer.camDirection
-    lyr["camPosition"] = layer.camPosition
-    lyr["color"] = layer.color:toTable()
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
-    lyr["colorTextureScale"] = layer.colorTextureScale:toTable()
-    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
-    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
-    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
-    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
-    lyr["decalRotation"] = layer.decalRotation
-    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
-    lyr["decalScale"] = layer.decalScale
-    lyr["decalSkew"] = layer.decalSkew:toTable()
-    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
-    lyr["decalGradientColorTopLeft"] = layer.decalGradientColorTopLeft:toTable()
-    lyr["decalGradientColorTopRight"] = layer.decalGradientColorTopRight:toTable()
-    lyr["decalGradientColorBottomLeft"] = layer.decalGradientColorBottomLeft:toTable()
-    lyr["decalGradientColorBottomRight"] = layer.decalGradientColorBottomRight:toTable()
-    lyr["decalFontPath"] = layer.decalFontPath
-    lyr["decalFontCharacter"] = layer.decalFontCharacter
-    lyr["decalUv"] = layer.decalUv:toTable()
-    lyr["enabled"] = layer.enabled
-    lyr["interpolationSteps"] = layer.interpolationSteps
-    lyr["metallicIntensity"] = layer.metallicIntensity
-    lyr["mirrored"] = layer.mirrored
-    lyr["flipMirroredDecal"] = layer.flipMirroredDecal
-    lyr["name"] = layer.name
-    lyr["normalIntensity"] = layer.normalIntensity
-    lyr["roughnessIntensity"] = layer.roughnessIntensity
-    lyr["type"] = layer.type
-    lyr["viewToScreen"] = {
-      layer.viewToScreen:getColumn4F(0):toTable(),
-      layer.viewToScreen:getColumn4F(1):toTable(),
-      layer.viewToScreen:getColumn4F(2):toTable(),
-      layer.viewToScreen:getColumn4F(3):toTable()
-    }
-    lyr["worldToViewToScreen"] = {
-      layer.worldToViewToScreen:getColumn4F(0):toTable(),
-      layer.worldToViewToScreen:getColumn4F(1):toTable(),
-      layer.worldToViewToScreen:getColumn4F(2):toTable(),
-      layer.worldToViewToScreen:getColumn4F(3):toTable()
-    }
-    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX
-    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY
-    lyr["wrapColorTextureX"] = layer.wrapColorTextureX
-    lyr["wrapColorTextureY"] = layer.wrapColorTextureY
-    lyr["zBufferDepth"] = layer.zBufferDepth
-    lyr["dataPoints"] = layer.dataPoints
-    -- sdf
-    if layer.sdfThickness then
-      lyr["sdfThickness"] = layer.sdfThickness
-      lyr["sdfSoftness"] = layer.sdfSoftness
-      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
-      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
-      lyr["sdfOutlineColor"] = layer.sdfOutlineColor:toTable()
-    end
-  elseif layer.type == M.layerTypes.path then
-    lyr["uid"] = nil
-    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode
-    lyr["alphaMaskChannel"] = layer.alphaMaskChannel
-    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity
-    lyr["alphaMaskInvert"] = layer.alphaMaskInvert
-    lyr["alphaMaskRotation"] = layer.alphaMaskRotation
-    lyr["alphaMaskScale"] = layer.alphaMaskScale:toTable()
-    lyr["alphaMaskOffset"] = layer.alphaMaskOffset:toTable()
-    lyr["blendMode"] = layer.blendMode
-    lyr["camDirection"] = layer.camDirection
-    lyr["camPosition"] = layer.camPosition
-    lyr["color"] = layer.color:toTable()
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId
-    lyr["colorTextureScale"] = layer.colorTextureScale:toTable()
-    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
-    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
-    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
-    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
-    lyr["decalRotation"] = layer.decalRotation
-    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
-    lyr["decalScale"] = layer.decalScale
-    lyr["decalSkew"] = layer.decalSkew:toTable()
-    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
-    lyr["decalGradientColorTopLeft"] = layer.decalGradientColorTopLeft:toTable()
-    lyr["decalGradientColorTopRight"] = layer.decalGradientColorTopRight:toTable()
-    lyr["decalGradientColorBottomLeft"] = layer.decalGradientColorBottomLeft:toTable()
-    lyr["decalGradientColorBottomRight"] = layer.decalGradientColorBottomRight:toTable()
-    lyr["decalFontPath"] = layer.decalFontPath
-    lyr["decalFontCharacter"] = layer.decalFontCharacter
-    lyr["decalUv"] = layer.decalUv:toTable()
-    lyr["enabled"] = layer.enabled
-    lyr["interpolationSteps"] = layer.interpolationSteps
-    lyr["metallicIntensity"] = layer.metallicIntensity
-    lyr["mirrored"] = layer.mirrored
-    lyr["flipMirroredDecal"] = layer.flipMirroredDecal
-    lyr["name"] = layer.name
-    lyr["normalIntensity"] = layer.normalIntensity
-    lyr["orientDecals"] = layer.orientDecals
-    lyr["pathType"] = layer.pathType
-    lyr["roughnessIntensity"] = layer.roughnessIntensity
-    lyr["text"] = layer.text
-    lyr["fontPath"] = layer.fontPath
-    lyr["type"] = layer.type
-    lyr["viewToScreen"] = {
-      layer.viewToScreen:getColumn4F(0):toTable(),
-      layer.viewToScreen:getColumn4F(1):toTable(),
-      layer.viewToScreen:getColumn4F(2):toTable(),
-      layer.viewToScreen:getColumn4F(3):toTable()
-    }
-    lyr["worldToViewToScreen"] = {
-      layer.worldToViewToScreen:getColumn4F(0):toTable(),
-      layer.worldToViewToScreen:getColumn4F(1):toTable(),
-      layer.worldToViewToScreen:getColumn4F(2):toTable(),
-      layer.worldToViewToScreen:getColumn4F(3):toTable()
-    }
-    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX
-    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY
-    lyr["wrapColorTextureX"] = layer.wrapColorTextureX
-    lyr["wrapColorTextureY"] = layer.wrapColorTextureY
-    lyr["zBufferDepth"] = layer.zBufferDepth
-    lyr["textCharacterPositions"] = layer.textCharacterPositions
-    lyr["dataPoints"] = layer.dataPoints
-    -- sdf
-    if layer.sdfThickness then
-      lyr["sdfThickness"] = layer.sdfThickness
-      lyr["sdfSoftness"] = layer.sdfSoftness
-      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
-      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
-      lyr["sdfOutlineColor"] = layer.sdfOutlineColor:toTable()
-    end
-  elseif layer.type == M.layerTypes.linkedSet then
-    lyr["uid"] = nil
-    lyr["name"] = layer.name
-    lyr["enabled"] = layer.enabled
-    lyr["type"] = layer.type
-    lyr["properties"] = layer.properties
-  end
-
-  lyr["children"] = {}
-  if layer.children and #layer.children then
-    for _, childLayer in ipairs(layer.children) do
-      local childData = serializeLayer(childLayer)
-      table.insert(lyr["children"], childData)
-    end
-  end
-
-  if layer.mask then
-    lyr["mask"] = {}
-    lyr["mask"].enabled = layer.mask.enabled
-    lyr["mask"]["layers"] = {}
-
-    for _, maskLayer in ipairs(layer.mask.layers) do
-      local maskData = serializeLayer(maskLayer)
-      table.insert(lyr["mask"]["layers"], maskData)
-    end
-  end
-
-  return lyr
-end
-
 local function serializeLayerStack()
   local layerData = {}
   for _, layer in pairs(layerStack) do
@@ -2425,267 +2859,6 @@ local function serializeLayerStack()
   end
 
   return layerData
-end
-
-local function deserializeLayer(layer)
-  local lyr = {}
-  if layer.type == M.layerTypes.decal then
-    local mat = MatrixF(true)
-    lyr["uid"] = getRandomUid()
-    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode or 0
-    lyr["alphaMaskChannel"] = layer.alphaMaskChannel or 3
-    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity or 1.0
-    lyr["alphaMaskInvert"] = layer.alphaMaskInvert or false
-    lyr["alphaMaskRotation"] = layer.alphaMaskRotation or 0.0
-    lyr["alphaMaskScale"] = (layer.alphaMaskScale and Point2F.fromTable(layer.alphaMaskScale) or Point2F(1,1))
-    lyr["alphaMaskOffset"] = (layer.alphaMaskOffset and Point2F.fromTable(layer.alphaMaskOffset) or Point2F(0,0))
-    lyr["blendMode"] = layer.blendMode
-    lyr["decalPos"] = vec3(layer.decalPos.x, layer.decalPos.y, layer.decalPos.z)
-    lyr["decalNorm"] = vec3(layer.decalNorm.x, layer.decalNorm.y, layer.decalNorm.z)
-    lyr["camDirection"] = vec3(layer.camDirection.x, layer.camDirection.y, layer.camDirection.z)
-    lyr["camPosition"] = vec3(layer.camPosition.x, layer.camPosition.y, layer.camPosition.z)
-    lyr["color"] = Point4F.fromTable(layer.color)
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 0
-    lyr["colorTextureScale"] = (layer.colorTextureScale and Point2F.fromTable(layer.colorTextureScale) or Point2F(1,1))
-    lyr["cursorPosScreenUv"] = layer.cursorPosScreenUv
-    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
-    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
-    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
-    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
-    lyr["decalRotation"] = layer.decalRotation
-    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
-    lyr["decalScale"] = vec3(layer.decalScale.x, layer.decalScale.y, layer.decalScale.z)
-    lyr["decalSkew"] = Point2F.fromTable(layer.decalSkew)
-    lyr["decalUv"] = Point2F.fromTable(layer.decalUv)
-    lyr["decalFontPath"] = layer.decalFontPath or "/"
-    lyr["decalFontCharacter"] = layer.decalFontCharacter or "A"
-    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
-    lyr["decalGradientColorTopLeft"] = ColorI.fromTable(layer.decalGradientColorTopLeft)
-    lyr["decalGradientColorTopRight"] = ColorI.fromTable(layer.decalGradientColorTopRight)
-    lyr["decalGradientColorBottomLeft"] = ColorI.fromTable(layer.decalGradientColorBottomLeft)
-    lyr["decalGradientColorBottomRight"] = ColorI.fromTable(layer.decalGradientColorBottomRight)
-    lyr["enabled"] = layer.enabled
-    lyr["metallicIntensity"] = layer.metallicIntensity or 1.0
-    lyr["mirrored"] = layer.mirrored or false
-    lyr["flipMirroredDecal"] = layer.flipMirroredDecal or false
-    lyr["name"] = (layer.name or string.format("%s", "Decal Layer"))
-    lyr["normalIntensity"] = layer.normalIntensity or 1.0
-    lyr["roughnessIntensity"] = layer.roughnessIntensity or 1.0
-    lyr["type"] = layer.type
-    mat:setColumn4F(0, Point4F.fromTable(layer.viewToScreen[1]))
-    mat:setColumn4F(1, Point4F.fromTable(layer.viewToScreen[2]))
-    mat:setColumn4F(2, Point4F.fromTable(layer.viewToScreen[3]))
-    mat:setColumn4F(3, Point4F.fromTable(layer.viewToScreen[4]))
-    lyr["viewToScreen"] = mat:copy()
-    mat:setColumn4F(0, Point4F.fromTable(layer.worldToViewToScreen[1]))
-    mat:setColumn4F(1, Point4F.fromTable(layer.worldToViewToScreen[2]))
-    mat:setColumn4F(2, Point4F.fromTable(layer.worldToViewToScreen[3]))
-    mat:setColumn4F(3, Point4F.fromTable(layer.worldToViewToScreen[4]))
-    lyr["worldToViewToScreen"] = mat:copy()
-    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX or false
-    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY or false
-    lyr["wrapColorTextureX"] = layer.wrapColorTextureX == nil and true or layer.wrapColorTextureX
-    lyr["wrapColorTextureY"] = layer.wrapColorTextureY == nil and true or layer.wrapColorTextureY
-    lyr["useZBufferDepth"] = layer.useZBufferDepth or false
-    lyr["zBufferDepth"] = layer.zBufferDepth or -1.0
-    -- sdf
-    if layer.sdfThickness then
-      lyr["sdfThickness"] = layer.sdfThickness
-      lyr["sdfSoftness"] = layer.sdfSoftness
-      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
-      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
-      lyr["sdfOutlineColor"] = ColorI.fromTable(layer.sdfOutlineColor)
-    end
-  elseif layer.type == M.layerTypes.fill then
-    lyr["uid"] = getRandomUid()
-    lyr["name"] = (layer.name or string.format("%s", "Fill Layer"))
-    lyr["blendMode"] = layer.blendMode
-    lyr["color"] = Point4F.fromTable(layer.color)
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 1
-    lyr["enabled"] = layer.enabled
-    lyr["type"] = layer.type
-  elseif layer.type == M.layerTypes.textureFill then
-    lyr["uid"] = getRandomUid()
-    lyr["name"] = (layer.name or string.format("%s", "Texture Fill Layer"))
-    lyr["blendMode"] = layer.blendMode
-    lyr["color"] = Point4F.fromTable(layer.color)
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 1
-    lyr["enabled"] = layer.enabled
-    lyr["scale"] = (layer.scale and Point2F.fromTable(layer.scale) or Point2F(1,1))
-    lyr["type"] = layer.type
-    lyr["fillTexturePath"] = layer.fillTexturePath
-  elseif layer.type == M.layerTypes.group then
-    lyr["uid"] = getRandomUid()
-    lyr["name"] = (layer.name or string.format("%s", "Group Layer"))
-    lyr["enabled"] = layer.enabled
-    lyr["type"] = layer.type
-  elseif layer.type == M.layerTypes.brushStroke then
-    lyr["uid"] = getRandomUid()
-    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode or 0
-    lyr["alphaMaskChannel"] = layer.alphaMaskChannel or 3
-    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity or 1.0
-    lyr["alphaMaskInvert"] = layer.alphaMaskInvert or false
-    lyr["alphaMaskRotation"] = layer.alphaMaskRotation or 0.0
-    lyr["alphaMaskScale"] = (layer.alphaMaskScale and Point2F.fromTable(layer.alphaMaskScale) or Point2F(1,1))
-    lyr["alphaMaskOffset"] = (layer.alphaMaskOffset and Point2F.fromTable(layer.alphaMaskOffset) or Point2F(0,0))
-    lyr["blendMode"] = layer.blendMode
-    lyr["camDirection"] = vec3(layer.camDirection.x, layer.camDirection.y, layer.camDirection.z)
-    lyr["camPosition"] = vec3(layer.camPosition.x, layer.camPosition.y, layer.camPosition.z)
-    lyr["color"] = Point4F.fromTable(layer.color)
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 0
-    lyr["colorTextureScale"] = (layer.colorTextureScale and Point2F.fromTable(layer.colorTextureScale) or Point2F(1,1))
-    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
-    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
-    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
-    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
-    lyr["decalRotation"] = layer.decalRotation
-    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
-    lyr["decalScale"] = vec3(layer.decalScale.x, layer.decalScale.y, layer.decalScale.z)
-    lyr["decalSkew"] = Point2F.fromTable(layer.decalSkew)
-    lyr["decalUv"] = Point2F.fromTable(layer.decalUv)
-    lyr["decalFontPath"] = layer.decalFontPath or "/"
-    lyr["decalFontCharacter"] = layer.decalFontCharacter or "A"
-    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
-    lyr["decalGradientColorTopLeft"] = ColorI.fromTable(layer.decalGradientColorTopLeft)
-    lyr["decalGradientColorTopRight"] = ColorI.fromTable(layer.decalGradientColorTopRight)
-    lyr["decalGradientColorBottomLeft"] = ColorI.fromTable(layer.decalGradientColorBottomLeft)
-    lyr["decalGradientColorBottomRight"] = ColorI.fromTable(layer.decalGradientColorBottomRight)
-    lyr["enabled"] = layer.enabled
-    lyr["interpolationSteps"] = layer.interpolationSteps or 2
-    lyr["metallicIntensity"] = layer.metallicIntensity or 1.0
-    lyr["mirrored"] = layer.mirrored or false
-    lyr["flipMirroredDecal"] = layer.flipMirroredDecal or false
-    lyr["name"] = (layer.name or string.format("%s", "Group Layer"))
-    lyr["normalIntensity"] = layer.normalIntensity or 1.0
-    lyr["roughnessIntensity"] = layer.roughnessIntensity or 1.0
-    lyr["type"] = layer.type
-    local mat = MatrixF(true)
-    mat:setColumn4F(0, Point4F.fromTable(layer.viewToScreen[1]))
-    mat:setColumn4F(1, Point4F.fromTable(layer.viewToScreen[2]))
-    mat:setColumn4F(2, Point4F.fromTable(layer.viewToScreen[3]))
-    mat:setColumn4F(3, Point4F.fromTable(layer.viewToScreen[4]))
-    lyr["viewToScreen"] = mat
-    mat = MatrixF(true)
-    mat:setColumn4F(0, Point4F.fromTable(layer.worldToViewToScreen[1]))
-    mat:setColumn4F(1, Point4F.fromTable(layer.worldToViewToScreen[2]))
-    mat:setColumn4F(2, Point4F.fromTable(layer.worldToViewToScreen[3]))
-    mat:setColumn4F(3, Point4F.fromTable(layer.worldToViewToScreen[4]))
-    lyr["worldToViewToScreen"] = mat
-    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX or false
-    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY or false
-    lyr["wrapColorTextureX"] = layer.wrapColorTextureX == nil and true or layer.wrapColorTextureX
-    lyr["wrapColorTextureY"] = layer.wrapColorTextureY == nil and true or layer.wrapColorTextureY
-    lyr["zBufferDepth"] = layer.zBufferDepth or -1.0
-    lyr["dataPoints"] = layer.dataPoints
-    -- sdf
-    if layer.sdfThickness then
-      lyr["sdfThickness"] = layer.sdfThickness
-      lyr["sdfSoftness"] = layer.sdfSoftness
-      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
-      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
-      lyr["sdfOutlineColor"] = ColorI.fromTable(layer.sdfOutlineColor)
-    end
-  elseif layer.type == M.layerTypes.path then
-    lyr["uid"] = getRandomUid()
-    lyr["alphaMaskBlendMode"] = layer.alphaMaskBlendMode or 0
-    lyr["alphaMaskChannel"] = layer.alphaMaskChannel or 3
-    lyr["alphaMaskIntensity"] = layer.alphaMaskIntensity or 1.0
-    lyr["alphaMaskInvert"] = layer.alphaMaskInvert or false
-    lyr["alphaMaskRotation"] = layer.alphaMaskRotation or 0.0
-    lyr["alphaMaskScale"] = (layer.alphaMaskScale and Point2F.fromTable(layer.alphaMaskScale) or Point2F(1,1))
-    lyr["alphaMaskOffset"] = (layer.alphaMaskOffset and Point2F.fromTable(layer.alphaMaskOffset) or Point2F(0,0))
-    lyr["blendMode"] = layer.blendMode
-    lyr["camDirection"] = vec3(layer.camDirection.x, layer.camDirection.y, layer.camDirection.z)
-    lyr["camPosition"] = vec3(layer.camPosition.x, layer.camPosition.y, layer.camPosition.z)
-    lyr["color"] = Point4F.fromTable(layer.color)
-    lyr["colorPaletteMapId"] = layer.colorPaletteMapId or 0
-    lyr["colorTextureScale"] = (layer.colorTextureScale and Point2F.fromTable(layer.colorTextureScale) or Point2F(1,1))
-    lyr["decalAlphaTexturePath"] = layer.decalAlphaTexturePath
-    lyr["decalColorTexturePath"] = layer.decalColorTexturePath
-    lyr["decalMetallicTexturePath"] = layer.decalMetallicTexturePath
-    lyr["decalNormalTexturePath"] = layer.decalNormalTexturePath
-    lyr["decalRotation"] = layer.decalRotation
-    lyr["decalRoughnessTexturePath"] = layer.decalRoughnessTexturePath
-    lyr["decalScale"] = vec3(layer.decalScale.x, layer.decalScale.y, layer.decalScale.z)
-    lyr["decalSkew"] = Point2F.fromTable(layer.decalSkew)
-    lyr["decalUv"] = Point2F.fromTable(layer.decalUv)
-    lyr["decalFontPath"] = layer.decalFontPath or "/"
-    lyr["decalFontCharacter"] = layer.decalFontCharacter or "A"
-    lyr["decalUseGradientColor"] = layer.decalUseGradientColor
-    lyr["decalGradientColorTopLeft"] = ColorI.fromTable(layer.decalGradientColorTopLeft)
-    lyr["decalGradientColorTopRight"] = ColorI.fromTable(layer.decalGradientColorTopRight)
-    lyr["decalGradientColorBottomLeft"] = ColorI.fromTable(layer.decalGradientColorBottomLeft)
-    lyr["decalGradientColorBottomRight"] = ColorI.fromTable(layer.decalGradientColorBottomRight)
-    lyr["enabled"] = layer.enabled
-    lyr["interpolationSteps"] = layer.interpolationSteps or 5
-    lyr["metallicIntensity"] = layer.metallicIntensity or 1.0
-    lyr["mirrored"] = layer.mirrored or false
-    lyr["flipMirroredDecal"] = layer.flipMirroredDecal or false
-    lyr["name"] = (layer.name or string.format("%s", "Group Layer"))
-    lyr["normalIntensity"] = layer.normalIntensity or 1.0
-    lyr["orientDecals"] = layer.orientDecals == nil and true or layer.orientDecals
-    lyr["pathType"] = layer.pathType or 1
-    lyr["roughnessIntensity"] = layer.roughnessIntensity or 1.0
-    lyr["text"] = layer.text or ""
-    lyr["fontPath"] = layer.fontPath or ""
-    lyr["type"] = layer.type
-    local mat = MatrixF(true)
-    mat:setColumn4F(0, Point4F.fromTable(layer.viewToScreen[1]))
-    mat:setColumn4F(1, Point4F.fromTable(layer.viewToScreen[2]))
-    mat:setColumn4F(2, Point4F.fromTable(layer.viewToScreen[3]))
-    mat:setColumn4F(3, Point4F.fromTable(layer.viewToScreen[4]))
-    lyr["viewToScreen"] = mat
-    mat = MatrixF(true)
-    mat:setColumn4F(0, Point4F.fromTable(layer.worldToViewToScreen[1]))
-    mat:setColumn4F(1, Point4F.fromTable(layer.worldToViewToScreen[2]))
-    mat:setColumn4F(2, Point4F.fromTable(layer.worldToViewToScreen[3]))
-    mat:setColumn4F(3, Point4F.fromTable(layer.worldToViewToScreen[4]))
-    lyr["worldToViewToScreen"] = mat
-    lyr["wrapAlphaMaskX"] = layer.wrapAlphaMaskX or false
-    lyr["wrapAlphaMaskY"] = layer.wrapAlphaMaskY or false
-    lyr["wrapColorTextureX"] = layer.wrapColorTextureX == nil and true or layer.wrapColorTextureX
-    lyr["wrapColorTextureY"] = layer.wrapColorTextureY == nil and true or layer.wrapColorTextureY
-    lyr["zBufferDepth"] = layer.zBufferDepth or -1.0
-    lyr["textCharacterPositions"] = layer.textCharacterPositions
-    lyr["dataPoints"] = layer.dataPoints
-    -- sdf
-    if layer.sdfThickness then
-      lyr["sdfThickness"] = layer.sdfThickness
-      lyr["sdfSoftness"] = layer.sdfSoftness
-      lyr["sdfOutlineThickness"] = layer.sdfOutlineThickness
-      lyr["sdfOutlineSoftness"] = layer.sdfOutlineSoftness
-      lyr["sdfOutlineColor"] = ColorI.fromTable(layer.sdfOutlineColor)
-    end
-  elseif layer.type == M.layerTypes.linkedSet then
-    lyr["uid"] = getRandomUid()
-    lyr["name"] = (layer.name or string.format("%s", "Linked Set Layer"))
-    lyr["enabled"] = layer.enabled
-    lyr["type"] = layer.type
-    lyr["properties"] = layer.properties or {}
-  end
-
-  lyr["children"] = {}
-  if layer.children and #layer.children > 0 then
-    for _, childData in ipairs(layer.children) do
-      local childLayer = deserializeLayer(childData)
-      table.insert(lyr["children"], childLayer)
-    end
-  end
-
-  if layer.mask then
-    lyr["mask"] = {}
-    lyr["mask"].enabled = layer.mask.enabled
-    lyr["mask"]["layers"] = {}
-
-    for _, maskLayer in ipairs(layer.mask.layers) do
-      local maskData = deserializeLayer(maskLayer)
-      table.insert(lyr["mask"]["layers"], maskData)
-    end
-  end
-
-  layerCount = layerCount + 1
-
-  return lyr
 end
 
 local function deserializeLayerStack(layerStackData)
@@ -2702,7 +2875,6 @@ M.onSerialize = function()
   local materialIdx = #materialIndices > 0 and materialIndices[1] or nil
   return {
     layerStackData = serializeLayerStack(),
-    fileVersion = fileVersion,
     materialIdx = materialIdx,
   }
 end
@@ -2716,6 +2888,7 @@ end
 
 M.saveLayerStackToFile = function(path_string)
   local data = M.onSerialize()
+  data.materialIdx = nil
   jsonWriteFile(path_string, data, true)
 end
 
@@ -2773,5 +2946,7 @@ M.onVehicleSwitched  = function()
 end
 
 M.getRandomUid = getRandomUid
+M.serializeLayer = serializeLayer
+M.deserializeLayer = deserializeLayer
 
 return M

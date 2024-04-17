@@ -3,11 +3,17 @@
     <div class="innerList">
       <div v-if="partShoppingStore.category === ''">
         <div style="width: 100%; display: flex">
-          <BngButton @click="lua.career_modules_partShopping.cancelShopping()"><BngBinding ui-event="back" deviceMask="xinput" />Cancel</BngButton>
+          <span style="padding: 0.5em"
+            ><BngButton @click="lua.career_modules_partShopping.cancelShopping()" accent="attention"
+              ><BngBinding ui-event="back" deviceMask="xinput" />Cancel</BngButton
+            ></span
+          >
           <h1 style="width: 100%; text-align: center">Categories</h1>
         </div>
 
-        <BngButton @click="partShoppingStore.setCategory('everything')">All Parts</BngButton>
+        <BngButton :disabled="partShoppingStore.partShoppingData.tutorialPartNames !== undefined" @click="partShoppingStore.setCategory('everything')"
+          >All Parts</BngButton
+        >
         <BngButton @click="partShoppingStore.setCategory('cargo')">Cargo Parts</BngButton>
       </div>
       <div v-else>
@@ -36,7 +42,7 @@ onMounted(() => {
   position: relative;
   display: block;
   //padding-right: 10px;
-  width: 300px;
+  width: 400px;
   overflow-y: hidden;
   //height: 100vh;
   color: white;

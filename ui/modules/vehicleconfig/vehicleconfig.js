@@ -8,16 +8,16 @@ angular.module('beamng.stuff')
  * Helper functions for editing a vehicle's configuration
  */
 .factory('VehicleConfig', ['$q', 'Utils', function ($q, Utils) {
-  var _generateTreeBranch = function (data, part, simple, depth) {
-    var res = []
+  let _generateTreeBranch = function (data, part, simple, depth) {
+    let res = []
     if(depth>200) return
 
-    var defaultHighlight = !data.partsHighlighted
+    let defaultHighlight = !data.partsHighlighted
 
     for (var slotName in part.slotInfoUi) {
-      var slotInfo = part.slotInfoUi[slotName]
-      var isHighlighted = defaultHighlight
-      var chosenPart = data.chosenParts[slotName]
+      let slotInfo = part.slotInfoUi[slotName]
+      let isHighlighted = defaultHighlight
+      let chosenPart = data.chosenParts[slotName]
 
       if (chosenPart === ''){
         isHighlighted = false
@@ -28,7 +28,7 @@ angular.module('beamng.stuff')
         }
       }
 
-      var element = {
+      let element = {
         name: slotName,
         description: slotInfo.description,
 
@@ -40,14 +40,14 @@ angular.module('beamng.stuff')
         options: [],
         highlight: isHighlighted
       }
-      var elOptions = element.options
-      var optionCount = 0
+      let elOptions = element.options
+      let optionCount = 0
       let slotAllowedTypes = slotInfo.allowTypes || [slotInfo.type]
       for (let st of slotAllowedTypes) {
         if(data.slotMap[st] !== undefined) {
           for (var i=0; i < data.slotMap[st].length; i++) {
-            var slotPartName = data.slotMap[st][i]
-            var slotPart = data.availableParts[slotPartName]
+            let slotPartName = data.slotMap[st][i]
+            let slotPart = data.availableParts[slotPartName]
             if(slotPart === undefined) {
               console.error('slot part not found: ', slotPartName)
             } else {
@@ -102,15 +102,15 @@ angular.module('beamng.stuff')
     },
 
     defaultVarValToDisVal: function (v) {
-      var valClamped = Utils.clamp(v.default, Math.min(v.min, v.max), Math.max(v.min, v.max))
-      var vData = (valClamped - v.min) / (v.max - v.min); //lua ratio
+      let valClamped = Utils.clamp(v.default, Math.min(v.min, v.max), Math.max(v.min, v.max))
+      let vData = (valClamped - v.min) / (v.max - v.min); //lua ratio
       return Utils.roundDec(vData * (v.maxDis - v.minDis) + v.minDis, 7)
     },
 
     varValToDisVal: function (v, val) {
       val = val === undefined ? v.val : val
-      var valClamped = Utils.clamp(val, Math.min(v.min, v.max), Math.max(v.min, v.max))
-      var vData = (valClamped - v.min) / (v.max - v.min); //lua ratio
+      let valClamped = Utils.clamp(val, Math.min(v.min, v.max), Math.max(v.min, v.max))
+      let vData = (valClamped - v.min) / (v.max - v.min); //lua ratio
       return Utils.roundDec(vData * (v.maxDis - v.minDis) + v.minDis, 7)
     },
 
@@ -119,10 +119,10 @@ angular.module('beamng.stuff')
     },
 
     getVariablesConfig: function (variables) {
-      var configObj = {}
+      let configObj = {}
       for (var i in variables) {
-        var v = variables[i]
-        var vDis = (v.valDis - v.minDis) / (v.maxDis - v.minDis)
+        let v = variables[i]
+        let vDis = (v.valDis - v.minDis) / (v.maxDis - v.minDis)
         v.val = Utils.roundDec(vDis * (v.max - v.min) + v.min, 7)
         configObj[v.name] = v.val
       }
@@ -130,13 +130,13 @@ angular.module('beamng.stuff')
     },
 
     getVariablesWithNonDefaultValuesConfig: function (variables) {
-      var configObj = {}
+      let configObj = {}
       for (var i in variables) {
-        var v = variables[i]
+        let v = variables[i]
         if (!v.configDefaultDefined && this.isDisValDefault(v)) {
           continue
         }
-        var vDis = (v.valDis - v.minDis) / (v.maxDis - v.minDis)
+        let vDis = (v.valDis - v.minDis) / (v.maxDis - v.minDis)
         v.val = Utils.roundDec(vDis * (v.max - v.min) + v.min, 7)
         configObj[v.name] = v.val
       }
@@ -144,7 +144,7 @@ angular.module('beamng.stuff')
     },
 
     loadConfigList: function () {
-      var d = $q.defer()
+      let d = $q.defer()
 
       bngApi.engineLua('extensions.core_vehicle_partmgmt.getConfigList()', (configs) => {
         //var list = configs.map((elem) => elem.slice(0, -3))
@@ -179,6 +179,15 @@ angular.module('beamng.stuff')
   currentTabUpdate()
 
   function currentTabUpdate() {
+    if ($state.current.name.startsWith("menu.vehicleconfig.vue")) {
+      const wrapname = "menu.vehicleconfig.vue-angular"
+      if ($state.current.name === wrapname) {
+        $state.go("menu.vehicleconfig.vue")
+      } else if ($state.current.name.startsWith(wrapname)) {
+        $state.go($state.current.name.replace(".vue-angular.", ".vue."))
+      }
+      return
+    }
     const current = tabs.indexOf($state.current.name)
     $scope.model = {selected: current === -1 ? 0 : current }
   }
@@ -195,7 +204,7 @@ angular.module('beamng.stuff')
 **/
 .controller('Vehicleconfig_parts', ['$filter', '$scope', '$window', 'RateLimiter', 'VehicleConfig',
 function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
-  var vm = this
+  let vm = this
 
   // Multi Part Highlighting
 
@@ -217,9 +226,9 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     })
 
     // Get all parts highlights and return them
-    var flattenedParts = {}
+    let flattenedParts = {}
     for (var key in vm.d.data) {
-      var part = vm.d.data[key]
+      let part = vm.d.data[key]
 
       iterateParts(part, function(obj) {
         if (obj.val !== '') {
@@ -243,7 +252,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   vm.licensePlate = ''
 
   let getLicensePlate = function () {
-    bngApi.engineLua('core_vehicles.getVehicleLicenseText(be:getPlayerVehicle(0))', function (str) {
+    bngApi.engineLua('core_vehicles.getVehicleLicenseText(getPlayerVehicle(0))', function (str) {
       $scope.$evalAsync(() => { vm.licensePlate = str; })
     })
   }
@@ -260,7 +269,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   }
 
   vm.applyRandomLicensePlate = function () {
-    bngApi.engineLua(`core_vehicles.setPlateText(core_vehicles.regenerateVehicleLicenseText(be:getPlayerVehicle(0)),nil,nil,nil)`)
+    bngApi.engineLua(`core_vehicles.setPlateText(core_vehicles.regenerateVehicleLicenseText(getPlayerVehicle(0)),nil,nil,nil)`)
     getLicensePlate()
   }
   // --------------
@@ -289,7 +298,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   vm.searchHistoryPosition = 0
   vm.searchHistoryBrowsing = false
 
-  var currentConfig = null
+  let currentConfig = null
 
   vm.emptyFront = function (option) {
     if (option.description === 'Empty') {
@@ -306,7 +315,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     // In case this stops working, try using "event.currentTarget"
     if (event instanceof FocusEvent && event.relatedTarget === null && event.sourceCapabilities === null) return
 
-    var flattenedParts = {}
+    let flattenedParts = {}
 
     if (vm.selectSubParts) {
       iterateParts(selectedPart, function (obj) {
@@ -351,7 +360,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   }
 
   vm.write = function () {
-    var newConfig = VehicleConfig.generateConfig(vm.d.data)
+    let newConfig = VehicleConfig.generateConfig(vm.d.data)
     // console.debug(`Setting configuration`, newConfig)
     setTimeout(() => {
       // make async so html has more time to update render parts
@@ -368,17 +377,17 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     currentConfig = config
     vm.partsChanged = false
     //console.log("config = ", config)
-    var tree = VehicleConfig.generateTree(config, vm.simple)
+    let tree = VehicleConfig.generateTree(config, vm.simple)
     tree.sort(VehicleConfig.treeSort)
-    var configArray = []
-    var variable_categories = {}
+    let configArray = []
+    let variable_categories = {}
 
     for (var o in config.variables) {
-      var v = config.variables[o]
+      let v = config.variables[o]
       if (!variable_categories[v.category])
         variable_categories[v.category] = true
       //v.defaultValDis = VehicleConfig.defaultVarValToDisVal(v)
-      var defaultVal = config.defaults.vars[o]
+      let defaultVal = config.defaults.vars[o]
       if (defaultVal === undefined) {
         defaultVal = v.default
         v.configDefaultDefined = false
@@ -410,17 +419,17 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     })
   }
 
-  var queryModes = {
+  let queryModes = {
     "or": function(a, b) { return a || b; },
     "and": function(a, b) { return a && b; },
   }
 
   // applies filters against mod info
   function filterPartByName(partName, queryArgs) {
-    var part = currentConfig.availableParts[partName]
+    let part = currentConfig.availableParts[partName]
     if(!part) return
 
-    var modMatch = false
+    let modMatch = false
     if(queryArgs['mod'] !== undefined) {
       if(part.modName !== undefined)    modMatch = modMatch || part.modName.toLowerCase().indexOf(queryArgs['mod']) != -1
       if(part.modTagLine !== undefined) modMatch = modMatch || part.modTagLine.toLowerCase().indexOf(queryArgs['mod']) != -1
@@ -428,7 +437,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     }
 
     if(queryArgs['author'] !== undefined) {
-      if(part.modName !== undefined)    modMatch = modMatch || part.authors.toLowerCase().indexOf(queryArgs['author']) != -1
+      if(part.authors !== undefined)    modMatch = modMatch || part.authors.toLowerCase().indexOf(queryArgs['author']) != -1
     }
 
     return modMatch
@@ -437,7 +446,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   function filterTreeNode(searchResults, treeNode, queryArgs) {
 
     // match this part first
-    var matched = false
+    let matched = false
     if(queryArgs['mode'] == 'or') matched = false
     else if(queryArgs['mode'] == 'and') matched = true
 
@@ -445,17 +454,14 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     if(queryArgs['description'] && treeNode.description !== undefined) matched = queryModes[queryArgs['mode']](matched, treeNode.description.toLowerCase().indexOf(queryArgs['description']) != -1)
     if(queryArgs['slot'] && treeNode.name !== undefined) matched = queryModes[queryArgs['mode']](matched, treeNode.name.toLowerCase().indexOf(queryArgs['slot']) != -1)
     //if(!matched && treeNode.name !== undefined) matched = matched || treeNode.name.toLowerCase().indexOf(queryArgs) != -1
-    if(queryArgs['name'] && !matched) {
+    if(!matched) {
       for (var optIdx in treeNode.options) {
-        var option = treeNode.options[optIdx]
-        if(option.name !== undefined) matched = queryModes[queryArgs['mode']](matched, option.name.toLowerCase().indexOf(queryArgs['name']) != -1)
-        if(option.description !== undefined) matched = queryModes[queryArgs['mode']](matched, option.description.toLowerCase().indexOf(queryArgs['name']) != -1)
-      }
-    }
-    if(queryArgs['partname'] && !matched) {
-      for (var optIdx in treeNode.options) {
-        var option = treeNode.options[optIdx]
-        if(option.val !== undefined) matched = queryModes[queryArgs['mode']](matched, option.val.toLowerCase().indexOf(queryArgs['partname']) != -1)
+        let option = treeNode.options[optIdx]
+        if (option.isAuxiliary && !vm.showAuxiliary) continue;
+        if (queryArgs['name'] && option.name !== undefined) matched = queryModes[queryArgs['mode']](matched, option.name.toLowerCase().indexOf(queryArgs['name']) != -1)
+        if (!matched && queryArgs['description'] && option.description !== undefined) matched = queryModes[queryArgs['mode']](matched, option.description.toLowerCase().indexOf(queryArgs['description']) != -1)
+        if (!matched && queryArgs['partname'] && option.val !== undefined) matched = queryModes[queryArgs['mode']](matched, option.val.toLowerCase().indexOf(queryArgs['partname']) != -1)
+        if (matched) break;
       }
     }
 
@@ -463,7 +469,8 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     if(queryArgs['mod'] || queryArgs['author']) {
       filterPartByName(treeNode.val, queryArgs)
       for (var optIdx in treeNode.options) {
-        var option = treeNode.options[optIdx]
+        let option = treeNode.options[optIdx]
+        if (option.isAuxiliary && !vm.showAuxiliary) continue;
         if(option.val !== undefined) {
           matched = queryModes[queryArgs['mode']](matched,
             filterPartByName(option.val, queryArgs)
@@ -485,27 +492,27 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   }
 
   function loadSearchHistory() {
-    var res = localStorage.getItem('partSearchHistory')
+    let res = localStorage.getItem('partSearchHistory')
     if(res !== null) {
       vm.searchHistory = JSON.parse(res) || []
     }
   }
 
   function filterTree() {
-    var queryString = vm.partSearchString.toLowerCase()
-    var queryArgs = {}
+    let queryString = vm.partSearchString.toLowerCase()
+    let queryArgs = {}
     queryArgs['mode'] = 'or'
     vm.searchResString = ''
 
     // default: search all
     if (queryString.indexOf(':') == -1) {
-      queryArgs['name'] = queryString
+      queryArgs['description'] = queryString
     } else {
-      var parsedargs = 0
-      var args = queryString.split(/[ ,]+/)
+      let parsedargs = 0
+      let args = queryString.split(/[ ,]+/)
       for(i = 0; i < args.length; i++) {
         if (args[i].indexOf(':') != -1) {
-          var args2 = args[i].split(/:/)
+          let args2 = args[i].split(/:/)
           if(args2.length == 2 && args2[1].trim() != '') {
             queryArgs[args2[0]] = args2[1]
             parsedargs++
@@ -528,7 +535,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
 
     // add to search history
     if (queryString.trim() !== '' && !vm.searchHistoryBrowsing) {
-      var lastHistory = vm.searchHistory[vm.searchHistory.length - 1] || ""
+      let lastHistory = vm.searchHistory[vm.searchHistory.length - 1] || ""
       if(queryString.indexOf(lastHistory) != -1) {
         vm.searchHistory[vm.searchHistory.length - 1] = queryString
       } else if(lastHistory.indexOf(queryString) != -1) {
@@ -544,7 +551,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     //console.log("queryArgs = ", queryArgs)
 
     for (var partIdx in vm.d.data) {
-      var part = vm.d.data[partIdx]
+      let part = vm.d.data[partIdx]
       filterTreeNode(vm.searchResults, part, queryArgs)
     }
     if(vm.searchResults.length == 0) {
@@ -612,7 +619,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   bngApi.engineLua('extensions.core_vehicle_partmgmt.sendDataToUI()')
   loadSearchHistory()
 
-  var applyPartChangesAutomatically = localStorage.getItem('applyPartChangesAutomatically')
+  let applyPartChangesAutomatically = localStorage.getItem('applyPartChangesAutomatically')
   if(applyPartChangesAutomatically !== null) {
     vm.applyPartChangesAutomatically = JSON.parse(applyPartChangesAutomatically) || false
   }
@@ -626,22 +633,22 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   }
 })
 .controller('Vehicleconfig_tuning', ["RateLimiter", "VehicleConfig", "$scope", "$filter", function (RateLimiter, VehicleConfig, $scope, $filter) {
-  var vm = this
+  let vm = this
 
   vm.open = {}
   vm.openRuntime = {}
   vm.d = {}
   vm.liveVariablesUpdate = false
 
-  var autoUpdateVariables = RateLimiter.debounce(() => {
+  let autoUpdateVariables = RateLimiter.debounce(() => {
     // console.debug(`Writing vehicle configuration (live update)`)
     vm.write()
   }, 200)
 
   vm.addSpacer = (function () {
-    var lastCategory
+    let lastCategory
     return (cat) => {
-      var res = cat !== lastCategory
+      let res = cat !== lastCategory
       lastCategory = cat
       return res
     }
@@ -650,7 +657,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   vm.write = function () {
     setTimeout(() => {
       // make async so html has more time to update render parts
-      var vars = VehicleConfig.getVariablesWithNonDefaultValuesConfig(vm.d.variables)
+      let vars = VehicleConfig.getVariablesWithNonDefaultValuesConfig(vm.d.variables)
       bngApi.engineLua(`extensions.core_vehicle_partmgmt.setConfigVars(${bngApi.serializeToLua(vars)})`)
     })
   }
@@ -680,18 +687,18 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
 
   function calcTree (config) {
     $scope.$evalAsync(function () {
-      var configArray = []
-      var variable_categories = {}
+      let configArray = []
+      let variable_categories = {}
 
       for (var o in config.variables) {
-        var v = config.variables[o]
+        let v = config.variables[o]
         //if the variable wants to be hidden in the UI, skip it
         if (v.hideInUI === true)
            continue;
         if (!variable_categories[v.category])
           variable_categories[v.category] = true
         //v.defaultValDis = VehicleConfig.defaultVarValToDisVal(v)
-        var defaultVal = config.defaults.vars[o]
+        let defaultVal = config.defaults.vars[o]
         if (defaultVal === undefined) {
           defaultVal = v.default
           v.configDefaultDefined = false
@@ -718,7 +725,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
   vm.awdData = null
   vm.awdShow = false
 
-  var streamsList = ['advancedWheelDebugData']
+  let streamsList = ['advancedWheelDebugData']
   StreamsManager.add(streamsList)
 
   function register() {
@@ -746,7 +753,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
 }])
 
 .controller('Vehicleconfig_color', ["$scope", function ($scope) {
-  var vm = this
+  let vm = this
   vm.updateColor = function (index, value) {
     bngApi.engineLua(`core_vehicle_colors.setVehicleColor(${index}, "${value}");`)
   }
@@ -802,7 +809,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
 }])
 
 .controller('Vehicleconfig_save', ["$scope", "$mdDialog", "VehicleConfig", function ($scope, $mdDialog, VehicleConfig) {
-  var vm = this
+  let vm = this
   vm.saveThumbnail = true
 
   vm.openConfigFolderInExplorer = function(){
@@ -815,6 +822,19 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
     if (vm.saveThumbnail == true) {
       bngApi.engineLua(`extensions.load('util_createThumbnails'); util_createThumbnails.startWork("${configName}")`)
     }
+  }
+
+  vm.validName = function (testName) {
+    if (!testName || /[<>:"/\\|?*]/.test(testName)) {
+      return false
+    }
+    if (/^ +| +$/.test(testName)) {
+      testName = testName.replace(/^ +| +$/g, "")
+    }
+    if (!testName) {
+      return false
+    }
+    return true
   }
 
   /**
@@ -842,7 +862,7 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
 
     // showConfirm()
     // // Confirmation dialog when deleting configuration
-    // var confirm
+    // let confirm
     // function showConfirm() {
     //   confirm = $mdDialog.confirm({
     //     title: "Are you sure?",
@@ -939,7 +959,7 @@ function ($scope) {
       if (vm.state.vehicle) {
         vm.canApplyState = false
 
-        var mode = debugState.vehicle.beamVisMode - 1
+        let mode = debugState.vehicle.beamVisMode - 1
         vm.state.vehicle.beamVisModes[mode].rangeMin = -Number.MAX_VALUE
         vm.state.vehicle.beamVisModes[mode].rangeMax = Number.MAX_VALUE
 

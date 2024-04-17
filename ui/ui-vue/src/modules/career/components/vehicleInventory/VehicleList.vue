@@ -1,13 +1,18 @@
 <template>
   <div v-if="vehicleInventoryStore" style="height: 80vh; overflow: auto">
-    <table class="vehicleTable">
+    <table v-if="vehicleInventoryStore.filteredVehicles.length" class="vehicleTable">
       <tr>
         <th>Description</th>
         <th>Value</th>
         <th>Insurance requirement</th>
         <th>Location</th>
         <th></th>
-        <th v-if="vehicleInventoryStore.vehicleInventoryData.repairEnabled || vehicleInventoryStore.vehicleInventoryData.sellEnabled || vehicleInventoryStore.vehicleInventoryData.favoriteEnabled"></th>
+        <th
+          v-if="
+            vehicleInventoryStore.vehicleInventoryData.repairEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.sellEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.favoriteEnabled
+          "></th>
       </tr>
       <tr v-for="(vehicle, key) in vehicleInventoryStore.filteredVehicles">
         <td>
@@ -23,8 +28,7 @@
             <div style="color: rgb(245, 29, 29)">Not owned!</div>
             <BngButton
               :disabled="vehicle.policyInfo.initialBuyPrice > vehicleInventoryStore.vehicleInventoryData.playerMoney"
-              @click="buyInsurance(vehicle.policyInfo.id)"
-            >
+              @click="buyInsurance(vehicle.policyInfo.id)">
               Purchase ({{ units.beamBucks(vehicle.policyInfo.initialBuyPrice) }})
             </BngButton>
           </div>
@@ -43,7 +47,7 @@
         </td>
 
         <td style="text-align: center">
-          <div v-for="buttonData, index in vehicleInventoryStore.vehicleInventoryData.chooseButtonsData">
+          <div v-for="(buttonData, index) in vehicleInventoryStore.vehicleInventoryData.chooseButtonsData">
             <div v-if="buttonData.repairRequired && vehicle.needsRepair && !vehicleInventoryStore.vehicleInventoryData.tutorialActive">
               <BngButton style="min-width: 0" :disabled="true" @click="vehicleInventoryStore.chooseVehicle(vehicle.id, index)">
                 {{ buttonData.buttonText }} (Needs repair)
@@ -51,32 +55,51 @@
             </div>
             <div v-else>
               <BngButton
-                :disabled="vehicle.timeToAccess || vehicle.missingFile || (buttonData.insuranceRequired && !vehicle.ownsRequiredInsurance) || (buttonData.requiredVehicleNotInGarage && vehicle.inGarage) || (buttonData.requiredOtherVehicleInGarage && !vehicle.otherVehicleInGarage)"
+                :disabled="
+                  vehicle.timeToAccess ||
+                  vehicle.missingFile ||
+                  (buttonData.insuranceRequired && !vehicle.ownsRequiredInsurance) ||
+                  (buttonData.requiredVehicleNotInGarage && vehicle.inGarage) ||
+                  (buttonData.requiredOtherVehicleInGarage && !vehicle.otherVehicleInGarage)
+                "
                 style="min-width: 0"
-                @click="vehicleInventoryStore.chooseVehicle(vehicle.id, index)"
-              >
+                @click="vehicleInventoryStore.chooseVehicle(vehicle.id, index)">
                 {{ buttonData.buttonText }}
               </BngButton>
             </div>
           </div>
         </td>
-        <td v-if="vehicleInventoryStore.vehicleInventoryData.repairEnabled || vehicleInventoryStore.vehicleInventoryData.sellEnabled || vehicleInventoryStore.vehicleInventoryData.favoriteEnabled || vehicleInventoryStore.vehicleInventoryData.storingEnabled"
-        style="padding-right: 0.0em; padding-left: 0.0em; text-align: center">
-          <BngButton v-if="vehicleInventoryStore.vehicleInventoryData.repairEnabled" :disabled="vehicle.timeToAccess || vehicle.missingFile" @click="openRepairMenu(vehicle)"> Repair </BngButton>
+        <td
+          v-if="
+            vehicleInventoryStore.vehicleInventoryData.repairEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.sellEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.favoriteEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.storingEnabled
+          "
+          style="padding-right: 0em; padding-left: 0em; text-align: center">
+          <BngButton
+            v-if="vehicleInventoryStore.vehicleInventoryData.repairEnabled"
+            :disabled="vehicle.timeToAccess || vehicle.missingFile"
+            @click="openRepairMenu(vehicle)">
+            Repair
+          </BngButton>
 
           <BngButton
-            show-hold
             v-if="vehicleInventoryStore.vehicleInventoryData.sellEnabled"
             :disabled="vehicle.timeToAccess"
             v-bng-on-ui-nav:ok.asMouse.focusRequired
-            @click="setVehicleToSell(vehicle)"
-          >
+            @click="confirmSellVehicle(vehicle)">
             Sell
           </BngButton>
-          <BngButton v-if="vehicleInventoryStore.vehicleInventoryData.favoriteEnabled" :disabled="vehicle.favorite || vehicle.missingFile" @click="setFavoriteVehicle(vehicle.id)">
+          <BngButton
+            v-if="vehicleInventoryStore.vehicleInventoryData.favoriteEnabled"
+            :disabled="vehicle.favorite || vehicle.missingFile"
+            @click="setFavoriteVehicle(vehicle.id)">
             Set as Favorite
           </BngButton>
-          <BngButton v-if="vehicleInventoryStore.vehicleInventoryData.storingEnabled" :disabled="vehicle.inStorage" @click="storeVehicle(vehicle.id)"> Put in storage </BngButton>
+          <BngButton v-if="vehicleInventoryStore.vehicleInventoryData.storingEnabled" :disabled="vehicle.inStorage" @click="storeVehicle(vehicle.id)">
+            Put in storage
+          </BngButton>
         </td>
       </tr>
       <tr v-for="index in vehicleInventoryStore.vehicleInventoryData.numberOfFreeSlots" :key="index">
@@ -85,44 +108,40 @@
         <td></td>
         <td></td>
         <td></td>
-        <td v-if="vehicleInventoryStore.vehicleInventoryData.repairEnabled || vehicleInventoryStore.vehicleInventoryData.sellEnabled || vehicleInventoryStore.vehicleInventoryData.favoriteEnabled"></td>
+        <td
+          v-if="
+            vehicleInventoryStore.vehicleInventoryData.repairEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.sellEnabled ||
+            vehicleInventoryStore.vehicleInventoryData.favoriteEnabled
+          "></td>
       </tr>
     </table>
-
-    <div v-if="vehicleToSell">
-      <div v-bng-blur class="blurBackground"></div>
-      <BngCard class="modalPopup">
-        <h3 style="padding: 10px">Do you want to sell this vehicle for {{ units.beamBucks(vehicleToSell.value) }}?</h3>
-        <template #buttons>
-          <BngButton @click="sellVehicle(vehicleToSell.id)"> Yes </BngButton>
-          <BngButton @click="setVehicleToSell(undefined)"> No </BngButton>
-        </template>
-      </BngCard>
-    </div>
+    <h3 v-else>You don't currently own any vehicles</h3>
   </div>
 </template>
 
 <script setup>
 import { lua, useBridge } from "@/bridge"
-import { BngButton, BngCard, BngCardHeading } from "@/common/components/base"
+import { BngButton } from "@/common/components/base"
 import { useVehicleInventoryStore } from "../../stores/vehicleInventoryStore"
-import { vBngBlur, vBngClick, vBngOnUiNav } from "@/common/directives"
-
-import { ref } from "vue"
+import { vBngOnUiNav } from "@/common/directives"
+import { openConfirmation } from "@/services/popup"
+import { $translate } from "@/services/translation"
 
 const vehicleInventoryStore = useVehicleInventoryStore()
 
-const vehicleToSell = ref()
-
-function setVehicleToSell(vehicle) {
-  vehicleToSell.value = vehicle
+const confirmSellVehicle = async vehicle => {
+  const res = await openConfirmation("", `Do you want to sell this vehicle for ${units.beamBucks(vehicle.value)}?`, [
+    { label: $translate.instant("ui.common.yes"), value: true },
+    { label: $translate.instant("ui.common.no"), value: false, extras: { accent: "attention" } },
+  ])
+  if (res) sellVehicle(vehicle.id)
 }
 
 const { units } = useBridge()
 
 const sellVehicle = inventoryId => {
   lua.career_modules_inventory.sellVehicleFromInventory(inventoryId)
-  setVehicleToSell(undefined)
 }
 
 const openRepairMenu = vehicle => {
@@ -157,28 +176,6 @@ const buyInsurance = id => {
     text-align: left;
     padding-right: 0.5em;
     padding-left: 0.5em;
-  }
-}
-
-.blurBackground {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  top: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.781);
-}
-
-.modalPopup {
-  position: fixed;
-  top: 50vh;
-  left: 50vw;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.8);
-  & :deep(.card-cnt) {
-    background-color: rgba(0, 0, 0, 0.2);
   }
 }
 </style>

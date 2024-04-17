@@ -68,7 +68,7 @@ local function randomizeSeed()
 end
 
 local function onGui(guiId)
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   if not vehicleObj then
     im.TextUnformatted("No vehicle")
     im.TreePop()
@@ -349,7 +349,7 @@ local function registerEditorPreferences(prefsRegistry)
     function(cat, subCat, item)
       local guiId = "editorPrefs"
       local palettes = editor.getPreference("dynamicDecalsTool.vehicleColorPalette.palettes")
-      local vehicleObj = be:getPlayerVehicle(0)
+      local vehicleObj = getPlayerVehicle(0)
       if not vehicleObj then
         im.TextUnformatted("No vehicle")
         return
@@ -410,7 +410,7 @@ end
 local function editModeUpdate(dtReal, dtSim, dtRaw)
   if restoreColors then
     if restoreColors.timer <= 0 then
-      local vehicleObj = be:getPlayerVehicle(0)
+      local vehicleObj = getPlayerVehicle(0)
       if vehicleObj then
         vehicleObj.color = Point4F(restoreColors.colors[1][1], restoreColors.colors[1][2], restoreColors.colors[1][3], restoreColors.colors[1][4])
         vehicleObj.colorPalette0 = Point4F(restoreColors.colors[2][1], restoreColors.colors[2][2], restoreColors.colors[2][3], restoreColors.colors[2][4])
@@ -440,7 +440,7 @@ local function setup(tool_in)
 end
 
 M.onSerialize = function()
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   local colors = nil
   if vehicleObj then
     colors = {

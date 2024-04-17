@@ -4,7 +4,7 @@
   </div>
   <Popup type="activity" />
   <Popup />
-  <vue-debug />
+  <VueDebug />
   <div id="vue-app-container">
     <div v-for="app of apps" :key="app.appKey">
       <Teleport :to="app.teleport">

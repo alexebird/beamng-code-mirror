@@ -23,6 +23,7 @@
           {{:: 'ui.controls.editBinding.assignedControl' | translate }}
         </span>
         <span style="cursor: pointer; font-size: 125%; padding-left: 15px;" ng-click="controlsEdit.captureBinding()" bng-tooltip="ui.controls.editBinding.reassign">
+          <span style="opacity:0.4; font-size: 75%">({{ controlsEdit.newBinding.device }})</span>
           <binding dark="false" key="controlsEdit.newBinding.details.control" device="controlsEdit.newBinding.device"></binding>
           <md-icon class="material-icons">mode_edit</md-icon>
         </span>

@@ -3,7 +3,7 @@
     class="item"
     v-bng-disabled="data.disabled"
   >
-    <BngIcon class="item-icon" v-if="icon" :type="data.icon || iconDefs.general.unknown" />
+    <BngIcon class="item-icon" v-if="icon" :type="data.icon || icons.noNameControllerButton" />
     <span class="item-label">
       {{ typeof data === "string" ? data : data.label }}
     </span>
@@ -19,8 +19,10 @@ export default {
 
 <script setup>
 import { vBngDisabled } from "@/common/directives"
+// import { BngOldIcon } from "@/common/components/base"
+// import { icons as iconDefs } from "@/assets/icons"
 import { BngIcon } from "@/common/components/base"
-import { icons as iconDefs } from "@/common/components/base/bngIcon.vue"
+import { icons } from '@/common/components/base/bngIcon.vue'
 
 defineProps({
   icon: {
@@ -51,9 +53,10 @@ defineProps({
   background-color: rgba(0, 0, 0, 0.5);
 }
 .item-icon {
-  min-width: 3em;
-  min-height: 3em;
-  margin-bottom: 0.25em;
+  width: 100%;
+  font-size: 3em;
+  margin: 0.25rem 0;
+  text-align: center;
 }
 .item-label {
   display: block;

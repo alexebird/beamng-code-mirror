@@ -141,7 +141,7 @@ local function renderSoundEventGui(event)
       stopCurrentSFX()
 
       local sourcePos
-      local vehicle = be:getPlayerVehicle(0)
+      local vehicle = getPlayerVehicle(0)
       if vehicle then
         sourcePos = vehicle:getPosition()
       else

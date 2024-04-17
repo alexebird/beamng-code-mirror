@@ -26,7 +26,7 @@ function C:workOnce()
       if self.pinIn.aiVehId.value and self.pinIn.aiVehId.value ~= 0 then
         source = scenetree.findObjectById(self.pinIn.aiVehId.value)
       else
-        source = be:getPlayerVehicle(0)
+        source = getPlayerVehicle(0)
       end
 
       source:queueLuaCommand('ai.setMode("flee")')

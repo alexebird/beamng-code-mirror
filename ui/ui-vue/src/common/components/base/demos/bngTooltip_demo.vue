@@ -3,7 +3,7 @@
     <div class="outer-div">
       <div class="inner-div">
         <BngTooltip position="left" text="test">
-          <bng-button disabled>BngButton</bng-button>
+          <BngButton disabled>BngButton</BngButton>
         </BngTooltip>
       </div>
     </div>

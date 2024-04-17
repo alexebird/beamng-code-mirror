@@ -3,16 +3,13 @@
     <Categories />
     <ShoppingCart :partShoppingData="partShoppingStore.partShoppingData" />
 
-    <BngCard class="profileStatus">
-      <CareerStatus />
-    </BngCard>
+    <CareerStatus class="profileStatus" />
   </div>
 </template>
 
 <script setup>
 import { default as UINavEvents, UI_EVENT_GROUPS } from "@/bridge/libs/UINavEvents"
 import { onBeforeMount, onUnmounted } from "vue"
-import { BngCard } from "@/common/components/base"
 import { vBngOnUiNav } from "@/common/directives"
 import { usePartShoppingStore } from "../stores/partShoppingStore"
 import ShoppingCart from "../components/partShopping/ShoppingCart.vue"
@@ -56,6 +53,7 @@ onUnmounted(kill)
 }
 
 .profileStatus {
+  border-radius: var(--bng-corners-2);
   position: absolute;
   top: 0;
   right: 0;

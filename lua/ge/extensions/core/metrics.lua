@@ -217,7 +217,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
       if not imguiVisible then table.insert(lines, lineText) end
 
       lineText = string.format(" LightManager:  Active: %d  Updated: %d  Elapsed Ms: %5.2f",
-      getConsoleNumber("$BasicLightManagerStats::activePlugins"), getConsoleNumber("$BasicLightManagerStats::shadowsUpdated"), getConsoleNumber("$BasicLightManagerStats::elapsedUpdateMs"))
+      getConsoleNumber("$BasicLightManagerStats::activePlugins"), getConsoleNumber("$BasicLightManagerStats::shadowsUpdated"), getConsoleNumber("$BasicLightManagerStats::elapsedUpdateTime") * 1000)
       im.TextUnformatted(lineText)
       if not imguiVisible then table.insert(lines, lineText) end
 

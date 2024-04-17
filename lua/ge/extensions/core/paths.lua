@@ -128,7 +128,7 @@ local function loadPath(pathFileName)
   end
   for _, path in ipairs(paths) do
     if path.filename == pathFileName then
-      log('I', 'core_paths.loadPath', 'Returning path because it was already loaded: ' .. tostring(pathFileName))
+      log('W', 'core_paths.loadPath', 'Returning path because it was already loaded: ' .. tostring(pathFileName))
       return path
     end
   end
@@ -211,7 +211,7 @@ local function onClientStartMission()
   end
 
   if counter > 0 then
-    log('I', 'core_paths.loadPath', "" .. counter .. " Camera Path(s) loaded.")
+    log('D', 'core_paths.loadPath', "" .. counter .. " Camera Path(s) loaded.")
   end
 end
 

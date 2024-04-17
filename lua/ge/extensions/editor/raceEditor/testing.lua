@@ -66,7 +66,7 @@ function C:drawSetup()
   im.Separator()
 
   if im.Button("AI Drive Test Current Vehicle") then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     self.path:getAiPath()
     veh:queueLuaCommand('ai.driveUsingPath({wpTargetList = ' .. serialize(self.path.aiPath) .. ', wpSpeeds = ' .. serialize({}) .. ', noOfLaps = ' .. self.race.lapCount .. ', aggression = 1})')
   end
@@ -82,7 +82,7 @@ function C:drawSetup()
   end
 
   if im.Button("AI Drive all vehicles in scene") then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     self.path:getAiPath()
     local vehs = getObjectsByClass("BeamNGVehicle")
     for _, veh in ipairs(vehs) do

@@ -647,8 +647,8 @@ local function init(jbeamData, sharedFunctionTable)
     torqueConverterHandling.hasLockup = torqueConverterHandling.lockupAV > 0
     torqueConverterHandling.hasPartialLockup = jbeamData.torqueConverterHasPartialLockup == nil and true or jbeamData.torqueConverterHasPartialLockup
     torqueConverterHandling.minPartialLockupRatio = jbeamData.torqueConverterMinPartialLockupRatio or jbeamData.torqueConverterLockupRatioWhileShifting or 0.67
-    torqueConverterHandling.partialLockupTipInThreshold = jbeamData.partialLockupTipInThreshold or 0.3
-    torqueConverterHandling.partialLockupTipInGain = jbeamData.partialLockupTipInGain or 1
+    torqueConverterHandling.partialLockupTipInThreshold = jbeamData.partialLockupTipInThreshold or 0.85
+    torqueConverterHandling.partialLockupTipInGain = jbeamData.partialLockupTipInGain or 1.5
 
     local lockupRate = jbeamData.torqueConverterLockupRate or 5
     local lockupInRate = jbeamData.torqueConverterLockupInRate or lockupRate * 2

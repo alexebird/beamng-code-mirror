@@ -112,7 +112,7 @@ local function taskStartPreMissionHandling(step)
 
   -- save the player car, position, etc. from where they started the mission
   local startingInfo = {}
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if veh then
     startingInfo.vehPos = veh:getPosition()
     startingInfo.vehRot = quatFromDir(vec3(veh:getDirectionVector()), vec3(veh:getDirectionVectorUp()))
@@ -212,19 +212,24 @@ local function taskStartStartingOptionRepairStep(step)
 
   local mission = taskData.data.mission
 
-  if taskData.data.startingOptions and taskData.data.startingOptions.repair and mission._startingInfo and taskData.data.startingOptions.repair.type ~= "noRepair" then
+  if mission._startingInfo
+    and taskData.data.startingOptions and taskData.data.startingOptions.repair
+    and taskData.data.startingOptions.repair.type ~= "defaultStart"
+    and taskData.data.startingOptions.repair.type ~= "noRepair" then
     local vehId = mission._startingInfo.startedFromVehicle and mission._startingInfo.vehId
     local inventoryVehId = career_modules_inventory.getInventoryIdFromVehicleId(vehId or 0)
     if inventoryVehId then
-      local price
+      local repairType = taskData.data.startingOptions.repair.type
+
       --payment
-      if taskData.data.startingOptions.repair.type == "bonusStarRepair" then
-        price = {bonusStars = {amount = taskData.data.startingOptions.repair.cost}}
-      elseif taskData.data.startingOptions.repair.type == "moneyRepair" then
-        price = {money = {amount = taskData.data.startingOptions.repair.cost}}
+      local price = gameplay_missions_missionScreen.getRepairCostForStartingRepairType(repairType)
+      career_modules_playerAttributes.addAttributes(price, {label = "Repairing Vehicle before Challenge"})
+      local claimPrice = {}
+      for att, amount in pairs(price) do
+        claimPrice[att] = {amount = amount}
       end
-      career_modules_payment.pay(price, {label = "Repairing Vehicle"})
-      career_modules_insurance.makeRepairClaim(inventoryVehId, price)
+      career_modules_insurance.makeRepairClaim(inventoryVehId, claimPrice)
+
       -- actual repairing
       career_modules_inventory.updatePartConditions(nil, inventoryVehId,
         function()
@@ -248,7 +253,7 @@ local function taskStartTakePartConditionSnapshot(step)
   if not career_modules_inventory.getCurrentVehicle() then step.complete = true return end
 
   if not step.handled then
-    local vehObj = be:getPlayerVehicle(0)
+    local vehObj = getPlayerVehicle(0)
     -- take snapshot
     core_vehicleBridge.executeAction(vehObj, 'createPartConditionSnapshot', "beforeMission")
     core_vehicleBridge.executeAction(vehObj, 'setPartConditionResetSnapshotKey', "beforeMission")

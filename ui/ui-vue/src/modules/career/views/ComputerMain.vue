@@ -1,31 +1,45 @@
 <template>
-  <BngCard bng-ui-scope="computer" class="md-content">
-    <div style="overflow: auto">
-      <div style="padding: 5px; text-align: left">
-        <BngButton v-bng-on-ui-nav:back,menu.asMouse @click="close"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
+  <BngCard bng-ui-scope="computer" class="card-content">
+    <div class="main">
+      <div class="btn-back-container">
+        <BngButton v-bng-on-ui-nav:back,menu.asMouse @click="close" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
       </div>
 
-      <BngCardHeading style="text-align: left">My Computer</BngCardHeading>
+      <BngCardHeading class="computer-heading">My Computer</BngCardHeading>
 
-      <div style="padding-left: 2em">
+      <div class="vehicle-info">
         <div class="currentVehicleSection">
           <h3>Vehicle in garage</h3>
-          <div v-if="computerStore.computerData.vehicles && computerStore.computerData.vehicles.length > 0" style="padding-bottom: 0.5em" >
-            <div style="display: flex;">
-              <BngButton style="flex: 0 0 auto; min-width: 0;" @click="switchActiveVehicle(-1)" >{{ "<-" }}</BngButton>
-              <h3 style="flex: 1 1 auto;  min-width: 0; height: 1em;">{{ computerStore.computerData.vehicles[computerStore.activeVehicleIndex].vehicleName }}</h3>
-              <BngButton style="flex: 0 0 auto;  min-width: 0;" @click="switchActiveVehicle(1)" >{{ "->" }}</BngButton>
+          <div v-if="computerStore.computerData.vehicles && computerStore.computerData.vehicles.length">
+            <div class="current-vehicle" style="display: flex">
+              <BngButton
+                class="btn-vehicle-select"
+                v-if="showVehicleSelectorButtons"
+                @click="switchActiveVehicle(-1)"
+                v-bng-on-ui-nav:tab_l.asMouse
+                :icon="icons.arrowLargeLeft"
+                ><BngBinding ui-event="tab_l" deviceMask="xinput"
+              /></BngButton>
+              <h3>{{ computerStore.computerData.vehicles[computerStore.activeVehicleIndex].vehicleName }}</h3>
+              <BngButton
+                class="btn-vehicle-select"
+                v-if="showVehicleSelectorButtons"
+                @click="switchActiveVehicle(1)"
+                v-bng-on-ui-nav:tab_r.asMouse
+                :iconRight="icons.arrowLargeRight"
+                ><BngBinding ui-event="tab_r" deviceMask="xinput"
+              /></BngButton>
             </div>
 
             <div v-for="computerFunction in computerStore.vehicleSpecificComputerFunctions[computerStore.activeInventoryId]">
               <div class="buttonBox">
-                <BngButton :disabled="computerFunction.disabled" @click="computerButtonCallback(computerFunction.id, computerStore.activeInventoryId)">{{ getLabel(computerFunction) }}</BngButton>
+                <BngButton :disabled="computerFunction.disabled" @click="computerButtonCallback(computerFunction.id, computerStore.activeInventoryId)">{{
+                  getLabel(computerFunction)
+                }}</BngButton>
               </div>
             </div>
           </div>
-          <div v-else>
-            No vehicle in garage
-          </div>
+          <div v-else>No vehicle in garage</div>
         </div>
       </div>
 
@@ -36,33 +50,31 @@
       </div>
     </div>
   </BngCard>
+
+  <CareerStatus class="profileStatus" ref="careerStatusRef" />
 </template>
 
 <script setup>
 import { lua } from "@/bridge"
 import { useComputerStore } from "../stores/computerStore"
-import { onMounted, onUnmounted } from "vue"
-import { BngButton, BngCard, BngCardHeading, BngBinding } from "@/common/components/base"
+import { onMounted, onUnmounted, computed } from "vue"
+import { BngButton, BngCard, BngCardHeading, BngBinding, icons } from "@/common/components/base"
 import { default as UINavEvents, UI_EVENT_GROUPS } from "@/bridge/libs/UINavEvents"
 import { vBngOnUiNav } from "@/common/directives"
 import { useUINavScope } from "@/services/uiNav"
+import { CareerStatus } from "@/modules/career/components"
+
 useUINavScope("computer")
 
 const computerStore = useComputerStore()
+const showVehicleSelectorButtons = computed(() => computerStore.computerData.vehicles && computerStore.computerData.vehicles.length > 1)
 
-const computerButtonCallback = (computerFunctionId, inventoryId) => {
-  computerStore.computerButtonCallback(computerFunctionId, inventoryId)
-}
-
-const switchActiveVehicle = (offset) => {
-  computerStore.switchActiveVehicle(offset)
-}
+const computerButtonCallback = computerStore.computerButtonCallback
+const switchActiveVehicle = computerStore.switchActiveVehicle
 
 const getLabel = computerFunction => {
   let label = computerFunction.label
-  if (computerFunction.disabled && computerFunction.disableReason) {
-    label = label + " (" + computerFunction.disableReason + ")"
-  }
+  if (computerFunction.disabled && computerFunction.disableReason) label += " (" + computerFunction.disableReason + ")"
   return label
 }
 
@@ -85,7 +97,32 @@ onUnmounted(kill)
 </script>
 
 <style scoped lang="scss">
-.md-content {
+.vehicle-info {
+  padding-left: 2em;
+}
+.btn-back-container {
+  padding: 5px;
+  text-align: left;
+}
+
+.computer-heading {
+  text-align: left;
+}
+
+.btn-vehicle-select {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.current-vehicle {
+  display: flex;
+  & h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.card-content {
   display: block;
   flex-flow: column;
   position: relative;
@@ -100,13 +137,32 @@ onUnmounted(kill)
   }
 }
 
+.main {
+  overflow: auto;
+}
+
 .currentVehicleSection {
   border: 1px solid rgb(196, 196, 196);
   width: 90%;
+  & div {
+    padding-bottom: 0.5em;
+  }
 }
 
 .buttonBox {
   padding: 10px;
   white-space: pre-wrap;
+}
+
+.profileStatus {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: white;
+  border-radius: var(--bng-corners-2);
+  background-color: rgba(0, 0, 0, 0.7);
+  & :deep(.card-cnt) {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
 }
 </style>

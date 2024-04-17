@@ -5,15 +5,15 @@
             <BngInput type="number" :min="1" :max="360" :step="1" v-model="config.updateTime" :suffix="'seconds'"></BngInput>
         </div>
         <div>
-            <BngPillCheckbox :marked="config.moduleGeneral" @valueChanged="(val) => configChanged('moduleGeneral', val)">
+            <BngPillCheckbox v-model="config.moduleGeneral" @valueChanged="(val) => configChanged('moduleGeneral', val)">
                 General</BngPillCheckbox>
-            <BngPillCheckbox :marked="config.moduleWheels" @valueChanged="(val) => configChanged('moduleWheels', val)">
+            <BngPillCheckbox v-model="config.moduleWheels" @valueChanged="(val) => configChanged('moduleWheels', val)">
                 Wheels</BngPillCheckbox>
-            <BngPillCheckbox :marked="config.moduleEngine" @valueChanged="(val) => configChanged('moduleEngine', val)">
+            <BngPillCheckbox v-model="config.moduleEngine" @valueChanged="(val) => configChanged('moduleEngine', val)">
                 Engine</BngPillCheckbox>
-            <BngPillCheckbox :marked="config.moduleInputs" @valueChanged="(val) => configChanged('moduleInputs', val)">
+            <BngPillCheckbox v-model="config.moduleInputs" @valueChanged="(val) => configChanged('moduleInputs', val)">
                 Inputs</BngPillCheckbox>
-            <BngPillCheckbox :marked="config.modulePowertrain"
+            <BngPillCheckbox v-model="config.modulePowertrain"
                 @valueChanged="(val) => configChanged('modulePowertrain', val)">Powertrain</BngPillCheckbox>
         </div>
         <div class="settings-row">

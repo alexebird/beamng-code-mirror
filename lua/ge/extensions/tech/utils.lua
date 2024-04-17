@@ -35,6 +35,14 @@ local function onUpdate(dtReal, dtSim, dtRaw)
       M.relativeCamCountdown = nil
     end
   end
+  if M.vehicleSystemsCouplingLoadCountdown then
+    M.vehicleSystemsCouplingLoadCountdown = M.vehicleSystemsCouplingLoadCountdown - 1
+    if M.vehicleSystemsCouplingLoadCountdown < 0 then
+      M.vehicleSystemsCouplingLoad()
+      M.vehicleSystemsCouplingLoad = nil
+      M.vehicleSystemsCouplingLoadCountdown = nil
+    end
+  end
   updateUINextRefresh = updateUINextRefresh - dtReal
   if updateUINextRefresh < 0 then
     if M.lidar then
@@ -65,7 +73,7 @@ local function toggleLidar()
     if M.ultrasonic then M.toggleUltrasonic() end
     if M.annotations then M.toggleAnnotations() end
 
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if not veh then
       updateUI('<h2>LIDAR sensor: <span style="color: red">vehicle needed</span></h2>')
       return
@@ -111,7 +119,7 @@ end
 local function toggleUltrasonic()
   updateUI('<h2>Toggling ultrasonic sensors</h2>')
   if M.ultrasonic then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if not veh then
       updateUI('<h2>Ultrasonic sensors: <span style="color: red">please enter a vehicle</span></h2>')
       return
@@ -132,7 +140,7 @@ local function toggleUltrasonic()
     if M.lidar then M.toggleLidar() end
     if M.annotations then M.toggleAnnotations() end
 
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if not veh then
       updateUI('<h2>Ultrasonic sensors: <span style="color: red">vehicle needed</span></h2>')
       return
@@ -228,7 +236,7 @@ local function toggleSecondView()
 
   local output = outputs[M.secondViewOutput].region
   dump(output)
-  local camNodeID, rightHandDrive = core_camera.getDriverData(be:getPlayerVehicle(0))
+  local camNodeID, rightHandDrive = core_camera.getDriverData(getPlayerVehicle(0))
   local view = {
     name = "Second view",
     position = vec3(0, 0, 0),
@@ -243,6 +251,32 @@ local function toggleSecondView()
     borderless = true
   }
   extensions.tech_multiscreen.addView(view)
+end
+
+local function toggleVehicleSystemsCoupling()
+  updateUI('<h2>Toggling vehicle coupling</h2>')
+  if M.vehicleSystemsCoupling then
+    local veh = be:getObjectByID(M.vehicleSystemsCoupling)
+    updateUI('<h2>Vehicle coupling: OFF</h2>')
+
+    if veh then
+      veh:queueLuaCommand("extensions.unload('tech_vehicleSystemsCoupling')")
+    end
+    M.vehicleSystemsCoupling = nil
+  else
+    local veh = getPlayerVehicle(0)
+    if not veh then
+      updateUI('<h2>Vehicle coupling: <span style="color: red">vehicle needed</span></h2>')
+      return
+    end
+
+    M.vehicleSystemsCoupling = veh:getId()
+    M.vehicleSystemsCouplingLoadCountdown = 20 -- delay loading by a few frames so the UI is updated before the controller blocking
+    M.vehicleSystemsCouplingLoad = function ()
+      veh:queueLuaCommand("extensions.load('tech/vehicleSystemsCoupling'); tech_vehicleSystemsCoupling.startCoupling()")
+    end
+    updateUI('<h2>Vehicle coupling: ON</h2>')
+  end
 end
 
 
@@ -262,5 +296,6 @@ M.toggleLidar = toggleLidar
 M.toggleAnnotations = toggleAnnotations
 M.toggleUltrasonic = toggleUltrasonic
 M.toggleSecondView = toggleSecondView
+M.toggleVehicleSystemsCoupling = toggleVehicleSystemsCoupling
 
 return M

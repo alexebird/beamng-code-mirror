@@ -13,9 +13,32 @@
     width: 27%;
     height: 100%
   }
+
+  .vehconfig-new-ui {
+    position: absolute;
+    display: inline-block;
+    top: 0.05em;
+    left: calc(600px + 0.05em);
+    width: auto;
+    height: auto;
+    padding: 0.75em 1em;
+    border-radius: 0.3em;
+    text-align: center;
+    background-color: rgba(0,0,0, 0.5);
+    font-weight: 600;
+    color: #fff;
+  }
+  .vehconfig-new-ui:hover,
+  .vehconfig-new-ui:focus {
+    background-color: rgba(0,0,0, 0.7);
+  }
 </style>
 
-<md-content bng-frustum-mover="left" layout="column" id="contentNavVehicleconfig" class="transparency" bng-blur="true" style="width: 600px;">
+<div ng-if="!$state.current.name.startsWith('menu.vehicleconfig.vue')" class="vehconfig-new-ui" bng-blur="true" ui-sref="menu.vehicleconfig.vue">
+  Try new UI
+</div>
+
+<md-content ng-if="!$state.current.name.startsWith('menu.vehicleconfig.vue')" bng-frustum-mover="left" layout="column" id="contentNavVehicleconfig" class="transparency" bng-blur="true" style="width: 600px;">
   <md-tabs md-selected="model.selected" md-dynamic-height="false" style="bottom:auto" layout="column" class="md-primary" md-no-ink md-stretch-tabs="always" md-no-pagination="false">
     <md-tab label="{{:: 'ui.vehicleconfig.parts' | translate}}" md-on-deselect="vehicleconfig.deselectPart(false)" ui-sref="menu.vehicleconfig.parts"></md-tab>
     <md-tab label="{{:: 'ui.vehicleconfig.tuning' | translate}}" ui-sref="menu.vehicleconfig.tuning"></md-tab>

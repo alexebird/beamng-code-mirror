@@ -42,7 +42,7 @@ local function onPreRender()
   if not getOrCreateCameraToWindow or not requestCameraToWindowRender then return end
   if tableIsEmpty(M.views) then return end
 
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   local p0 = Point2F(0, 0)
   if veh then
     local vehicleRotation = quatFromDir(veh:getDirectionVector(), veh:getDirectionVectorUp())

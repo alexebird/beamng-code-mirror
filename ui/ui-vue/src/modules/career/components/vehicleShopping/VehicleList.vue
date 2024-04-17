@@ -1,8 +1,8 @@
 <template>
   <!--div class="vehicle-shop-wrapper"-->
-  <bng-card class="vehicle-shop-wrapper" v-bng-blur bng-ui-scope="vehicleList">
+  <BngCard class="vehicle-shop-wrapper" v-bng-blur bng-ui-scope="vehicleList">
     <div class="address-bar">
-      <bng-button v-bng-on-ui-nav:back,menu.asMouse @click="close" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</bng-button>
+      <BngButton v-bng-on-ui-nav:back,menu.asMouse @click="close" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
       <div class="spacer"></div>
       <div class="field">
         <span>{{ getHeaderText() }}</span>
@@ -27,7 +27,7 @@
         />
       </div>
     </div>
-  </bng-card>
+  </BngCard>
   <!--/div-->
 </template>
 
@@ -72,7 +72,6 @@ function switchLayout(key) {
 </script>
 
 <style scoped lang="scss">
-@import "@/styles/modules/mixins";
 .vehicle-shop-wrapper {
   flex: 1 auto;
   min-height: 0;

@@ -15,6 +15,7 @@ local electricsNameLevelIndex
 local lastCompressionBrakeCoef = -1
 local compressionBrakeLevels
 local compressionBrakeLevelActiveIndex
+local didSetDrivingAggressionOverride
 
 local function setCompressionBrakeCoef(coef)
   compressionBrakeCoef = clamp(coef, 0, 1)
@@ -48,6 +49,14 @@ local function updateGFX(dt)
     controlledEngine:setCompressionBrakeCoef(compressionBrakeCoefActual)
     lastCompressionBrakeCoef = compressionBrakeCoefActual
   end
+
+  if compressionBrakeCoefActual > 0 then --always override the aggression (this can impact other systems potentially)
+    controller.mainController.setAggressionOverride(1)
+    didSetDrivingAggressionOverride = true
+  elseif didSetDrivingAggressionOverride then --but only unset the override once IF we did set it before to at least give other systems a chance of using it as well
+    controller.mainController.setAggressionOverride(0)
+    didSetDrivingAggressionOverride = false
+  end
   electrics.values[electricsNameSetting] = compressionBrakeCoef
   electrics.values[electricsNameActual] = compressionBrakeCoefActual
   electrics.values[electricsNameIsEnabled] = compressionBrakeCoef > 0
@@ -79,6 +88,7 @@ local function init(jbeamData)
   clutchDisableElectricsName = jbeamData.clutchDisableElectricsName or "clutchRatio"
 
   compressionBrakeCoef = 0
+  didSetDrivingAggressionOverride = false
 end
 
 M.init = init

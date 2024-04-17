@@ -16,14 +16,14 @@ C.author = 'BeamNG'
 
 C.pinSchema = {
   { dir = 'in', type = 'number', name = 'cur', description = 'Current checkpoint. If not set, will clear the app.' },
-  { dir = 'in', type = 'number', name = 'max', description = 'Maximum laps.' },
+  { dir = 'in', type = 'number', name = 'max', description = 'Maximum checkpoints.' },
 }
 C.tags = {}
 
 
 function C:work()
   if self.pinIn.cur.value then
-    guihooks.trigger('WayPointCustom', string.format("Checkpoint %d / %d",self.pinIn.cur.value, self.pinIn.max.value))
+    guihooks.trigger('WayPointChange', {current = self.pinIn.cur.value, count = self.pinIn.max.value})
   else
     guihooks.trigger('WayPointReset')
   end

@@ -63,10 +63,6 @@ local settleTime = 1
 
 local CMU = nil
 
-local function round(value)
-  return floor(value + 0.5)
-end
-
 -- switches to next vehicle
 local function killswitch()
   --print(" === killswitch ===")

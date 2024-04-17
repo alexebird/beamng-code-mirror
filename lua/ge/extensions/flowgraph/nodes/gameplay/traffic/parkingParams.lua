@@ -51,7 +51,7 @@ function C:workOnce()
   end
 
   if self.pinIn.debugLevel.value ~= nil then
-    gameplay_parking.setDebugLevel(math.floor(self.pinIn.debugLevel.value))
+    gameplay_parking.debugLevel = self.pinIn.debugLevel.value
   end
 
   if next(self.vars) then

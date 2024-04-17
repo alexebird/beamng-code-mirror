@@ -34,6 +34,9 @@ local function process(vehicle)
 
     tableMerge(interactionGroups, j.interactionGroups or {})
     tableMerge(actionCategories, j.actionCategories or {})
+    for k,action in pairs(j.actions or {}) do
+      action.source = filename
+    end
     tableMerge(actions, j.actions or {})
 
     ::continue::

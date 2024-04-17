@@ -35,7 +35,7 @@ print = function(...)
   log("A", "print", tostring(...))
   -- log('A', "print", debug.traceback()) -- find where print is used
 end
-log("I", "", "============== Game Engine Lua VM started ==============")
+log("I", "", "============== GELUA VM loading ===============")
 
 
 require('mathlib')
@@ -301,7 +301,7 @@ local startupExtensions = {
   'core_settings_settings', 'core_sounds', 'core_vehicle_colors', 'core_vehicle_manager', 'core_vehicles', 'ui_imgui',
   'ui_apps', 'ui_audio', 'ui_flowgraph_editor', 'ui_visibility', 'campaign_campaignsLoader', 'career_branches',
   'career_career', 'career_saveSystem', 'editor_main', 'editor_veMain', 'freeroam_freeroam', 'gameplay_garageMode',
-  'gameplay_missions_missions', 'gameplay_missions_progress', 'gameplay_missions_unlocks', 'gameplay_quests_quests',
+  'gameplay_missions_missions', 'gameplay_missions_progress', 'gameplay_missions_unlocks', 'gameplay_missions_missionScreen',
   'gameplay_statistic', 'render_hdr', 'scenario_quickRaceLoader', 'scenario_scenariosLoader'
   -- DO NOT ADD MORE EXTENSIONS TO THIS LIST unless it's required by game startup procedure. Instead, try the following:
   --   To load an extension on demand:               extensions.load("my_extension")
@@ -312,13 +312,14 @@ local startupExtensions = {
 
 -- Extensions that get loaded by various game modes (freeroam, etc) and in other circumstances too:
 local presetExtensions = {
-  'core_checkpoints', 'core_environment', 'core_extendedTriggers', 'core_forest', 'core_gameContext',
+  'core_checkpoints', 'core_environment', 'core_forest', 'core_gameContext',
   'core_groundMarkers', 'core_multiSpawn', 'core_quickAccess', 'core_recoveryPrompt', 'core_terrain',
-  'core_trafficSignals', 'core_trailerRespawn', 'core_vehicleBridge', 'core_vehiclePoolingManager', 'core_weather',
+  'core_trafficSignals', 'core_trailerRespawn', 'core_vehicleBridge', 'core_vehiclePoolingManager', 'core_vehicle_mirror', 'core_weather',
   'freeroam_bigMapMode', 'freeroam_bigMapPoiProvider', 'freeroam_facilities', 'freeroam_facilities_fuelPrice',
-  'freeroam_gasStations', 'gameplay_city', 'gameplay_markerInteraction', 'gameplay_missions_missionManager',
-  'gameplay_missions_startTrigger', 'gameplay_parking', 'gameplay_rawPois', 'gameplay_traffic', 'gameplay_walk',
-  'trackbuilder_trackBuilder', 'ui_fadeScreen', 'ui_missionInfo', 'util_richPresence'
+  'freeroam_gasStations', 'freeroam_specialTriggers', 'gameplay_city', 'gameplay_markerInteraction',
+  'gameplay_missions_missionManager', 'gameplay_missions_startTrigger', 'gameplay_parking', 'gameplay_rawPois',
+  'gameplay_traffic', 'gameplay_walk', 'trackbuilder_trackBuilder', 'ui_fadeScreen', 'ui_missionInfo', 'util_richPresence',
+  'freeroam_crashCamModeLoader', 'gameplay_speedTraps', 'gameplay_speedTrapLeaderboards', 'gameplay_drift_general'
 }
 
 local cmdlineLevelLoadExtensions = {} -- extensions indicated from command line arguments
@@ -462,7 +463,7 @@ function luaPreRender(dtReal, dtSim, dtRaw)
   if worldReadyState == 1 then
     -- log('I', 'gamestate', 'Checking if vehicle is done rendering material') -- this is far too verbose and seriously slows down the debugging
     luaPreRenderMaterialCheckDuration = luaPreRenderMaterialCheckDuration + dtRaw
-    local playerVehicle = be:getPlayerVehicle(0) or nil
+    local playerVehicle = getPlayerVehicle(0) or nil
 
     local allReady = (not playerVehicle) or (playerVehicle and playerVehicle:isRenderMaterialsReady())
     if allReady or luaPreRenderMaterialCheckDuration > 5 then
@@ -476,6 +477,20 @@ function luaPreRender(dtReal, dtSim, dtRaw)
     end
   end
   if geluaProfiler then geluaProfiler:add("luaPreRender ending") end
+end
+
+local alreadyWarnedFSErrors = false
+function checkFSErrors()
+  if alreadyWarnedFSErrors then return end
+  alreadyWarnedFSErrors = true
+  local fsInfo = Engine.Platform.getFSInfo()
+  for k,v in pairs(fsInfo) do
+    if v then
+      guihooks.trigger("toastrMsg", {type="error", title="ui.fsError.title", msg="ui.fsError.msg", config={closeButton=true, timeOut=0, extendedTimeOut=0}})
+      log("E", "", "Filesystem errors detected. This typically means a corrupted install and can lead to missing content/levels/vehicles/uiapps/etc and generally broken behaviour.\n - If you are a user please follow the instructions at https://go.beamng.com/verify\n - If you are a dev/support debugging this problem, please check logs during startup, there might be errors with additional information\nDebug data: "..dumps(fsInfo))
+      return
+    end
+  end
 end
 
 function updateFirstFrame()
@@ -607,6 +622,7 @@ function vehicleSwitched(oldVehicle, newVehicle, player)
   -- local newinfo = newVehicle and ("id "..dumps(nid).." ("..newVehicle:getPath()..")") or dumps(newVehicle)
   --log('I', 'main', "Player #"..dumps(player).." vehicle switched from: "..oldinfo.." to: "..newinfo)
   --Steam.setStat('meters_driven', 1)
+  invalidatePlayerVehicles()
   extensions.hook('onVehicleSwitched', oid, nid, player)
   guihooks.trigger('VehicleFocusChanged', {id = nid, mode = true})
 end
@@ -679,6 +695,11 @@ function replayStartLevel(levelPath)
   core_replay.startLevel(levelPath)
 end
 
+-- called by C++ (not dead code)
+function CEFTypingLostFocus()
+  guihooks.trigger('CEFTypingLostFocus')
+end
+
 function exportPersistentData()
   if not be then return end
   local d = serializePackages()
@@ -729,10 +750,21 @@ function enableCommunityTranslations()
   updateTranslations()
 end
 
-function onInstabilityDetected(jbeamFilename)
+function onInstabilityDetected(vid)
+  local v = be:getObjectByID(vid)
+  local jbeamFilename = v:getJBeamFilename()
   simTimeAuthority.pause(true)
-  log('E', "", "Instability detected for vehicle " .. tostring(jbeamFilename))
+  log('E', "", "Instability detected for vehicle ID: "..dumps(vid)..", jbeamFilename: "..dumps(jbeamFilename))
+  log("E", "", "Information about all vehicles:")
+  for vid,v in vehiclesIterator() do
+    log("E", "", " - Vehicle ID: "..dumps(vid)..", jbeamFilename: "..v:getJBeamFilename()..", position: "..dumps(v:getPosition())..", partConfig: "..dumps(v.partConfig))
+  end
   ui_message({txt="vehicle.main.instability", context={vehicle=tostring(jbeamFilename)}}, 10, 'instability', "warning")
+end
+
+function onSpawnError(status, jbeamFilename)
+  log("E", "onSpawnError", "Error "..dumps(status).." spawning vehicle "..dumps(jbeamFilename))
+  guihooks.trigger("toastrMsg", {type="error", title="vehicle.main.spawnError.title", msg="vehicle.main.spawnError.msg", context={status=status, vehicle=jbeamFilename}, config={closeButton=true, timeOut=0, extendedTimeOut=0}})
 end
 
 function resetGameplay(playerID)
@@ -906,8 +938,6 @@ function onGameEngineStartup()
     mainEventManager:postEvent("onStart", 0)
   end
 
-  log("I", "main", "============== Engine initialized ==============")
-
   -- Automatically start up the appropriate editor, if any
   if getConsoleBoolVariable("$startWorldEditor") then
     local canvas = scenetree.findObject("Canvas")
@@ -918,6 +948,7 @@ function onGameEngineStartup()
       canvas:setContent(editorChooseLevelGui)
     end
   end
+  log("I", "", "============== GELUA VM loaded ================")
 end
 
 function onLuaReloaded()
@@ -925,7 +956,7 @@ function onLuaReloaded()
   clientCore.reloadCore()
   local client_init = require("client/init")
   client_init.reloadClient()
-  log("I", "main", "============== Engine reloaded ==============")
+  log("I", "", "============== GELUA VM reloaded ==============")
 end
 
 function updateLoadingProgress(val, txt)
@@ -959,8 +990,6 @@ end
 -- DEPRECATED FUNCTION: if we have released v0.32 or later and these functions still exist, please take a minute to remove them:
 function loadGameModeModules(...)
   log('W','','loadGameModeModules(xxx) will be deprecated soon. Instead, replace with these calls:\nunloadAutoExtensions()\nloadPresetExtensions()\nextensions.load(xxx) -- you can omit if no parameter was passed')
-  log('W','','loadGameModeModules(xxx) was called from:')
-  print(debug.tracesimple())
 
   unloadAutoExtensions()
   loadPresetExtensions()
@@ -970,8 +999,6 @@ end
 -- DEPRECATED FUNCTION: if we have released v0.32 or later and these functions still exist, please take a minute to remove them:
 function registerCoreModule(extensionName)
   log('W','',"registerCoreModule("..dumps(extensionName).." will be deprecated soon. Instead, replace with: setExtensionUnloadMode(M, \"manual\")")
-  log('W','','registerCoreModule was called from:')
-  print(debug.tracesimple())
 
   extensionName = extensions.luaPathToExtName(extensionName)
   setExtensionUnloadMode(extensionName, "manual")

@@ -25,8 +25,11 @@ function C:init()
     end,
     fleePolice = function ()
       if self.veh.isAi then
+        local agg = 0.7 + math.random() * 0.1
         be:getObjectByID(self.veh.id):queueLuaCommand('controller.setFreeze(0)')
         be:getObjectByID(self.veh.id):queueLuaCommand('ai.setMode("flee")')
+        be:getObjectByID(self.veh.id):queueLuaCommand('ai.setAggressionMode("off")')
+        be:getObjectByID(self.veh.id):queueLuaCommand('ai.setAggression('..agg..')')
         be:getObjectByID(self.veh.id):queueLuaCommand('ai.driveInLane("off")')
       end
       self.veh:modifyRespawnValues(1200, 50)
@@ -39,7 +42,7 @@ function C:init()
       self.flags.freeze = 1
       self.state = 'stop'
     end,
-    postArrest = function ()
+    clear = function ()
       be:getObjectByID(self.veh.id):queueLuaCommand('controller.setFreeze(0)')
       self.flags.freeze = nil
       self.flags.flee = nil

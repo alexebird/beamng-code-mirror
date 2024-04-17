@@ -90,7 +90,8 @@ local function loadSites(file)
       file = dir.."city.sites.json"
     end
   end
-  if not file then return end
+
+  if not file or not FS:fileExists(file) then return end
 
   sites = gameplay_sites_sitesManager.loadSites(file)
 end
@@ -104,7 +105,7 @@ local function reset()
 end
 
 local function onClientStartMission(levelPath)
-  reset()
+  loadSites()
 end
 
 local function onClientEndMission(levelPath)

@@ -24,7 +24,7 @@ function C:work()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     source = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    --source = be:getPlayerVehicle(0)
+    --source = getPlayerVehicle(0)
     self.pinOut.flow.value = true
   end
   if source then

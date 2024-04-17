@@ -10,7 +10,6 @@ C.name = 'Frame Delay'
 C.icon = "timer"
 C.description = "Will output flow after n frames after having been triggered by an inpulse"
 C.category = 'logic'
-C.todo = ""
 
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'flow', description = 'Inflow for this node. Need continious flow.' },
@@ -19,10 +18,7 @@ C.pinSchema = {
   { dir = 'out', type = 'flow', name = 'flow', description = 'Outflow for this node.' },
 }
 
-
 C.tags = {'delay','wait','pause','frame'}
-
-
 
 function C:init(mgr, ...)
   self.counter = 0

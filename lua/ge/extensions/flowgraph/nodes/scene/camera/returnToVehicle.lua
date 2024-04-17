@@ -17,7 +17,7 @@ C.color = ui_flowgraph_editor.nodeColors.camera
 C.icon = ui_flowgraph_editor.nodeIcons.camera
 
 function C:workOnce()
-  if be:getPlayerVehicle(0) then
+  if getPlayerVehicle(0) then
     commands.setGameCamera()
   else
     log('W', logTag, 'No active vehicle to return camera to!')

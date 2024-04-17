@@ -1,15 +1,15 @@
 <template>
   <BngCard class="tuningCard" bng-ui-scope="tuning" ref="elCard" v-bng-on-ui-nav:back,menu="close">
-    <Tuning ref="elTuning" :button-target="elCard && elCard.buttonsContainer" :close-button="true" />
+    <BngButton @click="close" accent="attention" style="align-self: flex-start"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
+    <Tuning ref="elTuning" :button-target="elCard && elCard.buttonsContainer" :close-button="false" />
     <template #buttons></template>
   </BngCard>
 </template>
 
 <script setup>
 import { ref } from "vue"
-import { BngCard } from "@/common/components/base"
-// import Tuning from "../components/tuning/Tuning.vue"
-import Tuning from "../../vehicleConfig/components/Tuning.vue"
+import { BngCard, BngButton, BngBinding } from "@/common/components/base"
+import Tuning from "@/modules/vehicleConfig/components/Tuning.vue"
 import { vBngOnUiNav } from "@/common/directives"
 
 import { useUINavScope } from "@/services/uiNav"

@@ -101,7 +101,7 @@ function C:setupAI()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     self.veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    self.veh = be:getPlayerVehicle(0)
+    self.veh = getPlayerVehicle(0)
   end
   if not self.veh then return end
   local loopCount = self.pinIn.loopCount.value or 0

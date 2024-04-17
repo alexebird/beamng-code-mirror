@@ -5,6 +5,7 @@
 local M = {}
 local logTag = 'MissionInfo'
 M.buttonsTable = nil
+M.openState = nil
 
 M.performAction = function(actionName)
   -- log('I', logTag, tostring(actionName) .. " action triggered. Looking for " .. tostring(actionName) .. " action in "..dumps(M.buttonsTable))
@@ -50,9 +51,13 @@ M.openActivityAcceptDialogue = function(content)
     M.buttonsTable[i] = elem.buttonFun
     elem.missionInfoPerformActionIndex = i
   end
-
+  extensions.hook('onActivityAcceptUpdate', content)
   guihooks.trigger('ActivityAcceptUpdate', content)
   Engine.Audio.playOnce('AudioGui','event:>UI>Missions>Info_Open')
+
+  local oldState = M.openState
+  M.openState = "opened"
+  extensions.hook('onMissionInfoChangedState', oldState, M.openState, content)
 end
 
 M.closeDialogue = function()
@@ -60,6 +65,10 @@ M.closeDialogue = function()
   if am then am:pop() end
   M.buttonsTable = nil
   guihooks.trigger('MissionInfoUpdate', nil)
+
+  local oldState = M.openState
+  M.openState = "closed"
+  extensions.hook('onMissionInfoChangedState', oldState, M.openState)
 end
 
 return M

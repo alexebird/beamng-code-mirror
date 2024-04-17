@@ -25,13 +25,13 @@ local lpack = require("lpack")
 local M = {}
 M.type = "auxiliary"
 
+local logTag = 'vehicleSystemsCoupling'
+
 local abs = math.abs
 
 -- The UDP socket properties.
 local udpSendSocket                     -- The UDP socket for sending data from Lua to Simulink.
 local udpRecvSocket                     -- The UDP socket for sending data from Simulink to Lua.
-local isUDPSendSocketConnected = false  -- The flag which indicates if the UDP Send socket is connected or not.
-local isUDPRecvSocketConnected = false  -- The flag which indicates if the UDP Receive socket is connected or not.
 
 -- Properties used to control the wheels. These are internal and should not be adjusted by the user.
 local brakeTorques = {}                 -- The brake torque values for each wheel, in N-m.
@@ -48,8 +48,6 @@ local sendSkips = 0                     -- The number of updates to skip between
 local unanswered = 0                    -- The number of unanswered received messages we are allowed to have in the chosen window size.
 local id = 0                            -- The unique Id number for messages sent over the sockets.
 local blockingTimeoutLength = 2.0       -- The timeout size (in seconds) when blocking on message receives.
-local timeSinceLastValidMessage = 0.0   -- Counts the time since the last valid message was received.
-local resetTime = 2.0                   -- The time at which to reset the max Id counter, after waiting this long for a valid message.
 local messageToSimulink = {}            -- The table used to store the outgoing message to be sent to Simulink, via UDP.
 local decodedMessageFromSimulink = {1}  -- The table used to store the decoded message from Simulink.
 
@@ -205,25 +203,19 @@ end
 
 -- Sends a message to Simulink, via the UDP send socket.
 local function sendUDP()
-  if isUDPSendSocketConnected then
-    local serialisedMsg = lpack.encodeDoubleArray(messageToSimulink)
-    udpSendSocket:send(serialisedMsg)
-    sendCtr = sendCtr + 1
-    stepsSinceLastSend = 0
+  local serialisedMsg = lpack.encodeDoubleArray(messageToSimulink)
+  udpSendSocket:send(serialisedMsg)
+  sendCtr = sendCtr + 1
+  stepsSinceLastSend = 0
 
-    if debugFile then
-      csvSendData:add(os.clockhp(), unpack(messageToSimulink))
-    end
+  if debugFile then
+    csvSendData:add(os.clockhp(), unpack(messageToSimulink))
   end
 end
 
 -- Attempts to receive a message from Simulink, from the UDP receive socket.
 local function receiveUDP()
-  if isUDPRecvSocketConnected then
-    return udpRecvSocket:receive()
-  else
-    return nil
-  end
+  return udpRecvSocket:receive()
 end
 
 -- Handles received message. Sets the appropriate vehicle system properties, using data which has arrived from Simulink.
@@ -239,9 +231,6 @@ local function handleMessageReceive()
   end
 
   maxRecvId = decodedMessageFromSimulink[1]
-
-  -- A new, valid message has been received, so we can process it. Increment the received messages tally and reset the valid message timer.
-  timeSinceLastValidMessage = 0.0
 
   -- Bank A: Vehicle values.
   local throttleInput = decodedMessageFromSimulink[2]
@@ -368,27 +357,31 @@ local function handleMessageReceive()
   return true
 end
 
--- The controller initialisation function. This is called once when the controller is loaded, and sets up the UDP sockets for all future communication.
-local function init(jbeamData)
+local function initialSetup(config)
+  if config then
+    -- get config overrides or keep defaults
+    udpSendIP = config.udpSendIP or udpSendIP
+    udpReceiveIP = config.udpReceiveIP or udpReceiveIP
+    udpSendPort = config.udpSendPort or udpSendPort
+    udpReceivePort = config.udpReceivePort or udpReceivePort
+    simulinkTime = config.simulinkTime or simulinkTime
+    pingTime = config.pingTime or pingTime
+    debugFile = config.debugFile or debugFile
+  end
+
   udpSendSocket = socket.udp()      -- The UDP socket for sending data from Lua to Simulink.
   udpRecvSocket = socket.udp()      -- The UDP socket for sending data from Simulink to Lua.
   -- Set up the UDP send socket.
-  isUDPSendSocketConnected = false
   local result, error = udpSendSocket:setpeername(udpSendIP, udpSendPort)
-  if result and not error then
-    isUDPSendSocketConnected = true
-  else
-    log('E', 'simulink', 'UDP send socket could not be set up.')
+  if error then
+    log('E', logTag, 'UDP send socket could not be set up.')
   end
 
   -- Set up the UDP receive socket. We always start with a non-blocking socket (by using zero timeout).
-  isUDPRecvSocketConnected = false
   udpRecvSocket:settimeout(0.0)
   local result, error = udpRecvSocket:setsockname(udpReceiveIP, udpReceivePort)
-  if result and not error then
-    isUDPRecvSocketConnected = true
-  else
-    log('E', 'simulink', 'UDP receive socket could not be set up.')
+  if error then
+    log('E', logTag, 'UDP receive socket could not be set up.')
   end
 
   -- Set the drive mode to start with pedal input control.
@@ -397,15 +390,25 @@ local function init(jbeamData)
   -- Compute the coupling control parameters.
   sendSkips = math.ceil(simulinkTime / physicsDt) - 1
   unanswered = math.ceil(pingTime / simulinkTime)
-  log('I', 'simulink', 'Ping time = ' .. pingTime .. ' , Simulink fixed step size = ' .. string.format("%.6g", (sendSkips + 1) * physicsDt))
-
-  debugFile = jbeamData.debugFile
+  log('I', logTag, 'Ping time = ' .. pingTime .. ' , Simulink fixed step size = ' .. string.format("%.6g", (sendSkips + 1) * physicsDt))
 
   -- Create CSV file
   if debugFile then
     local sendIndexes = linspace(sendLength)
     local receiveIndexes = linspace(receiveLength)
     createCSV(sendIndexes, receiveIndexes)
+  end
+end
+
+-- The controller initialisation function. This is called once when the controller is loaded, and sets up the UDP sockets for all future communication.
+local function init(jbeamData)
+  debugFile = jbeamData.debugFile
+  if not jbeamData.loadedByExtension then
+    -- we always want this the lifetime of the controller be handled by the extension,
+    -- as that allows us to stop the coupling on Lua reload
+    extensions.load('tech/vehicleSystemsCoupling')
+    tech_vehicleSystemsCoupling.startCoupling({skipControllerLoad = true})
+    initialSetup()
   end
 end
 
@@ -427,7 +430,7 @@ local function update(dt)
   -- Determine if we should skip sending in this cycle.
   if stepsSinceLastSend >= sendSkips then
     -- We will send in this cycle. Check if we have reached the window width. This is when we have received the same number of messages as we have sent out.
-    
+
     if sendCtr - maxRecvId < unanswered then
       -- We have not yet reached the window width, so do a non-blocking receive and then send a new message.
       udpRecvSocket:settimeout(0.0)
@@ -456,7 +459,7 @@ local function update(dt)
       end
     end
   else
-    -- We must skip sending in this cycle, so only perform a non-blocking receive.    
+    -- We must skip sending in this cycle, so only perform a non-blocking receive.
     udpRecvSocket:settimeout(0.0)
     local rawMsgFromSimulink = receiveUDP()
     if rawMsgFromSimulink ~= nil then
@@ -468,20 +471,20 @@ local function update(dt)
   end
 end
 
-local function reset()
-  udpSendSocket:close()
-  udpRecvSocket:close()
-
+local function stopCoupling()
+  log('I', logTag, 'Stopped coupling.')
   if debugFile then
     saveCSV()
   end
 
-  controller.unloadControllerExternal('vehicleSystemsCoupling')
+  udpSendSocket:close()
+  udpRecvSocket:close()
 end
 
 -- Public interface.
 M.init = init
-M.reset = reset
+M.initialSetup = initialSetup
+M.stopCoupling = stopCoupling
 
 -- Functions triggered by updates.
 M.updateWheelsIntermediate = updateWheelsIntermediate

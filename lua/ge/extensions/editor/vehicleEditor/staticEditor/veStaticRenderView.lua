@@ -44,7 +44,7 @@ local rgbCols = {ColorF(1,0,0,1), ColorF(0,1,0,1), ColorF(0,0,1,1)}
 
 -- Variables
 local wndsData = {}
-local targetAllMainRVs = DebugDrawerTargetRenderViews(false)
+--local targetAllMainRVs = DebugDrawerTargetRenderViews(false)
 local hoveredWndID = -1
 local focusedWndID = -1
 local tmpRect = RectI(0,0,0,0)
@@ -226,11 +226,11 @@ local function destroyRenderView(id)
       RenderViewManagerInstance:destroyView(wndData.mainRVData.renderView)
       wndData.mainRVData.renderView = nil
 
-      local rvNames = {}
-      for k,v in ipairs(wndsData) do
-        table.insert(rvNames, v.mainRVData.name)
-      end
-      targetAllMainRVs:setTargets(false, rvNames)
+      --local rvNames = {}
+      --for k,v in ipairs(wndsData) do
+      --  table.insert(rvNames, v.mainRVData.name)
+      --end
+      --targetAllMainRVs:setTargets(false, rvNames)
     end
     if wndData.axisGizmoRVData.renderView then
       RenderViewManagerInstance:destroyView(wndData.axisGizmoRVData.renderView)
@@ -436,7 +436,7 @@ local function onPreRender()
     if wndData and wndData.mainRVData.renderView and wndData.axisGizmoRVData.renderView then
       -- Main Render View
       local mainRVData = wndData.mainRVData
-      debugDrawer:setTargetRenderViews(mainRVData.targetRVs)
+      --debugDrawer:setTargetRenderViews(mainRVData.targetRVs)
 
       local gridSize = 10 -- meters
       local gridBlockSize = 0.25
@@ -458,10 +458,10 @@ local function onPreRender()
 
       -- Axis Gizmo Render View
       local axisGizmoRVData = wndData.axisGizmoRVData
-      debugDrawer:setTargetRenderViews(axisGizmoRVData.targetRVs)
+      --debugDrawer:setTargetRenderViews(axisGizmoRVData.targetRVs)
       _selectAndDrawAxisArrows(wndID)
 
-      debugDrawer:clearTargetRenderViews()
+      --debugDrawer:clearTargetRenderViews()
     end
   end
 end
@@ -712,22 +712,22 @@ local function onEditorGui(dt)
           local mainRVName = mainRVData.name
           mainRVData.renderView = RenderViewManagerInstance:getOrCreateView(mainRVName)
           mainRVData.renderView.namedTexTargetColor = mainRVName
-          mainRVData.targetRVs = DebugDrawerTargetRenderViews(false, {mainRVName})
+          --mainRVData.targetRVs = DebugDrawerTargetRenderViews({mainRVName})
           mainRVData.renderView:enterFocusObjectsMode()
 
           local axisGizmoRVData = wndData.axisGizmoRVData
           local axisGizmoRVName = axisGizmoRVData.name
           axisGizmoRVData.renderView = RenderViewManagerInstance:getOrCreateView(axisGizmoRVName)
           axisGizmoRVData.renderView.namedTexTargetColor = axisGizmoRVName
-          axisGizmoRVData.targetRVs = DebugDrawerTargetRenderViews(false, {axisGizmoRVName})
+          --axisGizmoRVData.targetRVs = DebugDrawerTargetRenderViews({axisGizmoRVName})
           axisGizmoRVData.renderView:enterFocusObjectsMode()
 
           -- Set targetAllMainRVs to just main renderviews for the debugdrawing into all main renderviews
-          local rvNames = {}
-          for k,v in ipairs(wndsData) do
-            table.insert(rvNames, v.mainRVData.name)
-          end
-          targetAllMainRVs:setTargets(false, rvNames)
+          --local rvNames = {}
+          --for k,v in ipairs(wndsData) do
+          --  table.insert(rvNames, v.mainRVData.name)
+          --end
+          --targetAllMainRVs:setTargets(false, rvNames)
         end
       else -- Window closed
         -- Hacky way to remove renderview :(
@@ -760,10 +760,6 @@ local function destroyAllRenderViews()
       destroyRenderView(id)
     end
   end
-end
-
-local function getTargetAllMainRVs()
-  return targetAllMainRVs
 end
 
 local function onEditorHeadlessChange(enabled, toolName)
@@ -811,7 +807,6 @@ M.onEditorGui = onEditorGui
 M.createRenderViewUI = createRenderViewUI
 M.getMainRenderViewMouseRay = getMainRenderViewMouseRay
 M.destroyAllRenderViews = destroyAllRenderViews
-M.getTargetAllMainRVs = getTargetAllMainRVs
 
 M.onEditorHeadlessChange = onEditorHeadlessChange
 M.onEditorInitialized = onEditorInitialized

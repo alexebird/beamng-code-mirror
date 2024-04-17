@@ -23,7 +23,7 @@ C.legacyPins = {
     vehID = 'vehId'
   }
 }
-C.tags = {'rotation'}
+C.tags = {'replay'}
 
 function C:init()
   self:_setupTimeline(5,10)

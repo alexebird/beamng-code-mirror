@@ -4,7 +4,6 @@
 
 local im  = ui_imgui
 
-
 local C = {}
 
 C.name = 'Mini Graph'
@@ -13,7 +12,6 @@ C.color = ui_flowgraph_editor.nodeColors.debug
 C.icon = ui_flowgraph_editor.nodeIcons.debug
 C.category = 'repeat_instant'
 
-C.todo = "Improve automatic scaling, otherwise works fine"
 C.pinSchema = {
   {dir = 'in', type = 'number', name = 'value', description = 'Value to be logged into the graph'},
 }

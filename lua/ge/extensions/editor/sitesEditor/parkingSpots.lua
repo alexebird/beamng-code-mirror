@@ -6,6 +6,7 @@ local im = ui_imgui
 local transformUtil
 local psVehScales = {
   Car = vec3(2.5, 6, 3),
+  LargeCar = vec3(3.25, 8, 4),
   Bus = vec3(4, 14, 8)
 }
 
@@ -24,6 +25,13 @@ function C:init(sitesEditor, key)
 end
 
 function C:setSites(sites)
+  for _, ps in ipairs(sites.parkingSpots.sorted) do -- fixes rotations due to auto rotation adjustments of multispots
+    if ps.rotOrig then
+      ps.rot = quat(ps.rotOrig)
+      ps.rotOrig = nil
+    end
+  end
+
   self.sites = sites
   self.list = sites[self.key]
   self.current = nil
@@ -87,7 +95,17 @@ local function createUndo(data)
 end
 
 local function createRedo(data)
+  local lastName = data.list.sorted[#data.list.sorted]
+  if lastName then
+    lastName = lastName.name
+  else
+    lastName = nil
+  end
   local ps = data.list:create()
+
+  if lastName then
+    ps.name = lastName
+  end
   ps:set(data.pos, nil, psVehScales["Car"])
   transformUtil:enableEditing(0)
   editor.setAxisGizmoMode(editor.AxisGizmoMode_Rotate)
@@ -98,6 +116,7 @@ local function createRedo(data)
   data.ps = ps:onSerialize()
   data.id = ps.id
   data.self.current = ps
+  data.list:buildNamesDir()
 end
 
 function C:create(pos)

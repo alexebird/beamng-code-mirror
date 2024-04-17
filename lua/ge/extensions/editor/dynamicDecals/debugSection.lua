@@ -26,20 +26,43 @@ local docs = nil
 local widgets = nil
 local settings = nil
 
+local reprojectLayers = false
+
 local function sectionGui(guiId)
-  if im.Button(string.format("%s##%s", "Bake Brush", guiId)) then
-    api.bakeBrush()
+  im.Separator()
+  local style = im.GetStyle()
+  local maxWidth = im.GetContentRegionAvailWidth()
+
+  if im.Checkbox(string.format("%s##%s", "Reproject Layers every frame", guiId), editor.getTempBool_BoolBool(reprojectLayers)) then
+    reprojectLayers = editor.getTempBool_BoolBool()
+  end
+  if reprojectLayers == true then
+    api.reprojectLayers()
   end
 
   if im.Button(string.format("%s##%s", "Reproject Layers", guiId)) then
     dump(api.reprojectLayers())
   end
+  im.Separator()
+
+  im.TextUnformatted(string.format("api.projectDynamicDecals: %s", api.projectDynamicDecals and "true" or "false"))
+  local buttonWidth = (maxWidth - style.ItemSpacing.x) / 2
+  if im.Button(string.format("%s##%s", "set true##api.setProjectDynamicDecalsState(true)", guiId), im.ImVec2(buttonWidth, 0)) then
+    api.setProjectDynamicDecalsState(true)
+  end
+  im.SameLine()
+  if im.Button(string.format("%s##%s", "set false##api.setProjectDynamicDecalsState(false)", guiId), im.ImVec2(buttonWidth, 0)) then
+    api.setProjectDynamicDecalsState(false)
+  end
+  im.Separator()
+
+  if im.Button(string.format("%s##%s", "Bake Brush", guiId)) then
+    api.bakeBrush()
+  end
 
   if im.Button(string.format("%s##%s", "Dump api.layerStack", guiId)) then
     dump(api.getLayerStack())
   end
-
-  im.TextUnformatted(string.format("materialIdx: %s", api.getMaterialIdx()))
 
   if im.Button(string.format("%s##%s", "Reload textures", guiId)) then
     textures.reloadTextureFiles()
@@ -54,6 +77,7 @@ local function sectionGui(guiId)
   end
 
   im.TextUnformatted(string.format("depth: %f", api.getDepth()))
+  im.TextUnformatted(string.format("surfaceNormal: %s", api.getSurfaceNormal()))
 
   im.TextUnformatted(string.format("currentMaskEditingLayerUid: %s", tool.getCurrentMaskEditingLayerUid()))
 

@@ -52,7 +52,7 @@ local function updateMesh(dtSim, sensorId, isAdHocRequest, adHocRequestId)
 
   -- If this request is ad-hoc, then we also update the ad-hoc request in ge lua, so that this can be collected later by the user.
   if isAdHocRequest then
-    local adHocData = { requestId = adHocRequestId, reading = data.rawReadings }
+    local adHocData = { requestId = adHocRequestId, reading = latestReading }
     obj:queueGameEngineLua(string.format("tech_sensors.updateMeshAdHocRequest(%q)", lpack.encode(adHocData)))
   end
 

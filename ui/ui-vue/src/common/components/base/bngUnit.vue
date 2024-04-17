@@ -2,19 +2,19 @@
 <template>
   <SlotSwitcher v-bind="attrs" :slotId="unit.type">
     <template #xp="props">
-      <BngPropVal v-bind="props" :iconType="icons.general.beamXP" :valueLabel="formattedValue" />
+      <BngPropVal v-bind="props" :iconType="icons.beamXPLo" :valueLabel="formattedValue" />
     </template>
 
     <template #beambucks="props">
-      <BngPropVal v-bind="props" :iconType="icons.general.beambuck" :valueLabel="formattedValue" />
+      <BngPropVal v-bind="props" :iconType="icons.beamCurrency" :valueLabel="formattedValue" />
     </template>
 
     <template #stars="props">
-      <BngPropVal v-bind="props" :iconType="icons.general.star" :valueLabel="formattedValue" :icon-color="defaultColors.stars" />
+      <BngPropVal v-bind="props" :iconType="icons.star" :valueLabel="formattedValue" :icon-color="defaultColors.stars" />
     </template>
 
     <template #bonusstars="props">
-      <BngPropVal v-bind="props" :iconType="icons.general.star_outlined" :valueLabel="formattedValue" :icon-color="defaultColors.bonusstars" />
+      <BngPropVal v-bind="props" :iconType="icons.starSecondary" :valueLabel="formattedValue" :icon-color="defaultColors.bonusstars" />
     </template>
 
     <template #unknown="props">
@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { icons } from "@/common/components/base"
 const toInt = v => ~~+v
 </script>
 
@@ -40,13 +40,12 @@ const knownUnits = {
   xp: { formatter: toInt },
   beambucks: { formatter: units.beamBucks },
   stars: { formatter: toInt },
-  bonusstars: { formatter: toInt }
+  bonusstars: { formatter: toInt },
 }
 
-//TODO: Find a better way to pass these to BngPropVal since these values duplicate the css colors yellow-200 and blue-400
 const defaultColors = {
-  stars: "#dac434",
-  bonusstars: "#5f9df9"
+  stars: "var(--bng-ter-yellow-200)", //"#dac434",
+  bonusstars: "var(--bng-add-blue-400)", //"#5f9df9"
 }
 
 const attrs = useAttrs(),

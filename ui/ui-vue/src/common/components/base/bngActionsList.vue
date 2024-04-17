@@ -1,12 +1,18 @@
 <!-- bngActionsList - a list of action 'buttons' -->
 <template>
   <div class="actions">
-    <BngImageTile class="action-tile" v-for="action of actions" tabindex="0" :key="action.value" v-bind="action" bng-nav-item @click="emits('actionClick', action.value)" />
+    <BngImageTile
+      class="action-tile"
+      v-for="action of actions"
+      tabindex="0"
+      :key="action.value"
+      v-bind="action"
+      bng-nav-item
+      @click="emit('actionClick', action.value)" />
   </div>
 </template>
 
 <script setup>
-import { BngIcon } from "@/common/components/base"
 import { BngImageTile } from "@/common/components/base"
 
 const props = defineProps({
@@ -20,7 +26,7 @@ const props = defineProps({
   },
 })
 
-const emits = defineEmits(["actionClick"])
+const emit = defineEmits(["actionClick"])
 </script>
 
 <style scoped lang="scss">
@@ -49,7 +55,7 @@ $highlight-color: var(--bng-orange-500);
     overflow-y: auto;
     overflow-x: hidden;
 
-    >.action-tile {
+    > .action-tile {
       margin: 0.25rem;
     }
   }

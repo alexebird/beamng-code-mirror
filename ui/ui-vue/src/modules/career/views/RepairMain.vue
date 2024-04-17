@@ -8,13 +8,11 @@
       <div>
         <h2>Insurance information for your {{ repairStore.vehicle.niceName }} :</h2>
         <p>Policy : {{ repairStore.policyInfo.name }}</p>
-        <p>Deductible : {{ repairStore.policyInfo.perks.deductible }}</p>
-        <p>Current policy score : {{ repairStore.policyInfo.bonus }}</p>
-        <p>Actual repair price : deductible x policy score = {{ repairStore.actualRepairPrice }}</p>
+        <p>Deductible : {{ repairStore.baseDeductible.money.amount }}</p>
       </div>
       <div>
         <h2>Repair options :</h2>
-        <div class="repairOptions">
+        <div class="repairOptions" bng-nav-scroll-force>
           <div v-for="(repairOptions, key) in repairStore.repairOptions" :key="key" class="repairOption">
             <h3>{{ repairOptions.repairName }}</h3>
             <div v-if="repairOptions.repairTime == 0">
@@ -23,14 +21,16 @@
 
             <div v-else>
               <p>
-                Repair time : {{ (repairOptions.repairTime.toFixed(0) < 60 && repairOptions.repairTime.toFixed(0) + " second(s)") || (repairOptions.repairTime / 60).toFixed(0) + " minute(s)" }}
+                Repair time :
+                {{
+                  (repairOptions.repairTime.toFixed(0) < 60 && repairOptions.repairTime.toFixed(0) + " second(s)") ||
+                  (repairOptions.repairTime / 60).toFixed(0) + " minute(s)"
+                }}
               </p>
             </div>
 
             <div v-if="repairOptions.isPolicyRepair">
-              <p v-if="repairStore.policyInfo.hasFreeRepair">
-                Repairing won't raise your policy score. You have an accident forgiveness
-              </p>
+              <p v-if="repairStore.policyInfo.hasFreeRepair">Repairing won't raise your policy score. You have an accident forgiveness</p>
               <p v-else>Repairing will raise your policy score by {{ repairStore.policyScoreInfluence }} %</p>
             </div>
             <div v-else>Repairing on your own won't raise your policy score and will not be counted as a claim</div>
@@ -41,24 +41,11 @@
                 <div>
                   <div v-for="(price, l) in option.prices" :key="l">
                     <div v-if="price.price.money">
-                      <div class="career-status-value">
-                        <BngIcon span class="icon" :title="icons.general.beambuck" :type="icons.general.beambuck"></BngIcon>
-                        <div>
-                          {{ units.beamBucks(price.price.money.amount) }}
-                          {{ (price.type == "extra" && "as extra  fee") || "" }}
-                        </div>
-                      </div>
+                      <div class="career-status-value"><BngUnit :beambucks="price.price.money.amount" /> {{ price.text }}</div>
                     </div>
                     <div v-else-if="price.price.bonusStars">
                       <div class="career-status-value">
-                        <BngIcon
-                          span
-                          class="icon"
-                          :title="icons.general.star_outlined"
-                          :type="icons.general.star_outlined"
-                          :color="'var(--bng-add-blue-300)'"
-                        ></BngIcon>
-                        <div>{{ price.price.bonusStars.amount }} as extra fee</div>
+                        <BngUnit :bonusstars="price.price.bonusStars.amount" /> Bonus star{{ price.price.bonusStars.amount != 1 ? "s" : " " }}
                       </div>
                     </div>
                   </div>
@@ -75,19 +62,17 @@
 </template>
 
 <script setup>
-import { lua, useBridge } from "@/bridge"
+import { lua } from "@/bridge"
 import { BngButton, BngCard, BngCardHeading, BngBinding } from "@/common/components/base"
 import { vBngOnUiNav } from "@/common/directives"
 import { useRepairStore } from "../stores/repairStore"
 import { onMounted, onUnmounted, ref } from "vue"
 import { CareerStatus } from "@/modules/career/components"
-import { BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngUnit } from "@/common/components/base"
 
 import { useUINavScope } from "@/services/uiNav"
 useUINavScope("repairs")
 
-const { units } = useBridge()
 const repairStore = useRepairStore()
 
 const careerStatusRef = ref()
@@ -129,6 +114,7 @@ onUnmounted(kill)
   margin: 15px 0px;
 }
 
+/* FIXME: There is a CSS conflict with AngularJS CSS with this class name */
 .career-status-value {
   display: flex;
   justify-content: left;

@@ -6,8 +6,8 @@
 </template>
 
 <script>
-const starWidth = 1.5
-const starWidthUnit = "rem"
+const STAR_WIDTH = 1.5
+const STAR_WIDTH_UNIT = "rem"
 </script>
 
 <script setup>
@@ -29,15 +29,15 @@ const props = defineProps({
   },
 })
 
-const starBarsWidth = computed(() => `${props.totalStars * starWidth}${starWidthUnit}`)
+const starBarsWidth = computed(() => `${props.totalStars * STAR_WIDTH}${STAR_WIDTH_UNIT}`)
 const backgroundPosition = computed(() => `${100 - Math.floor((props.unlockedStars / props.totalStars) * 100)}%`)
 const starIconUrlStyle = computed(() => `url(${iconImageURL})`)
 </script>
 
 <style scoped lang="scss">
-@import "@/styles/modules/mixins";
+@import "@/styles/modules/density";
 
-$defaultStarColor: #FFFF;
+$defaultStarColor: #ffff;
 $starColor: var(--star-color, $defaultStarColor);
 
 .bng-stars {

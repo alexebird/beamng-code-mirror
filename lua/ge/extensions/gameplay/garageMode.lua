@@ -113,17 +113,6 @@ end
 local function onVehicleSpawned(vehicleId)
   if not active then return end
 
-  -- TODO These are hacks until we use the correct part changing functions
-  if career_career.isActive() then
-    if career_modules_inventory.getCurrentVehicle() and ((garageMenuState == "parts") or (garageMenuState == "tuning")) then
-      --setVehicleDirty((garageMenuState ~= "vehicles") and (garageMenuState ~= "myCars"), garageMenuState == "vehicles")
-      --career_modules_inventory.applyPartConditions(career_modules_inventory.getCurrentVehicle(), vehicleId)
-    elseif garageMenuState == "vehicles" then
-      --career_modules_inventory.onVehicleObjectRemoved(career_modules_inventory.getCurrentVehicle())
-      --career_modules_inventory.enterVehicle(nil, 1)
-    end
-  end
-
   -- this calls safeTeleport BEFORE setSafePosition is called in spawn.lua, but it works out because setSafePosition resets it on the same vehicle position
   vehicleSpawnedOrGarageModeStarted(vehicleId)
 end
@@ -143,7 +132,7 @@ local function getCurrentVehicle()
   end
 
   -- get the current vehicle to load it in the garage
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local playerVehicleData = core_vehicle_manager.getPlayerVehicleData()
   if vehicle and playerVehicleData then
     local config = serialize(playerVehicleData.config) -- when using "vehicle.partConfig" here, the color of the vehicle will be wrong if you use a custom default config
@@ -228,7 +217,7 @@ local function onUpdate(dtReal)
   if freezeVehicleCounter then
     freezeVehicleCounter = freezeVehicleCounter - 1
     if freezeVehicleCounter <= 0 then
-      core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setFreeze', true)
+      core_vehicleBridge.executeAction(getPlayerVehicle(0),'setFreeze', true)
       freezeVehicleCounter = false
     end
   end
@@ -300,7 +289,7 @@ local function activateGarageMode()
   vehicleSpawnedOrGarageModeStarted(be:getPlayerVehicleID(0))
 end
 
-local garageInitModules = {"career_modules_fuel", "gameplay_garageMode", "career_modules_inventory", "career_modules_linearTutorial"}
+local garageInitModules = {"gameplay_garageMode", "career_modules_inventory", "career_modules_linearTutorial"}
 local garageInitCurrentStep = 1
 local function callNextInitStep()
   extensions[garageInitModules[garageInitCurrentStep]].garageModeStartStep()
@@ -346,7 +335,7 @@ local function start(_useCurrentLocation, skipInventoryStep)
       core_vehicles.clearCache()
     end
     core_camera.setByName(0, "orbit", false)
-    core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setIgnitionLevel', 0)
+    core_vehicleBridge.executeAction(getPlayerVehicle(0),'setIgnitionLevel', 0)
     activateGarageMode()
     if career_career.isActive() then
       garageInitCurrentStep = 1
@@ -381,13 +370,13 @@ local function endGarageMode()
   objectsAutohide = false
   -- TODO weird sound here
   core_gamestate.setGameState('freeroam','freeroam','freeroam')
-  core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setFreeze', false)
+  core_vehicleBridge.executeAction(getPlayerVehicle(0),'setFreeze', false)
 
   extensions.hook("onEndGarageMode")
 end
 
 local function stop()
-  core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setIgnitionLevel', 3)
+  core_vehicleBridge.executeAction(getPlayerVehicle(0),'setIgnitionLevel', 3)
   endGarageMode()
 end
 
@@ -461,7 +450,7 @@ local function startTestWorkitem(job)
   core_camera.setFOV(0, defaultFov)
 
   -- let the vehicle drive forward
-  local playerVeh = be:getPlayerVehicle(0)
+  local playerVeh = getPlayerVehicle(0)
   core_vehicleBridge.executeAction(playerVeh, 'setFreeze', false)
   playerVeh:queueLuaCommand('ai.driveUsingPath({wpTargetList = {"garageExit"}})')
   job.sleep(2)

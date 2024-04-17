@@ -34,7 +34,7 @@ end
 
 -- this should only be loaded when the career is active
 local function onSaveCurrentSaveSlot(currentSavePath)
-  jsonWriteFile(currentSavePath .. "/career/"..fileName, playbook, true)
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/"..fileName, playbook, true)
 end
 
 M.onExtensionLoaded = onExtensionLoaded

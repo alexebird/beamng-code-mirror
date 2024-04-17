@@ -1,4 +1,4 @@
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { icons } from "@/assets/icons"
 
 export const ActionModes = Object.freeze({
   camera: {
@@ -7,32 +7,32 @@ export const ActionModes = Object.freeze({
       {
         label: "Front",
         value: "front",
-        icon: icons.decals.camera.front,
+        oldIcon: icons.decals.camera.front,
       },
       {
         label: "Left",
         value: "left",
-        icon: icons.decals.camera.left,
+        oldIcon: icons.decals.camera.left,
       },
       {
         label: "Top",
         value: "top",
-        icon: icons.decals.camera.top,
+        oldIcon: icons.decals.camera.top,
       },
       {
         label: "Right",
         value: "right",
-        icon: icons.decals.camera.right,
+        oldIcon: icons.decals.camera.right,
       },
       {
         label: "Back",
         value: "back",
-        icon: icons.decals.camera.back,
+        oldIcon: icons.decals.camera.back,
       },
       {
         label: "Free cam",
         value: "freecam",
-        icon: icons.decals.camera.freecam,
+        oldIcon: icons.decals.camera.freecam,
       },
     ],
   },
@@ -42,32 +42,32 @@ export const ActionModes = Object.freeze({
       {
         label: "Use as mask",
         value: "use_mask",
-        icon: icons.decals.general.use_mask,
+        oldIcon: icons.decals.general.use_mask,
       },
       {
         label: "Hide",
         value: "hide",
-        icon: icons.decals.general.hide,
+        oldIcon: icons.decals.general.hide,
       },
       {
         label: "Lock",
         value: "lock",
-        icon: icons.decals.general.lock,
+        oldIcon: icons.decals.general.lock,
       },
       {
         label: "Rename",
         value: "rename",
-        icon: icons.decals.general.rename,
+        oldIcon: icons.decals.general.rename,
       },
       {
         label: "Change order",
         value: "change_order",
-        icon: icons.decals.general.change_order,
+        oldIcon: icons.decals.general.change_order,
       },
       {
         label: "Save",
         value: "save",
-        icon: icons.decals.general.save,
+        oldIcon: icons.decals.general.save,
       },
     ],
   },
@@ -77,27 +77,27 @@ export const ActionModes = Object.freeze({
       {
         label: "Use as mask",
         value: "use_mask",
-        icon: icons.decals.general.use_mask,
+        oldIcon: icons.decals.general.use_mask,
       },
       {
         label: "Hide",
         value: "hide",
-        icon: icons.decals.general.hide,
+        oldIcon: icons.decals.general.hide,
       },
       {
         label: "Lock",
         value: "lock",
-        icon: icons.decals.general.lock,
+        oldIcon: icons.decals.general.lock,
       },
       {
         label: "Rename",
         value: "rename",
-        icon: icons.decals.general.rename,
+        oldIcon: icons.decals.general.rename,
       },
       {
         label: "Change order",
         value: "change_order",
-        icon: icons.decals.general.change_order,
+        oldIcon: icons.decals.general.change_order,
       },
     ],
   },
@@ -107,17 +107,17 @@ export const ActionModes = Object.freeze({
       {
         label: "Hide",
         value: "hide",
-        icon: icons.decals.general.hide,
+        oldIcon: icons.decals.general.hide,
       },
       {
         label: "Unlock",
         value: "unlock",
-        icon: icons.decals.general.unlock,
+        oldIcon: icons.decals.general.unlock,
       },
       {
         label: "Rename",
         value: "rename",
-        icon: icons.decals.general.rename,
+        oldIcon: icons.decals.general.rename,
       },
     ],
   },
@@ -127,12 +127,12 @@ export const ActionModes = Object.freeze({
       {
         label: "Copy mirrored",
         value: "copy_mirrored",
-        icon: icons.decals.mirror.copy_mirrored,
+        oldIcon: icons.decals.mirror.copy_mirrored,
       },
       {
         label: "Copy straight",
         value: "copy_straight",
-        icon: icons.decals.mirror.copy_straight,
+        oldIcon: icons.decals.mirror.copy_straight,
       },
     ],
   },
@@ -142,27 +142,27 @@ export const ActionModes = Object.freeze({
       {
         label: "Group",
         value: "group",
-        icon: icons.decals.group.group,
+        oldIcon: icons.decals.group.group,
       },
       {
         label: "Hide",
         value: "hide",
-        icon: icons.decals.general.hide,
+        oldIcon: icons.decals.general.hide,
       },
       {
         label: "Lock",
         value: "lock",
-        icon: icons.decals.general.lock,
+        oldIcon: icons.decals.general.lock,
       },
       {
         label: "Change Order",
         value: "change_order",
-        icon: icons.decals.general.change_order,
+        oldIcon: icons.decals.general.change_order,
       },
       {
         label: "Delete",
         value: "delete",
-        icon: icons.decals.general.delete,
+        oldIcon: icons.decals.general.delete,
       },
     ],
   },
@@ -172,37 +172,37 @@ export const ActionModes = Object.freeze({
       {
         label: "Transform",
         value: "transform",
-        icon: icons.decals.general.transform,
+        oldIcon: icons.decals.general.transform,
       },
       {
         label: "Deform",
         value: "deform",
-        icon: icons.decals.general.deform,
+        oldIcon: icons.decals.general.deform,
       },
       {
         label: "Duplicate",
         value: "duplicate",
-        icon: icons.decals.general.duplicate,
+        oldIcon: icons.decals.general.duplicate,
       },
       {
         label: "Mirror",
         value: "mirror",
-        icon: icons.decals.general.mirror,
+        oldIcon: icons.decals.general.mirror,
       },
       {
         label: "Options",
         value: "options",
-        icon: icons.decals.general.options,
+        oldIcon: icons.decals.general.options,
       },
       {
         label: "Ungroup",
         value: "ungroup",
-        icon: icons.decals.group.ungroup,
+        oldIcon: icons.decals.group.ungroup,
       },
       {
         label: "Delete",
         value: "delete",
-        icon: icons.decals.general.delete,
+        oldIcon: icons.decals.general.delete,
       },
     ],
   },
@@ -212,37 +212,37 @@ export const ActionModes = Object.freeze({
       {
         label: "Transform",
         value: "transform",
-        icon: icons.decals.general.transform,
+        oldIcon: icons.decals.general.transform,
       },
       {
         label: "Deform",
         value: "deform",
-        icon: icons.decals.general.deform,
+        oldIcon: icons.decals.general.deform,
       },
       {
         label: "Material",
         value: "material",
-        icon: icons.decals.layer.material,
+        oldIcon: icons.decals.layer.material,
       },
       {
         label: "Duplicate",
         value: "duplicate",
-        icon: icons.decals.general.duplicate,
+        oldIcon: icons.decals.general.duplicate,
       },
       {
         label: "Mirror",
         value: "mirror",
-        icon: icons.decals.general.mirror,
+        oldIcon: icons.decals.general.mirror,
       },
       {
         label: "Options",
         value: "options",
-        icon: icons.decals.general.options,
+        oldIcon: icons.decals.general.options,
       },
       {
         label: "Delete",
         value: "delete",
-        icon: icons.decals.general.delete,
+        oldIcon: icons.decals.general.delete,
       },
     ],
   },

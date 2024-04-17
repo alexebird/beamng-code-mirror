@@ -1,22 +1,22 @@
 <template>
   <div class="amount">
-    <BngButton :icon="icons.device.xbox.btn_dpad_up" class="top-up" accent="text">Top-up</BngButton>
+    <BngButton class="top-up" accent="text"><BngBinding class="controller" ui-event="focus_u" deviceMask="xinput" />Top-up</BngButton>
     <div class="slider-labels">
       <span>{{ `${minSlider}${unitLabel}` }}</span>
       <span>{{ `${maxSlider}${unitLabel}` }}</span>
     </div>
-    <bng-slider :min="minSlider" :max="maxSlider" @valueChanged="() => {}" />
+    <BngSlider :min="minSlider" :max="maxSlider" @valueChanged="() => {}" />
     <div class="amount-value">
-      <BngButton :icon="icons.device.xbox.btn_dpad_left" accent="text" />
+      <BngButton accent="text" class="empty"><BngBinding class="controller" ui-event="focus_l" deviceMask="xinput" /></BngButton>
       <BngInput class="value" suffix="L" initial-value="1234567"></BngInput>
-      <BngButton :iconRight="icons.device.xbox.btn_dpad_right" accent="text" />
+      <BngButton accent="text" class="empty"><BngBinding class="controller" ui-event="focus_r" deviceMask="xinput" /></BngButton>
     </div>
   </div>
 </template>
 
 <script setup>
-import { BngButton, BngInput, BngSlider } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngButton, BngInput, BngSlider, BngBinding } from "@/common/components/base"
+import { icons } from "@/assets/icons"
 
 const props = defineProps({
   minSlider: {

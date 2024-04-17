@@ -10,7 +10,6 @@ local C = {}
 C.name = 'Direction'
 C.description = 'Gives a quaternion that describes the rotation around the z axis of a given amount of degrees clockwise.'
 C.category = 'simple'
-C.todo = "Maybe merge into math."
 
 C.pinSchema = {
     { dir = 'in', type = 'number', name = 'deg', description = 'Input angle in degrees.' },

@@ -51,38 +51,45 @@ local function setPropertiesInChildrenRec(layer, properties)
 
   for _, child in ipairs(layer.children) do
     for _, property in pairs(properties) do
-      -- special case for 'decalGradientColor'
-      if property.id == "decalGradientColor" then
-        local prop = {
-          id = "decalGradientColorTopLeft",
-          value = property.value[1]
-        }
-        setProperty(child, prop)
-        prop = {
-          id = "decalGradientColorTopRight",
-          value = property.value[2]
-        }
-        setProperty(child, prop)
-        prop = {
-          id = "decalGradientColorBottomLeft",
-          value = property.value[3]
-        }
-        setProperty(child, prop)
-        prop = {
-          id = "decalGradientColorBottomRight",
-          value = property.value[4]
-        }
-        setProperty(child, prop)
 
-        setPropertiesInChildrenRec(child, properties)
-      else
-        if child[property.id] ~= nil then
+      if child[property.id] ~= nil then
+
+        if property.id == "decalGradientColor" then
+          local prop = {
+            id = "decalGradientColorTopLeft",
+            value = property.value[1]
+          }
+          setProperty(child, prop)
+          prop = {
+            id = "decalGradientColorTopRight",
+            value = property.value[2]
+          }
+          setProperty(child, prop)
+          prop = {
+            id = "decalGradientColorBottomLeft",
+            value = property.value[3]
+          }
+          setProperty(child, prop)
+          prop = {
+            id = "decalGradientColorBottomRight",
+            value = property.value[4]
+          }
+          setProperty(child, prop)
+
+        -- special case of 'useSurfaceNormal'
+        elseif property.id == "useSurfaceNormal" then
+          -- ALERT
+          -- This is a hack. The decal matrix is not recalculated for this layer as long as it has the 'decalPos' and 'decalNorm' field.
+          child.decalPos = nil
+          child.decalNorm = nil
           setProperty(child, property)
-          setPropertiesInChildrenRec(child, properties)
+        else
+          setProperty(child, property)
         end
       end
-
     end
+
+    setPropertiesInChildrenRec(child, properties)
   end
 end
 

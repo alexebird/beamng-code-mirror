@@ -101,7 +101,7 @@ end
 
 local function buildRoadIndicator()
   local state = M.state
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle or not state.focusExplorationPOI or not state.focusExplorationScenario then
     return
   end
@@ -528,7 +528,7 @@ local function openLocationExtraUI(locationKey)
         return
       end
 
-      local vehicle = be:getPlayerVehicle(0)
+      local vehicle = getPlayerVehicle(0)
       if vehicle then
         vehicle:queueLuaCommand('controller.setFreeze(1)')
       end
@@ -542,7 +542,7 @@ local function openLocationExtraUI(locationKey)
 
     if locationInfo.type == 'site' and (locationInfo.subtype == 'playerHQ' or locationInfo.subtype == 'vendor') then
       core_gamestate.setGameState("scenario", {}, 'freeroam')
-      local vehicle = be:getPlayerVehicle(0)
+      local vehicle = getPlayerVehicle(0)
       if vehicle then
         vehicle:queueLuaCommand('controller.setFreeze(1)')
       end
@@ -901,7 +901,7 @@ local function updateMapUI()
     end
   end
 
-  local player = be:getPlayerVehicle(0)
+  local player = getPlayerVehicle(0)
   if player and minimap then
     uiParams.player = {}
     uiParams.player.x = (player:getPosition().x - minimap.worldCoord.x) / minimap.worldCoord.w
@@ -927,7 +927,7 @@ local function onPreRender(dt)
     return
   end
 
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then
     return
   end
@@ -1027,7 +1027,7 @@ local function onUiChangedState (curUIState, prevUIState)
   -- log('I', logTag, 'Ui state changed - cur State: '..curUIState..'  prev State: '..prevUIState..'  state.locationKey: '..tostring(state.locationKey))
   if getExplorationActive() and state.locationKey and state.inSideMissionTrigger and state.missionExtraUiOpened then
     if curUIState == 'menu' then
-      local vehicle = be:getPlayerVehicle(0)
+      local vehicle = getPlayerVehicle(0)
       if vehicle then
         vehicle:queueLuaCommand('controller.setFreeze(0)')
       end
@@ -1064,7 +1064,7 @@ local function uiEventSelectVehicle(vehicleData)
   local locationData = campaign_campaigns.getActiveSubsectionLocationData(state.locationKey)
   local locationInfo = locationData and locationData.info
   if locationInfo.type == 'site' and locationInfo.subtype == 'playerHQ' then
-    local vehicle = be:getPlayerVehicle(0)
+    local vehicle = getPlayerVehicle(0)
     vehicleData.licenseText = vehicle and vehicle:getDynDataFieldbyName("licenseText", 0) or ""
     campaign_campaigns.getCampaign().state.userVehicle = vehicleData
     spawningPlayer = createPlayerSpawningData(vehicleData.model, vehicleData.config, vehicleData.color, vehicleData.licenseText)
@@ -1084,7 +1084,7 @@ end
 
 local function uiEventGarageExit()
   log('I', logTag, 'uiEventGarageExit called...')
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if vehicle then
     vehicle:queueLuaCommand('controller.setFreeze(0)')
   end
@@ -1103,7 +1103,7 @@ local function onCameraToggled(data)
     guihooks.trigger('ChangeState', {state = 'menu'})
   elseif data.cameraType == "GameCam" then
     if getExplorationActive() and state.locationKey and state.inSideMissionTrigger then
-      local vehicle = be:getPlayerVehicle(0)
+      local vehicle = getPlayerVehicle(0)
       if vehicle then
         vehicle:queueLuaCommand('controller.setFreeze(0)')
       end

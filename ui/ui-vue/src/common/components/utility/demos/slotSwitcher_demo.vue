@@ -4,13 +4,13 @@
   <p>Intial slot is not set (nothing displayed). Click a slot id above to switch to it.</p>
   <p>Default props passed from slot switcher to active slot in this demo are: <code>accent="secondary" @click="showMsg"</code></p>
   <br />
-  <slot-switcher :slotId="mySlot" accent="secondary" @click="showMsg">
-    <template #default="props"><bng-button v-bind="props">Button (no overrides)</bng-button></template>
-    <template #alt="props"><bng-button v-bind="props" @click="showAltMsg">Alt Button (adds its own extra&nbsp;<code>@click</code>)</bng-button></template>
+  <SlotSwitcher :slotId="mySlot" accent="secondary" @click="showMsg">
+    <template #default="props"><BngButton v-bind="props">Button (no overrides)</BngButton></template>
+    <template #alt="props"><BngButton v-bind="props" @click="showAltMsg">Alt Button (adds its own extra&nbsp;<code>@click</code>)</BngButton></template>
     <template #third="props"
-      ><bng-button v-bind="props" accent="attention">Third Button (overrides&nbsp;<code>accent</code>&nbsp;with 'attention')</bng-button></template
+      ><BngButton v-bind="props" accent="attention">Third Button (overrides&nbsp;<code>accent</code>&nbsp;with 'attention')</BngButton></template
     >
-  </slot-switcher>
+  </SlotSwitcher>
 </template>
 
 <script setup>

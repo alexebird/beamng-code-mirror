@@ -22,6 +22,7 @@ M.lastFilterType = -1
 
 M.lastInputs = {}
 M.allowedInputSources = {}
+M.steeringInputs = {}
 
 --set kbd initial rates (derive these from the menu options eventually)
 local kbdInRate = 2.2
@@ -44,6 +45,7 @@ local handbrakeSoundEngaging = nil
 local handbrakeSoundDisengaging = nil
 local handbrakeSoundDisengaged = nil
 local inputNameCache = {}
+local inputTSCache = {}
 
 local gxSmoothMax = 0
 local gx_Smoother = newTemporalSmoothing(4) -- it acts like a timer
@@ -652,6 +654,10 @@ local function updateGFX(dt)
 
     inputNameCache[k] = inputNameCache[k] or k .. "_input"
     electrics.values[inputNameCache[k]] = ival
+    if e.osClockHP then
+      inputTSCache[k] = inputTSCache[k] or k .. "_timestamp"
+      electrics.values[inputTSCache[k]] = e.osClockHP
+    end
   end
 end
 
@@ -678,7 +684,69 @@ local function getDefaultState(itype)
   }
 end
 
-local function event(itype, ivalue, filter, angle, lockType, source)
+-- decides whether to honour or ignore steering inputs, in cases where a plugged steering wheel might be steering the car on its own (due to ffb or due to spurious input events), when the user is trying to use the nearby gamepad or keyboard instead
+-- the heuristics first checks if a non-wheel device was recently used: in that case it ignores wheel and disables force feedback
+-- second, it checks how much a wheel device has been used. if the movements have been tiny, they are likely just sensitive sensors, rather than intended wheel movement
+local function shouldUseSteeringEvent(itype, ivalue, filter)
+  local useEvent = true
+  if true then return useEvent end -- TODO give this at least some days or weeks to verify if it's safe enough to ship to end-users. since i had no time to QA if/how the heuristics may break when enabling ffb for gamepads, or keyboard users picking the "direct" input filter, and all that weird corner-case stuff that can, and therefore will, be happening out there
+  if itype ~= "steering" then return useEvent end
+  -- store data about when different devices (or rather, different 'filter' types) were last used for steering, and how
+  -- this simple historic data allows to take decission in the far future (a second or 2 from now) about whether e.g. a gamepad has "recently" been used, etc
+  local curr = M.steeringInputs[filter] or {}
+  curr.time = os.clockhp()
+  curr.value = ivalue
+  curr.valueMin = min(ivalue, curr.valueMin or ivalue)
+  curr.valueMax = max(ivalue, curr.valueMax or ivalue)
+  M.steeringInputs[filter] = curr
+
+  if filter == FILTER_DIRECT then
+    -- this event came from wheel (probably)
+
+    -- check if we got non-wheel events recently
+    local recentInputsNotWheel = false
+    for _,i in pairs(M.steeringInputs) do
+      if filter ~= FILTER_DIRECT then
+        recentInputsNotWheel = recentInputsNotWheel or (curr.time - i.time < 2)
+      end
+    end
+
+    -- check if we got large wheel events, which indicate human input rather than noisy/sensitive sensors
+    local smallInputsWheel = curr.valueMax - curr.valueMin < 0.025
+
+    -- choose whether to enable to disable ffb and wheel input
+    if recentInputsNotWheel or smallInputsWheel then
+      -- wheel is not being really used. discard this event
+      useEvent = false
+      if hydros.enableFFB then
+        -- disable ffb while a non-wheel is being used
+        hydros.enableFFB = false
+        --dump("Disabling wheel input. recentInputsNotWheel: "..dumps(recentInputsNotWheel)..", smallInputsWheel: "..dumps(smallInputsWheel, curr.valueMax - curr.valueMin))
+      end
+    elseif not smallInputsWheel then
+      -- wheel has been turned for a bit by now
+      if not hydros.enableFFB then
+        --dump("Enabling wheel input, since there was a large enough input from wheel: ", curr.valueMax - curr.valueMin)
+        hydros.reset() -- gradually turn back ffb through its internal post-reset smoother
+        hydros.enableFFB = true -- allow ffb now that a wheel is being used again
+      end
+    end
+  else
+    -- event didn't come from a steering wheel (probably). likely gamepad or keyboard
+    hydros.enableFFB = false
+    local direct = M.steeringInputs[FILTER_DIRECT]
+    if direct then
+      direct.valueMin = direct.value
+      direct.valueMax = direct.value
+    end
+    -- dump("Disabling wheel input and ffb, since the event prooobably didn't come from a wheel")
+  end
+  return useEvent
+end
+
+local function event(itype, ivalue, filter, angle, lockType, osClockHP, source)
+  if not shouldUseSteeringEvent(itype, ivalue, filter) then return end
+
   if M.state[itype] == nil then -- probably a vehicle-specific input
     log("W", "", "The vehicle-specific input event " .. dumps(itype) .. " was not defined, so gamepad smoothing, keyboard smoothing, and safe range of values is unknown. The vehicle creator should define this input event type, for example executing lua code such as 'input.state[" .. dumps(itype) .. "] = { minLimit=xxx, maxLimit=xxx, smootherKBD=..., smootherPAD=... }' during vehicle initialization (please search input.lua for more context). As safety fallback, a default definition will be used, which may or may not be suitable")
     M.state[itype] = getDefaultState(itype)
@@ -694,6 +762,7 @@ local function event(itype, ivalue, filter, angle, lockType, source)
     M.state[itype].filter = filter
     M.state[itype].angle = angle
     M.state[itype].lockType = lockType
+    M.state[itype].osClockHP = osClockHP
     M.state[itype].source = source
   end
 end
@@ -755,7 +824,7 @@ local function settingsChanged()
     log("W", "", "Invalid configuration for slower steering at high speed. Sanitizing by swapping: [" .. dumps(slowdownStartSpeed) .. ".." .. dumps(slowdownEndSpeed) .. "]")
     slowdownStartSpeed, slowdownEndSpeed = slowdownEndSpeed, slowdownStartSpeed
   end
-  slowdownM = (slowdownMultiplier - 1) / (slowdownEndSpeed - slowdownStartSpeed)
+  slowdownM = (slowdownMultiplier - 1) / (1e-30 + slowdownEndSpeed - slowdownStartSpeed)
   slowdownB = 1 - slowdownM * slowdownStartSpeed
 
   -- limit steering at high speed
@@ -768,14 +837,14 @@ local function settingsChanged()
     log("W", "", "Invalid configuration for limit steering at high speed. Sanitizing by swapping: [" .. dumps(limitStartSpeed) .. ".." .. dumps(limitEndSpeed) .. "]")
     limitStartSpeed, limitEndSpeed = limitEndSpeed, limitStartSpeed
   end
-  limitM = (limitMultiplier - 1) / (limitEndSpeed - limitStartSpeed)
+  limitM = (limitMultiplier - 1) / (1e-30 + limitEndSpeed - limitStartSpeed)
   limitB = 1 - limitM * limitStartSpeed
 
   -- slower autocenter at low speed
   autocenterEnabled = settings.getValue("steeringAutocenterEnabled", false)
   local autocenterStartSpeed = 0.1
   local autocenterEndSpeed = 1.0
-  autocenterM = 1 / (autocenterEndSpeed - autocenterStartSpeed)
+  autocenterM = 1 / (1e-30 + autocenterEndSpeed - autocenterStartSpeed)
   autocenterN = autocenterStartSpeed * autocenterM
 end
 

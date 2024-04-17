@@ -18,8 +18,7 @@
               :actions="category.items"
               :selected="selected"
               :class="{ expanded: expanded }"
-              @actionClick="value => onActionClicked(value)"
-            ></BngActionsList>
+              @actionClick="value => onActionClicked(value)"></BngActionsList>
           </Tab>
         </Tabs>
         <BngActionsList
@@ -27,34 +26,27 @@
           :actions="actions"
           :selected="selected"
           :class="{ expanded: expanded }"
-          @actionClick="value => onActionClicked(value)"
-        ></BngActionsList>
+          @actionClick="value => onActionClicked(value)"></BngActionsList>
       </template>
     </BngDrawer>
   </div>
 </template>
 
 <script setup>
-import { BngDrawer, BngActionsList, BngButton, BngPillFiltersContainer, BngPillFilters } from "@/common/components/base"
+import { BngDrawer, BngActionsList, BngButton } from "@/common/components/base"
 import { Tabs, Tab } from "../utility"
-import { computed } from "vue"
 
 const props = defineProps({
   header: {
     type: String,
     required: true,
   },
-  headerActions: {
-    type: Array,
-  },
+  headerActions: Array,
   showHeaderActions: {
     type: Boolean,
     default: true,
   },
-  grouped: {
-    type: Boolean,
-    required: false,
-  },
+  grouped: Boolean,
   actions: {
     type: [Array, Object],
     required: true,
@@ -62,14 +54,11 @@ const props = defineProps({
   selected: {
     type: [String, Number],
   },
-  expanded: {
-    type: Boolean,
-    default: false,
-  },
+  expanded: Boolean,
 })
 
-const emits = defineEmits(["actionClick", "headerActionClicked", "categoryChanged"])
-const onActionClicked = action => emits("actionClick", action)
+const emit = defineEmits(["actionClick", "headerActionClicked", "categoryChanged"])
+const onActionClicked = action => emit("actionClick", action)
 </script>
 
 <style scoped lang="scss">

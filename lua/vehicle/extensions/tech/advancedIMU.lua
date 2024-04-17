@@ -3,8 +3,10 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 local M = {}
 
-local advancedIMUs = {}         -- The collection of active advanced IMU sensors.
-local latestReadings = {}       -- The collection of latest readings for each advanced IMU sensor
+
+local advancedIMUs = {}                                                                             -- The collection of active advanced IMU sensors.
+local latestReadings = {}                                                                           -- The collection of latest readings for each advanced IMU sensor.
+
 
 -- Send the advanced IMU readings to ge lua.
 local function updateAdvancedIMUGFXStep(dtSim, sensorId, isAdHocRequest, adHocRequestId)
@@ -72,9 +74,7 @@ local function remove(sensorId)
   advancedIMUs[sensorId] = nil
 end
 
-local function setUpdateTime(sensorId, GFXUpdateTime)
-  advancedIMUs[sensorId].GFXUpdateTime = GFXUpdateTime
-end
+local function setUpdateTime(sensorId, GFXUpdateTime) advancedIMUs[sensorId].GFXUpdateTime = GFXUpdateTime end
 
 local function setIsUsingGravity(data)
   local decodedData = lpack.decode(data)
@@ -86,9 +86,7 @@ local function setIsVisualised(data)
   advancedIMUs[decodedData.sensorId].controller.setIsVisualised(decodedData.isVisualised)
 end
 
-local function adHocRequest(sensorId, requestId)
-  updateAdvancedIMUGFXStep(0.0, sensorId, true, requestId)
-end
+local function adHocRequest(sensorId, requestId) updateAdvancedIMUGFXStep(0.0, sensorId, true, requestId) end
 
 local function cacheLatestReading(sensorId, latestReading)
   if sensorId ~= nil then
@@ -96,9 +94,9 @@ local function cacheLatestReading(sensorId, latestReading)
   end
 end
 
-local function getAdvancedIMUReading(sensorId)
-  return latestReadings[sensorId]
-end
+local function getAdvancedIMUReading(sensorId) return latestReadings[sensorId] end
+
+local function getLatest(sensorId) return advancedIMUs[sensorId].controller.getLatest() end
 
 local function updateGFX(dtSim)
   for sensorId, _ in pairs(advancedIMUs) do
@@ -115,22 +113,18 @@ local function onVehicleDestroyed(vid)
   end
 end
 
+
 -- Public interface:
-
--- Advanced IMU core API functions.
-M.create                                    = create
-M.remove                                    = remove
-M.adHocRequest                              = adHocRequest
-M.cacheLatestReading                        = cacheLatestReading
-M.getAdvancedIMUReading                     = getAdvancedIMUReading
-
--- Advanced IMU property setters.
-M.setUpdateTime                             = setUpdateTime
-M.setIsUsingGravity                         = setIsUsingGravity
-M.setIsVisualised                           = setIsVisualised
-
--- Functions triggered by hooks.
-M.updateGFX                                 = updateGFX
-M.onVehicleDestroyed                        = onVehicleDestroyed
+M.create                                                  = create
+M.remove                                                  = remove
+M.adHocRequest                                            = adHocRequest
+M.cacheLatestReading                                      = cacheLatestReading
+M.getAdvancedIMUReading                                   = getAdvancedIMUReading
+M.getLatest                                               = getLatest
+M.setUpdateTime                                           = setUpdateTime
+M.setIsUsingGravity                                       = setIsUsingGravity
+M.setIsVisualised                                         = setIsVisualised
+M.updateGFX                                               = updateGFX
+M.onVehicleDestroyed                                      = onVehicleDestroyed
 
 return M

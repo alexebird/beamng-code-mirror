@@ -3,7 +3,7 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
 local M = {}
-M.dependencies = {"gameplay_missions_startTrigger" ,"gameplay_missions_progress"}
+M.dependencies = {"gameplay_missions_startTrigger" ,"gameplay_missions_progress", "gameplay_rawPois"}
 local proceduralMissionGenerators = {}
 
 -- mission recommended attributes
@@ -281,7 +281,14 @@ local function sanitizeMissionAfterCreation(mission)
   mission.careerSetup._activeStarCache.bonusStarKeysByKey = bonusStarKeysCache
   mission.careerSetup._activeStarCache.bonusStarKeysSorted = bonusKeysSorted
   mission.careerSetup._activeStarCache.bonusStarCount = #bonusKeysSorted
+  for key, list in pairs(mission.careerSetup.starRewards) do
+    for _, reward in ipairs(list) do
+      reward._originalRewardAmount = reward.rewardAmount
+    end
+  end
 
+  --[[
+  --sums are done in progress.lua now
   mission.careerSetup._activeStarCache.sortedStarRewardsByKey = {}
   for key, list in pairs(mission.careerSetup.starRewards) do
     local newList = {}
@@ -291,6 +298,7 @@ local function sanitizeMissionAfterCreation(mission)
     end
     mission.careerSetup._activeStarCache.sortedStarRewardsByKey[key] = newList
   end
+  ]]
 
   mission.onStart = mission.onStart or nop
   mission.onUpdate = mission.onUpdate or nop
@@ -372,11 +380,15 @@ local function sanitizeMission(missionData, filepath)
   missionData.careerSetup = missionData.careerSetup or {
     showInCareer = false,
     showInFreeroam = true,
+    branch = "(none)",
+    skill = "(none)",
     starsActive = {},
     defaultStarKeys = {},
     starRewards = {},
     starOutroTexts = {}
   }
+  missionData.careerSetup.branch = missionData.careerSetup.branch or "(none)"
+  missionData.careerSetup.skill = missionData.careerSetup.skill or "(none)"
   missionData.careerSetup.starsActive = missionData.careerSetup.starsActive or {}
   missionData.careerSetup.defaultStarKeys = missionData.careerSetup.defaultStarKeys or {}
   missionData.careerSetup.starRewards = missionData.careerSetup.starRewards or {}
@@ -500,6 +512,20 @@ local function saveMission(missionData, newFolder)
     setupModules = missionData.setupModules,
     devMission = missionData.devMission,
   }
+
+  if data.careerSetup.starRewards then
+    for key, list in pairs(data.careerSetup.starRewards) do
+      for _, reward in ipairs(list) do
+        if reward._originalRewardAmount then
+          reward.rewardAmount = reward._originalRewardAmount
+          reward._originalRewardAmount = nil
+        else
+          log("W","Reward had no _originalRewardAmount? " .. dumps(missionData.id))
+        end
+      end
+    end
+  end
+
   -- write pretty
   jsonWriteFile(targetFolder, data, true)
   log("I","","Wrote mission successfully to " .. targetFolder)
@@ -628,6 +654,7 @@ local function get()
 
     for _,mission in ipairs(missions) do
       mission.saveData = gameplay_missions_progress.loadMissionSaveData(mission)
+      gameplay_missions_progress.reduceCareerRewardsForDefaultStars(mission)
     end
 
     gameplay_missions_unlocks.setUnlockForwardBackward(missions)
@@ -834,7 +861,10 @@ M.reloadCompleteMissionSystem = function()
   log("I","","Clearing Complete!")
 end
 
+
+
 M.clearCache = function() filesData = nil locationsCache = {} missions = nil end
+M.onModManagerReady = M.clearCache
 M.baseMission = function(C, ...) return require('/lua/ge/extensions/gameplay/missions/missionTypes/baseMission')(C, ...) end
 M.flowMission = function(C, ...) return require('/lua/ge/extensions/gameplay/missions/missionTypes/flowMission')(C, ...) end
 M.editorHelper = function(C, ...) return require('/lua/ge/extensions/editor/newEditorHelper')(C, 'mission', ...) end

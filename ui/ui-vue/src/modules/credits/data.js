@@ -39,11 +39,11 @@ export default
         {first: 'Grzegorz',      last: 'Węgrzyn',          aka: 'AiTorror',      title: 'Vehicle Physics Engineer'},
         {first: 'Oliver',        last: 'Čajka',            aka: 'MRcrash',       title: 'Vehicle Physics Engineer'},
         {first: 'Piotr',		 last: 'Gajek',			   aka: 'Agent_Y',		 title: 'Vehicle Physics Engineer'},
+        {first: 'Quinn',         last: 'Howling',          aka: 'SpeedHero',     title: 'Vehicle Physics Designer'},
     ]},
     { translateId: 'ui.credits.vehicleArt', members: [
         {first: 'Gabriel',       last: 'Fink',       aka: 'gabester',   title: 'Vehicle Art Director'},
         {first: 'Jared',         last: 'Samuelson',  aka: '',           title: 'Vehicle Team Lead / Subaru Expert'},
-        {first: 'Mitchell',      last: 'Sahl',       aka: 'B25Mitch',   title: '3D Vehicle / Environment Artist'},
         {first: 'Alexandr',      last: 'Shesternin', aka: '',           title: '3D Vehicle Artist'},
         {first: 'Daniel',        last: 'Russo',      aka: 'A3DR',       title: '3D Vehicle Artist'},
         {first: 'Manish',        last: 'Rawat',      aka: '',           title: '3D Vehicle Artist'},
@@ -84,6 +84,7 @@ export default
     ]},
     { translateId: 'ui.credits.sysops', members: [
         {first: 'Charalampos',    last: 'Tsipizidis',    aka: '', title: 'System Administrator'},
+        {first: 'Dimitrios',      last: 'Folias',        aka: '', title: 'System Administrator'},
     ]},
     { translateId: 'ui.credits.comms', members: [
         {first: 'Nataliia',     last: 'Dmytriievska',    aka: 'Leeloo',         title: 'Communications & Marketing Lead'},
@@ -100,7 +101,6 @@ export default
         {first: 'Carol',        last: 'Halim',          aka: 'Carotte',   title: 'Research Software Engineer'},
         {first: 'David',        last: 'Stark',          aka: '',          title: 'Research Software Engineer'},
         {first: 'Florian',      last: 'Faistauer',      aka: '',          title: 'Vehicle Simulation Expert'},
-        {first: 'Mattia',       last: 'Vicari',         aka: '',          title: 'Research Software Engineer'},
         {first: 'Sayali',       last: 'Rajhans',        aka: '',          title: 'Research Software Engineer'},
     ]},
     { translateId: 'ui.credits.organization', members: [
@@ -161,6 +161,7 @@ export default
         {first: 'Sebastian',     last: 'Wessel',            aka: '',        title: 'Vehicle Creation'},
         {first: 'Virtual Mechanix',last: '',                aka: '',        title: 'Vehicle Creation - Outsourcing Agency'},
         {first: 'Winston',       last: 'Broderick',         aka: '',        title: 'Vehicle Creation'},
+        {first: 'Mitchell',      last: 'Sahl',              aka: 'B25Mitch',title: '3D Vehicle / Environment Artist'},
         {first: '',              last: '',                  aka: '',        title: ''},
         {first: 'Christin',      last: 'Walther',           aka: '',        title: 'Lead 3D Artist'},
         {first: 'Justin',        last: 'Roczniak',          aka: 'Donoteat',title: 'Environment Artist'},
@@ -178,6 +179,7 @@ export default
         {first: '',              last: '',                  aka: '',        title: ''},
         {first: 'Arend',         last: 'Stührmann',         aka: '',        title: 'Producer'},
         {first: 'Elmar',         last: 'Berghöfer',         aka: '',        title: 'Research'},
+        {first: 'Mattia',       last: 'Vicari',             aka: '',        title: 'Research Software Engineer'},
         {first: 'Nhung Van',     last: 'Ho',                aka: '',        title: 'Project Management'},
         {first: 'Saskia',        last: 'Opitz',             aka: '',        title: 'Administration'},
         {first: 'Özgen',         last: 'Saatçilar',         aka: '',        title: 'Communications Consultant'},

@@ -1,5 +1,10 @@
 <md-content style="height:100%; overflow:hidden; box-sizing:border-box" layout="column">
   <div class="md-padding" flex style="overflow-y:auto">
+    <div>
+      <md-button ui-sref="menu.vehicleconfig.vue.tuning.mirrors.with-angular" class="md-raised md-primary" md-no-ink >
+        {{:: "ui.mirrors.name" | translate }}
+      </md-button>
+    </div>
     <div ng-repeat="category in vehConf_tuning.d.variable_categories | orderBy track by $index" class="veh-tuning-item">
       <h3 class="md-title" style="margin:0;">{{:: category }}</h3>
       <div ng-repeat="var in vehConf_tuning.d.variables | filter: {category: category} | orderBy: 'subCategory' track by var.name" style="padding: 0;">
@@ -57,13 +62,13 @@
     <div layout="row" layout-align="start center" class="md-padding" style="flex: 0 0 auto; border-top: solid 2px var(--bng-orange);">
       <md-checkbox ng-if="vehConf_tuning.awdData" bng-sound-class="bng_checkbox_generic" flex ng-model="vehConf_tuning.awdShow">
         <md-tooltip md-direction="right">
-          Show advanced wheels debug panel
+          {{:: 'ui.vehicleconfig.liveWheelDataTooltip' | translate}}
         </md-tooltip md-no-ink>
-        Wheels debug
+        {{:: 'ui.vehicleconfig.liveWheelData' | translate}}
       </md-checkbox>
       <md-checkbox bng-sound-class="bng_checkbox_generic" flex ng-model="vehConf_tuning.liveVariablesUpdate">
         <md-tooltip md-direction="right">
-          Automatically applies changes when moving the sliders
+          {{:: 'ui.vehicleconfig.applyPartChangesAutomaticallyTooltip' | translate}}
         </md-tooltip md-no-ink>
         {{:: 'ui.vehicleconfig.applyPartChangesAutomatically' | translate}}
       </md-checkbox>

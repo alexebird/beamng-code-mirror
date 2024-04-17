@@ -172,7 +172,7 @@ end
 function C:update(data)
   local dt = data.dtSim
   if not self.rotVec then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     self:setCustomData({pos=data.pos, front=veh:getDirectionVector(), up=veh:getDirectionVectorUp()})
   end
   --if self.pos == nil then

@@ -37,7 +37,7 @@ const makeStore = defineStore(STORE_NAME, () => {
   })
 
   function _getCurrentVehicleData() {
-    lua.core_vehicles.getCurrentVehicleDetails().then(data => (currentVehicleData.value = data))
+    return lua.core_vehicles.getCurrentVehicleDetails().then(data => (currentVehicleData.value = data))
   }
 
   function connect(state = true) {
@@ -53,6 +53,7 @@ const makeStore = defineStore(STORE_NAME, () => {
   _getCurrentVehicleData() // initial load of current vehicle
 
   return {
+    getCurrentVehicleData: _getCurrentVehicleData,
     current: { data: currentData, name: currentName },
     connect,
     disconnect,

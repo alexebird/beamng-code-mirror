@@ -3,30 +3,19 @@
     <div class="list-toolbar">
       <div class="list-path" v-if="pathLength > -1">
         <div v-if="pathLimit && pathLength > pathLimit" v-bng-blur="true">&mldr;</div>
-        <div v-for="(item, idx) in pathView"
+        <div
+          v-for="(item, idx) in pathView"
           class="list-path-item"
           v-bng-blur="true"
           @click="notify('click', item, 'pathClick')"
-          @focus="notify('focus', item, 'pathFocus')"
-        >{{ item.name }}</div>
+          @focus="notify('focus', item, 'pathFocus')">
+          {{ item.name }}
+        </div>
       </div>
       <div v-else></div>
       <div class="list-layout-toggle">
-        <!-- FIXME: update icon -->
-        <BngButton
-          :accent="layoutSelected === 'tile' ? 'outlined' : 'text'"
-          Xicon=""
-          @click="layoutSelected = 'tile'"
-        >
-          <BngIcon glyph="&#xBEBA3;" />
-        </BngButton>
-        <BngButton
-          :accent="layoutSelected === 'table' ? 'outlined' : 'text'"
-          Xicon=""
-          @click="layoutSelected = 'table'"
-        >
-          <BngIcon glyph="&#xBEBA2;" />
-        </BngButton>
+        <BngButton :accent="layoutSelected === 'tile' ? 'outlined' : 'text'" :icon="icons.tiles" @click="layoutSelected = 'tile'" />
+        <BngButton :accent="layoutSelected === 'table' ? 'outlined' : 'text'" :icon="icons.listSmall" @click="layoutSelected = 'table'" />
       </div>
     </div>
     <div
@@ -38,21 +27,19 @@
       }"
       :style="{
         '--list-item-width': `${tileWidth}em`,
-        '--list-item-margin': `${tileMargin}em`
+        '--list-item-margin': `${tileMargin}em`,
       }"
-      v-bng-blur="true"
-    >
+      v-bng-blur="true">
       <component
         :is="tileComponent"
         :layout="layoutSelected"
         :container-width="contWidth"
         v-for="(item, idx) in itemsView"
         v-bng-focus-if="(item.hasOwnProperty('selected') ? item.selected : idx === 0) && !item.disabled"
-        :icon="icons"
+        :icon="props.icons"
         :data="item"
         @click="notify('click', item)"
-        @focus="notify('focus', item)"
-      ></component>
+        @focus="notify('focus', item)"></component>
     </div>
   </div>
 </template>
@@ -70,7 +57,7 @@ export default {
 <script setup>
 import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue"
 import { vBngBlur, vBngFocusIf } from "@/common/directives"
-import { BngButton, BngIcon, BngListItemDefault } from "@/common/components/base"
+import { BngButton, BngListItemDefault, icons } from "@/common/components/base"
 
 const emitter = defineEmits(["click", "focus", "pathClick", "pathFocus"])
 
@@ -79,10 +66,9 @@ const props = defineProps({
     type: String,
     default: "tile",
   },
-  path: { // aka breadcrumbs
-    type: Array,
-  },
-  pathLimit: { // how many items to display in path
+  path: Array, // aka breadcrumbs
+  pathLimit: {
+    // how many items to display in path
     type: Number,
     default: 3,
   },
@@ -94,26 +80,33 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  tile: { // tile component to use
-    type: Object,
-  },
+  tile: Object, // tile component to use
 })
 
 const tileComponent = shallowRef(props.tile || BngListItemDefault)
-watch(() => props.tile, () => {
-  tileComponent.value = props.tile || BngListItemDefault
-  updWidth()
-})
+watch(
+  () => props.tile,
+  () => {
+    tileComponent.value = props.tile || BngListItemDefault
+    updWidth()
+  }
+)
 
 const layoutSelected = ref(props.layout)
-watch(() => props.layout, () => layoutSelected.value = props.layout || "tile")
-watch(() => layoutSelected.value, () => updWidth())
+watch(
+  () => props.layout,
+  () => (layoutSelected.value = props.layout || "tile")
+)
+watch(
+  () => layoutSelected.value,
+  () => updWidth()
+)
 
 // when it's -1, that means we won't use path at all
-const pathLength = computed(() => Array.isArray(props.path) ? props.path.length : -1)
-const pathView = computed(() => Array.isArray(props.path) ? (props.pathLimit ? props.path.slice(-props.pathLimit) : props.path) : [])
+const pathLength = computed(() => (Array.isArray(props.path) ? props.path.length : -1))
+const pathView = computed(() => (Array.isArray(props.path) ? (props.pathLimit ? props.path.slice(-props.pathLimit) : props.path) : []))
 
-const itemsView = computed(() => Array.isArray(props.items) ? props.items : [])
+const itemsView = computed(() => (Array.isArray(props.items) ? props.items : []))
 
 const cont = ref()
 let contWidth = 0
@@ -139,8 +132,7 @@ function updWidth(entries = []) {
   const width = (entries[0] ? entries[0].contentRect.width : cont.value.getBoundingClientRect().width) - scrollWidth
   // convert width to em
   contWidth = width / +fontSize.substring(0, fontSize.length - 2)
-  if (contWidth === 0)
-    return
+  if (contWidth === 0) return
   const baseWidth = tileComponent.value.width || 10 // em
   const baseMargin = tileComponent.value.margin || 0 // em, each side
   if (contWidth <= baseWidth * 1.5) {
@@ -152,7 +144,7 @@ function updWidth(entries = []) {
   // TODO: create aspect-ratio option
 }
 
-function notify(event, item, outEvent=null) {
+function notify(event, item, outEvent = null) {
   let error
   if (event in item && typeof item[event] === "function") {
     try {
@@ -162,8 +154,7 @@ function notify(event, item, outEvent=null) {
     }
   }
   emitter(outEvent || event, item)
-  if (error)
-    throw error
+  if (error) throw error
 }
 </script>
 
@@ -178,7 +169,8 @@ function notify(event, item, outEvent=null) {
   & > * {
     flex: 0 0 auto;
   }
-  &, & * {
+  &,
+  & * {
     position: relative;
     font-family: "Overpass", var(--fnt-defs);
   }
@@ -229,7 +221,8 @@ function notify(event, item, outEvent=null) {
   }
 }
 
-.list-content { /* list container */
+.list-content {
+  /* list container */
   flex: 0 1 auto;
   height: 100%;
   display: flex;
@@ -260,5 +253,4 @@ function notify(event, item, outEvent=null) {
     max-width: unset !important;
   }
 }
-
 </style>

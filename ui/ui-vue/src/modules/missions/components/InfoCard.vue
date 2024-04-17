@@ -1,29 +1,25 @@
 <template>
-  <div class="info-card" tabindex="1">
-    <BngCard class="card">
-      <template v-if="slots.header">
-        <slot name="header"></slot>
-      </template>
-      <template v-else-if="header">
-        <BngCardHeading :type="headerType">{{ header }}</BngCardHeading>
-      </template>
-      <div class="info-content">
-        <slot name="content"></slot>
-      </div>
-      <template v-if="slots.button" #buttons>
-        <div class="button-wrapper">
-          <slot name="button"></slot>
-          <bng-icon class="button-icon" :title="icons.general.arrow_small_right" span :type="icons.general.arrow_small_right" />
-        </div>
-      </template>
-    </BngCard>
-  </div>
+  <!-- <div class="info-card"> -->
+  <BngCard class="card info-card">
+    <template v-if="slots.header">
+      <slot name="header"></slot>
+    </template>
+    <template v-else-if="header">
+      <BngCardHeading :type="headerType">{{ header }}</BngCardHeading>
+    </template>
+    <div class="info-content">
+      <slot name="content"></slot>
+    </div>
+    <template v-if="slots.button" :class="{ 'button-center': true }" #buttons>
+      <slot name="button"></slot>
+    </template>
+  </BngCard>
+  <!-- </div> -->
 </template>
 
 <script setup>
 import { useSlots } from "vue"
-import { BngCard, BngCardHeading, BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngCard, BngCardHeading } from "@/common/components/base"
 
 const slots = useSlots()
 const props = defineProps({
@@ -39,34 +35,42 @@ const props = defineProps({
 </script>
 
 <style scoped lang="scss">
-// $backgroundColor: rgba(0, 0, 0, 0.6);
-$backgroundColor: black;
+$backgroundColor: rgba(0, 0, 0, 0.5);
+// $backgroundColor: black;
 $textColor: white;
 
+@import "@/styles/modules/mixins";
+
 .info-card {
+  $f-offset: 0.25rem;
+  $rad: $border-rad-2;
+
   position: relative;
   border-radius: 0.125em;
-  background: $backgroundColor;
+  // background: $backgroundColor;
   color: $textColor;
   border-bottom: 0.25rem solid transparent;
   border-radius: 0.25rem;
   font-style: normal;
   font-weight: 400;
-  line-height: 1.25rem; /* 125% */
+  // line-height: 1.25rem; /* 125% */
   letter-spacing: 0.02rem;
   user-select: none;
 
   &.button-center {
     :deep(.card) {
-      > .buttons > .button-wrapper {
-        justify-content: center;
+      > .buttons {
+        display: flex;
+        justify-content: stretch;
 
         > .bng-button {
-          font-size: 1.5rem;
-          font-style: normal;
-          font-weight: 400;
-          line-height: 2rem;
-          letter-spacing: 0.015rem;
+          > .label {
+            font-size: 2.5rem;
+            font-style: normal;
+            font-weight: 800;
+            line-height: 2rem;
+            letter-spacing: 0.015rem;
+          }
         }
 
         > .button-icon {
@@ -76,17 +80,15 @@ $textColor: white;
     }
   }
 
-  &:focus {
-    border-bottom-color: rgba(255, 102, 0, 1);
+  @include modify-focus($rad, $f-offset);
 
-    &::before {
-      top: -0.5rem;
-      bottom: -0.75rem;
-      left: -0.5rem;
-      right: -0.5rem;
-      border-radius: 0.5rem;
-    }
-  }
+  // &:focus {
+  //   border-bottom-color: rgba(var(--bng-orange-b400-rgb), 1);
+
+  //   &::before {
+  //     bottom: -0.5rem;
+  //   }
+  // }
 
   > :deep(.card) {
     .card-cnt {

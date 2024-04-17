@@ -299,7 +299,7 @@ M.handleImpactGenGenerateOutput = function(request)
   request:markHandled() -- we return responses later than this frame
 
   camera = sensors.createCamera(0, cameraArgs)
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
 
   local pos = veh:getSpawnWorldOOBB():getCenter()
   local dir = veh:getDirectionVector()

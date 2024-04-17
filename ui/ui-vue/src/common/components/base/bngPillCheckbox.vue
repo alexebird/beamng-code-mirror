@@ -1,78 +1,110 @@
 <!-- bngPillCheckbox - a pill control as a checkbox -->
 <template>
-  <span class="bng-pill-checkbox" :class="{'show-icon': isChecked && props.markedIcon}">
-    <bng-pill :marked="isChecked" @click="onChecked" @keyup.space="onChecked">
+  <span class="bng-pill-checkbox" :class="{ 'show-icon': isChecked && props.markedIcon }">
+    <BngPill :marked="isChecked" @click="onChecked" @keyup.space="onChecked">
       <span class="pill-content">
         <slot></slot>
       </span>
-      <bng-icon class="pill-mark-icon" :type="(props.markedIcon===true) ? icons.general.check : (props.markedIcon||icons.general.check) " />
-    </bng-pill>
+      <BngIcon class="pill-mark-icon" :type="props.markedIcon === true ? icons.checkmark : props.markedIcon || icons.checkmark" />
+    </BngPill>
   </span>
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
-import { BngPill, BngIcon } from "@/common/components/base";
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { computed, ref } from "vue"
+import { BngPill, BngIcon, icons } from "@/common/components/base"
 
 const props = defineProps({
-  marked: {
+  modelValue: {
     type: Boolean,
-    default: false
+    default: null,
   },
   markedIcon: {
-    default: true
-  }
+    type: [Boolean, Object],
+    default: true,
+  },
 })
 
-const emits = defineEmits(['valueChanged'])
+const emit = defineEmits(["update:modelValue", "valueChanged"])
 
-defineExpose({setValue})
+const defaultValue = ref(false)
 
-const isChecked = ref(props.marked)
+const isChecked = computed({
+  get: () => (props.modelValue !== undefined && props.modelValue !== null ? props.modelValue : defaultValue.value),
+  set: newValue => {
+    if (props.modelValue !== undefined && props.modelValue !== null) {
+      emit("update:modelValue", newValue)
+      emit("valueChanged", newValue)
+    } else {
+      defaultValue.value = newValue
+      emit("valueChanged", newValue)
+    }
+  },
+})
 
-watch(() => props.marked, (newValue) => setValue(newValue))
-
-/* Public Functions */
-function setValue(newValue) {
-  isChecked.value = newValue
-}
-
-/* Private Functitons */
-function onChecked() {
-  setValue(!isChecked.value)
-  emits('valueChanged', isChecked.value)
-}
+const onChecked = () => (isChecked.value = !isChecked.value)
 </script>
 
 <style scoped lang="scss">
+@keyframes growIcon {
+  from {
+    transform: scale(0) translateY(0.0625em);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0.0625em);
+    opacity: 1;
+  }
+}
+
 .bng-pill-checkbox {
   :deep(.bng-pill) {
     display: inline-flex;
     justify-content: center;
-    align-items: center;
+    align-items: baseline;
+    transition: all 120ms ease-in;
+    padding: 0.4em 0;
 
     > .pill-content {
-      padding: 0 9px;
       user-select: none;
+      flex: 0 0 auto;
+      padding: 0;
+      padding-left: 1em;
+      padding-right: 1em;
+      transition: all 120ms ease-in;
     }
 
     > .pill-mark-icon {
-      width: 16px;
-      height: 16px;
-      display: none;
-      margin-left: 2px;
+      font-size: 1.25em;
+      display: inline-block;
+      padding-right: 0.75em;
+      user-select: none;
+      width: 0;
+      overflow: hidden;
+      padding: 0;
+      transition: all 120ms ease-in;
+      flex: 0 0 0.0001%;
     }
   }
 
   &.show-icon > .bng-pill {
     > .pill-content {
-      padding: 0;
+      padding-left: 1em;
+      padding-right: 0.125em;
+      transition: all 120ms ease-in;
     }
 
     > .pill-mark-icon {
       display: inline-block;
+      width: 1.5em;
+      flex: 0 0 1.5em;
+      padding-right: 0.75em;
+      animation: growIcon 120ms ease forwards;
     }
+  }
+
+  &[disabled] {
+    pointer-events: none;
   }
 }
 </style>

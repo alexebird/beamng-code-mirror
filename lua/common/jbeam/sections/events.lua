@@ -92,6 +92,10 @@ local function processTriggers(objID, vehicleObj, vehicle)
         abo.visibleDistance = 0.3
 
         abo:update(ab.translation, ab.rotation, true, 0)
+
+        if ab.alphaOnUsed then
+          abo:setAlphaOnUsed(ab.alphaOnUsed)
+        end
       else
         log('E', 'trigger', "Trigger not found: " .. dumps(ab))
       end

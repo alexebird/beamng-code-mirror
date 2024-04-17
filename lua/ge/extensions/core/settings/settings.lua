@@ -38,11 +38,6 @@ local function notifyUI()
   guihooks.trigger('SettingsChanged', {values = values, options = options})
 end
 
-local function deprecateTSFeatureFlags()
-  removeConsoleVariable("$pref::Video::canvasSize");
-  removeConsoleVariable("$pref::Video::mode");
-end
-
 local alreadySaving = false
 local function save()
   if M.loadingSettingsInProgress then
@@ -81,12 +76,12 @@ local function save()
   jsonWriteFile(M.impl.pathLocal, localValues, true)
   jsonWriteFile(M.impl.pathCloud, cloudValues, true)
 
-  deprecateTSFeatureFlags()
+  removeConsoleVariable("$pref::Video::canvasSize") -- deprecated flag
+  removeConsoleVariable("$pref::Video::mode") -- deprecated flag
   TorqueScript.eval(string.format('export("$pref::*", "%s" , False);', settings.impl.pathTorquescript))
 
   -- let UI and Lua know
   notifyUI()
-  commands.onSettingsChanged()
   core_settings_graphic.onSettingsChanged()
   extensions.hook('onSettingsChanged')
   be:queueAllObjectLua('onSettingsChanged()')
@@ -421,7 +416,7 @@ local function onFilesChanged(files)
   end
 end
 
-M.exit = function ()
+local function exit()
   save()
 end
 
@@ -438,4 +433,6 @@ M.save = requestSave
 M.load = load
 M.initSettings = initSettings
 M.settingsTick = nop
+M.exit = exit
+
 return M

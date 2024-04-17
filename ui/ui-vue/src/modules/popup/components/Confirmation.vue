@@ -1,46 +1,49 @@
 <template>
-  <div :class="['popup', 'popup-style-' + appearance]">
+  <div :class="['popup', 'popup-style-' + appearance]" bng-ui-scope="_confirmPopup" v-bng-on-ui-nav:*="handleCancelWithBack">
     <div class="popup-content">
       <div class="popup-title" v-if="title">{{ title }}</div>
-      <div class="popup-body" v-html="message"></div>
+      <div class="popup-body" v-if="messageIsComponent"><component :is="message.component" v-bind="message.props" /></div>
+      <div class="popup-body" v-else v-html="message" />
       <div class="popup-buttons">
         <BngButton
           v-for="button in buttons"
+          v-bind="button.extras"
           @click="$emit('return', button.value)"
-        >{{ $t(button.label) }}</BngButton>
+        >{{ button.label }}</BngButton>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from "vue"
 import { BngButton } from "@/common/components/base"
+import { vBngOnUiNav } from "@/common/directives"
+import { useUINavScope } from "@/services/uiNav"
+import { UI_EVENTS, UI_EVENT_GROUPS } from "@/bridge/libs/UINavEvents"
+useUINavScope("_confirmPopup")
 
-defineEmits(["return"])
+const emit = defineEmits(["return"])
 
 const props = defineProps({
-  appearance: {
-    type: String,
-  },
-  popupActive: {
-    type: Boolean,
-    default: false,
-  },
+  appearance: String,
+  popupActive: Boolean,
   message: {
-    type: String,
+    type: [String, Object],
     required: true,
   },
-  title: {
-    type: String,
-  },
-  buttons: {
-    type: Array,
-    default: [
-      { label: "ui.common.okay", value: true },
-      { label: "ui.common.cancel", value: false },
-    ],
-  },
+  title: String,
+  buttons: Array,
 })
+
+const messageIsComponent = computed(() => props.message && typeof props.message === "object" && props.message.component)
+
+
+const handleCancelWithBack = e => {
+  if ([UI_EVENTS.back, UI_EVENTS.menu].includes(e.detail.name)) emit('return', null)
+  return [...UI_EVENT_GROUPS.focusMove, UI_EVENTS.ok].includes(e.detail.name)
+}
+
 </script>
 
 <script>
@@ -53,6 +56,7 @@ export default {
     style: null,
   },
   position: popupPosition.center,
+  animated: true,
 }
 </script>
 

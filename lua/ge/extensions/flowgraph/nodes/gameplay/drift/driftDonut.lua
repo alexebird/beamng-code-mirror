@@ -5,7 +5,7 @@
 local im  = ui_imgui
 local C = {}
 
-C.name = 'Drift Donut'
+C.name = 'Drift donut detected'
 
 C.description = "Detect Donuts"
 C.color = ui_flowgraph_editor.nodeColors.vehicle
@@ -17,14 +17,17 @@ C.pinSchema = {
   { dir = 'out', type = 'number', name = 'donutScore', description = "The score obtained from the donut"},
 }
 
-C.tags = {'gameplay', 'utils'}
+C.tags = {'gameplay', 'utils', 'drift'}
 
-local callbacks
+local donutInfo
 function C:work()
-  callbacks = self.mgr.modules.drift:getCallBacks()
+  donutInfo = self.mgr.modules.drift:getCallBacks().donut
 
-  self.pinOut.donutDrift.value = callbacks.donut
-  self.pinOut.donutScore.value = callbacks.donut
+  self.pinOut.donutDrift.value = false
+  if donutInfo.ttl > 0 then
+    self.pinOut.donutDrift.value = true
+    self.pinOut.donutScore.value = donutInfo.data.score
+  end
 
 end
 

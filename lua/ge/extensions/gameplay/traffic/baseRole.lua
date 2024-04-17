@@ -199,6 +199,44 @@ function C:checkTargetVisible(id)
   return visible
 end
 
+function C:freezeTrafficSignals(state) -- intended for emergency vehicles
+  if not core_trafficSignals.getData().active then return end
+  if state then
+    self.flags.freezeSignals = 1
+    for _, sequence in ipairs(core_trafficSignals.getSequences()) do
+      local freeze = true
+      local valid = false
+      for _, link in pairs(sequence.linkedControllers) do
+        local ctrlState = link.controller.states[link.stateIdx]
+        if ctrlState then
+          -- this could be better...
+          if string.startswith(ctrlState.state, 'green') then
+            sequence:advance()
+            freeze = false
+            break
+          elseif string.startswith(ctrlState.state, 'yellow') then
+            freeze = false
+          elseif string.startswith(ctrlState.state, 'red') then
+            valid = true
+          end
+        end
+      end
+      if freeze and valid then -- stops traffic signal sequence if all lights are red
+        sequence._trafficFreeze = true
+        sequence:enableTimer(false)
+      end
+    end
+  else
+    self.flags.freezeSignals = nil
+    for _, sequence in ipairs(core_trafficSignals.getSequences()) do
+      if sequence._trafficFreeze then
+        sequence._trafficFreeze = nil
+        sequence:enableTimer(true)
+      end
+    end
+  end
+end
+
 function C:tryRandomEvent()
 end
 

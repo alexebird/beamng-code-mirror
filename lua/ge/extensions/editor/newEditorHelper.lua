@@ -1316,6 +1316,8 @@ return function(derivedClass, mode, ...)
   o.mode = mode
   if o.mode == 'quest' then
     o.typeDataFieldName = 'questTypeData'
+  elseif o.mode == 'test' then
+    o.typeDataFieldName = 'test'
   end
   return o
 end

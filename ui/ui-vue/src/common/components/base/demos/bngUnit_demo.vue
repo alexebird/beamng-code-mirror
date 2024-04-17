@@ -2,8 +2,6 @@
 <template>
   <h2>BngUnit Demo</h2>
   <div>
-    <span>svg:</span>
-    <br />
     <BngUnit :xp="0" /> <br />
     <BngUnit :xp="1234.23123" /> <br />
     <BngUnit :beambucks="0" /> <br />

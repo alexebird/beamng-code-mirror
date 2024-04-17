@@ -1,60 +1,58 @@
 <template>
   <div>
     <div class="buttons">
-      <bng-button :disabled="disabled" tabindex="1" :show-hold="true" @click="clickHandler">Test button</bng-button>
-      <bng-button :disabled="disabled" tabindex="1" accent="secondary" :icon-left="icons.drive.busroutes" @click="clickHandler">secondary button</bng-button>
-      <bng-button :disabled="disabled" tabindex="1" accent="attention" :icon-right="icons.drive.busroutes" @click="clickHandler">attention button</bng-button>
-      <bng-button :disabled="disabled" tabindex="1" accent="text" @click="clickHandler"><b>Test text button</b></bng-button>
-      <bng-button :icon="icons.drive.busroutes" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler" label="Outlined button" />
+      <BngButton :disabled="disabled" tabindex="1" :show-hold="true" @click="clickHandler">Test button</BngButton>
+      <BngButton class="allcaps" :disabled="disabled" tabindex="1" accent="secondary" :icon-left="icons.bus" @click="clickHandler">secondary button</BngButton>
+      <BngButton class="large allcaps" :disabled="disabled" tabindex="1" accent="attention" :icon-right="icons.bus" @click="clickHandler"
+        >attention button</BngButton
+      >
+      <BngButton :disabled="disabled" tabindex="1" accent="text" @click="clickHandler"><b>Test text button</b></BngButton>
+      <BngButton :icon="icons.bus" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler" label="Outlined button" />
 
-      <bng-button tabindex="1" @click="disableButtons">toggle disabled</bng-button>
+      <BngButton tabindex="1" @click="disableButtons">toggle disabled</BngButton>
     </div>
   </div>
   <div>
     <div class="buttons">
-      <bng-button :disabled="disabled" tabindex="1" accent="secondary" :icon-left="icons.drive.busroutes" @click="clickHandler"></bng-button>
-      <bng-button :disabled="disabled" tabindex="1" accent="attention" :icon-right="icons.drive.busroutes" @click="clickHandler"></bng-button>
-      <bng-button :icon="icons.drive.busroutes" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler"></bng-button>
+      <BngButton :disabled="disabled" tabindex="1" accent="secondary" :icon-left="icons.bus" @click="clickHandler"></BngButton>
+      <BngButton :disabled="disabled" tabindex="1" accent="attention" :icon-right="icons.bus" @click="clickHandler"></BngButton>
+      <BngButton :icon="icons.bus" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler"></BngButton>
     </div>
     Total clicks: {{ clickCount }}
   </div>
   <div>
     <div class="buttons">
-      <bng-button class="recovery-option" :disabled="disabled" tabindex="1" accent="secondary" @click="clickHandler">
-        <BngIcon class="recovery-icon" glyph="&#xBEB9E;" />
+      <BngButton class="recovery-option" :disabled="disabled" tabindex="1" accent="secondary" @click="clickHandler">
+        <BngIcon class="recovery-icon" :type="icons.carToWheels" />
         <span class="label">Flip upright</span>
-        <BngDivider class="vertical-divider" />
-        <div class="units">
-          <BngIcon class="units-icon" glyph="&#xBEA17;" />
-          <span class="label">1234.95</span>
-        </div>
-      </bng-button>
-      <bng-button class="recovery-option" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler">
-        <BngIcon class="recovery-icon" glyph="&#xBEBA0;" />
+        <BngDivider />
+        <BngUnit :beambucks="1234.33" />
+      </BngButton>
+      <BngButton class="recovery-option" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler">
+        <BngIcon class="recovery-icon" :type="icons.road" />
         <span class="label">Tow to nearest road</span>
-        <BngDivider class="vertical-divider" />
+        <BngDivider />
         <BngUnit :beambucks="1234.33" />
-      </bng-button>
-      <bng-button class="recovery-option" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler">
-        <BngIcon class="recovery-icon" glyph="&#xBEB21;" />
+      </BngButton>
+      <BngButton class="recovery-option" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler">
+        <BngIcon class="recovery-icon" :type="icons.toGarage" />
         <span class="label">Tow to nearest garage</span>
-        <BngDivider class="vertical-divider" />
+        <BngDivider />
         <BngUnit :beambucks="1234.33" />
-      </bng-button>
-      <bng-button class="recovery-option" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler">
-        <BngIcon class="recovery-icon" glyph="&#xBEB21;" />
+      </BngButton>
+      <BngButton class="recovery-option" :disabled="disabled" tabindex="1" accent="outlined" @click="clickHandler">
+        <BngIcon class="recovery-icon" :type="icons.toGarage" />
         <span class="label">Cancel</span>
-        <BngDivider class="vertical-divider" />
+        <BngDivider />
         <BngUnit :beambucks="1234.33" />
-      </bng-button>
+      </BngButton>
     </div>
     Total clicks: {{ clickCount }}
   </div>
 </template>
 
 <script setup>
-import { icons } from "@/common/components/base/bngIcon.vue"
-import { BngButton, BngDivider, BngIcon, BngImageTile, BngUnit } from "@/common/components/base"
+import { BngButton, BngDivider, BngIcon, BngUnit, icons } from "@/common/components/base"
 import { ref } from "vue"
 
 let disabled = ref(false)
@@ -79,7 +77,6 @@ function disableButtons() {
   & > :not(:last-child) {
     margin-right: 0.5em;
   }
-
 }
 
 .recovery-option {
@@ -101,7 +98,6 @@ function disableButtons() {
     margin-top: 0;
     margin-bottom: 0;
   }
-  
 
   .units {
     display: inline-flex;
@@ -110,10 +106,6 @@ function disableButtons() {
 
   & > .label {
     flex: 1 1 auto;
-  }
-  .units-icon, .recovery-icon {
-    margin-right: 0.125em;
-    font-size: 1.5em;
   }
 
   .recovery-icon {

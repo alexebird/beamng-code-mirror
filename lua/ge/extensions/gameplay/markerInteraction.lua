@@ -3,7 +3,7 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
 local M = {}
-M.dependencies = {'gameplay_missions_missions','freeroam_bigMapMode', 'gameplay_playmodeMarkers', 'freeroam_bigMapPoiProvider'}
+M.dependencies = {'gameplay_missions_missions', 'gameplay_missions_missionManager','freeroam_bigMapMode', 'gameplay_playmodeMarkers', 'freeroam_bigMapPoiProvider','ui_missionInfo'}
 
 local skipIconFading = false
 -- detect player velocity
@@ -15,16 +15,14 @@ local forceReevaluateOpenPrompt = true
 
 local vel = vec3()
 local function getVelocity(dtSim, position)
-  --local veh = be:getPlayerVehicle(0)
-  --return veh:getVelocity():length()
-  lastPosition = lastPosition or position
+  if not position then return 0 end
   lastVel = lastVel or 10
 
   if dtSim > 0 then
     vel:setSub2(position, lastPosition)
     lastVel = vel:length() / dtSim
   end
-  lastPosition = position
+  lastPosition:set(position)
   return lastVel
 end
 
@@ -57,7 +55,12 @@ local function getCruisingSpeedFactor(playerVelocity)
 end
 
 
-local currentInteractableElements = nil
+local currentInteractableElements = {}
+
+local function getCurrentInteractableElements()
+  return currentInteractableElements
+end
+M.getCurrentInteractableElements = getCurrentInteractableElements
 
 M.formatMission = function(m)
   local info = {
@@ -200,16 +203,14 @@ local function getGameContext(fromMissionMenu)
           },
           {
             type = "bonusStarRepair",
-            cost = 1,
             label = "For 1 bonus star",
-            available = career_modules_playerAttributes.getAttribute('bonusStars').value >= 1,
+            available = career_modules_playerAttributes.getAttributeValue('bonusStars') >= 1,
             notEnoughDisplay = "Not enough bonus stars for repair"
           },
           {
             type = "moneyRepair",
-            cost = 1000,
             label = "For 1000 money",
-            available = career_modules_playerAttributes.getAttribute('money').value >= 1000,
+            available = career_modules_playerAttributes.getAttributeValue('money') >= 1000,
             notEnoughDisplay = "Not enough money for repair"
           }
         }
@@ -228,13 +229,7 @@ local function getGameContext(fromMissionMenu)
 end
 M.getGameContext = getGameContext
 
-local lastValidPlayerPosition
-local function getPlayerPosition()
-  local playerVehicle = be:getPlayerVehicle(0)
-  local pos = playerVehicle and playerVehicle:getPosition() or core_camera.getPosition()
-  lastValidPlayerPosition = pos
-  return lastValidPlayerPosition
-end
+
 
 local detailPromptOpen = false
 local promptData = {}
@@ -304,6 +299,7 @@ local function closeViewDetailPrompt(force)
     guihooks.trigger("onMissionAvailabilityChanged", {missionCount = 0})
     guihooks.trigger('ActivityAcceptUpdate', nil)
     detailPromptOpen = false
+    extensions.hook("onMissionAvailabilityChanged", {missionCount = 0})
   end
 end
 M.onCloseDetailPropmptClicked = function()
@@ -317,15 +313,45 @@ local function onUiChangedState(newUIState, prevUIState)
 end
 
 
+local screenWidth, screenHeight, screenRatio = 1,1,1
+local function onSettingsChanged()
+  local vm = GFXDevice.getVideoMode()
+  screenWidth = vm.width
+  screenHeight = vm.height
+  screenRatio = screenWidth / screenHeight
+end
+M.onSettingsChanged = onSettingsChanged
 
+local p1, p2, p3, p4, p5, p6, p7, p8 = vec3(), vec3(), vec3(), vec3(), vec3(), vec3(), vec3(), vec3()
+local bbPoints = {}
+local function getBBPoints(bbCenter, bbAxis0, bbAxis1, bbAxis2)
+  p1:set(bbCenter) p1:setAdd(bbAxis0) p1:setAdd(bbAxis1) p1:setSub(bbAxis2)
+  p2:set(bbCenter) p2:setAdd(bbAxis0) p2:setAdd(bbAxis1) p2:setAdd(bbAxis2)
+  p3:set(bbCenter) p3:setSub(bbAxis0) p3:setAdd(bbAxis1) p3:setAdd(bbAxis2)
+  p4:set(bbCenter) p4:setSub(bbAxis0) p4:setAdd(bbAxis1) p4:setSub(bbAxis2)
+  p5:set(bbCenter) p5:setAdd(bbAxis0) p5:setSub(bbAxis1) p5:setSub(bbAxis2)
+  p6:set(bbCenter) p6:setAdd(bbAxis0) p6:setSub(bbAxis1) p6:setAdd(bbAxis2)
+  p7:set(bbCenter) p7:setSub(bbAxis0) p7:setSub(bbAxis1) p7:setAdd(bbAxis2)
+  p8:set(bbCenter) p8:setSub(bbAxis0) p8:setSub(bbAxis1) p8:setSub(bbAxis2)
+  bbPoints[1] = p1; bbPoints[2] = p2; bbPoints[3] = p3; bbPoints[4] = p4;
+  bbPoints[5] = p5; bbPoints[6] = p6; bbPoints[7] = p7; bbPoints[8] = p8;
+  return bbPoints
+end
 
-
+local veh
 
 local updateData = {}
 local decals = {}
 local nearbyIds = {}
 local quadTreeSettings = {}
 local clustersById = {}
+local interactableElements = {}
+
+local lastCamPos = vec3()
+local lastCamVel = vec3()
+local playerVelLast = vec3()
+local timeSincePlayerTeleport
+
 local function displayMissionMarkers(level, dtSim, dtReal)
   profilerPushEvent("MissionMarker precalc")
   local activeMission = gameplay_missions_missionManager.getForegroundMissionId()
@@ -333,47 +359,59 @@ local function displayMissionMarkers(level, dtSim, dtReal)
   if activeMission then
     globalAlpha = 0
   end
-  local camPos = core_camera.getPosition()
-  local playerPosition = getPlayerPosition()
-  local playerVelocity = getVelocity(dtSim, playerPosition)
-  local isWalking = gameplay_walk and gameplay_walk.isWalking()
+  veh = getPlayerVehicle(0)
+  if veh then
+    updateData.veh = veh
+    updateData.vehPos = updateData.vehPos or vec3()
+    updateData.vehPos:set(veh:getPositionXYZ())
+    updateData.vehPos2d = updateData.vehPos2d or vec3()
+    updateData.vehPos2d:set(updateData.vehPos)
+    updateData.vehPos2d.z = 0
+    updateData.vehVelocity = updateData.vehVelocity or vec3()
+    updateData.vehVelocity:set(veh:getVelocityXYZ())
+
+    local vehId = veh:getID()
+    updateData.bbCenter = updateData.bbCenter or vec3()
+    updateData.bbCenter:set(be:getObjectOOBBCenterXYZ(vehId))
+    updateData.bbHalfAxis0 = updateData.bbHalfAxis0 or vec3()
+    updateData.bbHalfAxis0:set(be:getObjectOOBBHalfAxisXYZ(vehId, 0))
+    updateData.bbHalfAxis1 = updateData.bbHalfAxis1 or vec3()
+    updateData.bbHalfAxis1:set(be:getObjectOOBBHalfAxisXYZ(vehId, 1))
+    updateData.bbHalfAxis2 = updateData.bbHalfAxis2 or vec3()
+    updateData.bbHalfAxis2:set(be:getObjectOOBBHalfAxisXYZ(vehId, 2))
+
+    updateData.bbPoints = getBBPoints(updateData.bbCenter, updateData.bbHalfAxis0, updateData.bbHalfAxis1, updateData.bbHalfAxis2)
+
+    updateData.highestBBPointZ = math.max(updateData.bbPoints[2].z, math.max(updateData.bbPoints[3].z, math.max(updateData.bbPoints[6].z, updateData.bbPoints[7].z)))
+  end
+
+  updateData.playerPosition = veh and updateData.vehPos or updateData.camPos
+
+
+  local playerVelocity = getVelocity(dtSim, updateData.playerPosition)
+  -- this is 64 garbage
+  updateData.isWalking = gameplay_walk and gameplay_walk.isWalking() or false
+
   profilerPushEvent("MissionEnter parkingSpeedFactor")
   local parkingSpeedFactor, isAtParkingSpeed, parkingSpeedChanged = getParkingSpeedFactor(playerVelocity)
   local cruisingSpeedFactor, isAtcruisingSpeed, cruisingSpeedChanged = getCruisingSpeedFactor(playerVelocity)
 
   profilerPopEvent("MissionEnter parkingSpeedFactor")
-
   -- put reference for icon manager in
-  updateData.playerPosition = playerPosition
   updateData.parkingSpeedFactor = parkingSpeedFactor
   updateData.cruisingSpeedFactor = cruisingSpeedFactor
   updateData.dt = dtReal
   updateData.globalAlpha = globalAlpha
-  updateData.camPos = camPos
-  updateData.camRot = core_camera.getQuat()
+  updateData.camPos = updateData.camPos or vec3()
+  updateData.camPos:set(core_camera.getPositionXYZ())
+  updateData.camRot = updateData.camRot or quat()
+  updateData.camRot:set(core_camera.getQuatXYZW())
   updateData.bigMapActive = freeroam_bigMapMode.bigMapActive()
   updateData.bigmapTransitionActive = freeroam_bigMapMode.isTransitionActive()
-  updateData.isWalking = isWalking
   updateData.isFreeCam = commands.isFreeCamera()
-  local vm = GFXDevice.getVideoMode()
-  local w, h = vm.width, vm.height
-  updateData.windowAspectRatio = w/h
-  updateData.screenHeight = GFXDevice.getVideoMode().height
+  updateData.windowAspectRatio = screenRatio
+  updateData.screenHeight = screenHeight
   -- TODO: Clean this up
-  local veh = be:getPlayerVehicle(0)
-  if veh then
-    local oobb = veh:getSpawnWorldOOBB()
-    updateData.veh = veh
-    updateData.vehPos = veh:getPosition()
-    updateData.vehPos2d = veh:getPosition():z0()
-    updateData.vehVelocity = veh:getVelocity()
-    updateData.oobb = oobb
-    for i = 0, 7 do
-      updateData['bbp'..i] = oobb:getPoint(i)
-    end
-
-  end
-
   table.clear(nearbyIds)
   -- hide all the markers behind the camera
   local maxRadius = 100
@@ -382,7 +420,7 @@ local function displayMissionMarkers(level, dtSim, dtReal)
   if   (not freeroam_bigMapMode.bigMapActive())
     or (freeroam_bigMapMode.bigMapActive() and freeroam_bigMapMode.isTransitionActive()) then
     local clusterQt = gameplay_playmodeMarkers.getPlaymodeClustersAsQuadtree()
-    for id in clusterQt:queryNotNested(playerPosition.x-maxRadius, playerPosition.y-maxRadius, playerPosition.x+maxRadius, playerPosition.y + maxRadius) do
+    for id in clusterQt:queryNotNested(updateData.playerPosition.x-maxRadius, updateData.playerPosition.y-maxRadius, updateData.playerPosition.x+maxRadius, updateData.playerPosition.y + maxRadius) do
       nearbyIds[id] = true
     end
   end
@@ -397,25 +435,32 @@ local function displayMissionMarkers(level, dtSim, dtReal)
   --table.sort(visibleIdsSorted)
   profilerPopEvent("MissionEnter precalc")
   if not isAtParkingSpeed then
-    currentInteractableElements = nil
+    table.clear(currentInteractableElements)
   end
   table.clear(decals)
 
   local decalCount = 0
   local careerActive = (career_career and career_career.isActive())
-  local interactableElements = {}
+  table.clear(interactableElements)
   local showMissionMarkers = settings.getValue("showMissionMarkers")
-
   -- draw/show all visible markers.
+  if not timeSincePlayerTeleport then
+    timeSincePlayerTeleport = core_camera.objectTeleported(updateData.camPos, lastCamPos, playerVelLast, dtReal) and 0.5
+  end
+  if timeSincePlayerTeleport then
+    timeSincePlayerTeleport = timeSincePlayerTeleport - dtReal
+    if timeSincePlayerTeleport <= 0 then timeSincePlayerTeleport = nil end
+  end
+
   for i, cluster in ipairs(gameplay_playmodeMarkers.getPlaymodeClusters()) do
     local marker = gameplay_playmodeMarkers.getMarkerForCluster(cluster)
-    if nearbyIds[cluster.id] or marker.focus then
+    if nearbyIds[cluster.id] or marker.focus or timeSincePlayerTeleport then
       -- Check if the marker should be visible
       local showMarker = not photoModeOpen and not editor.active
       if marker.type == "missionMarker" then
         showMarker = (showMissionMarkers or cluster.focus)
       end
-      if showMarker then
+      if showMarker or timeSincePlayerTeleport then
         -- debug drawing for testing
         --debugDrawer:drawTextAdvanced(cluster.pos, String(tostring(id)), ColorF(1,1,1,1), true, false, ColorI(0,0,0,192))
         --debugDrawer:drawSphere(cluster.pos, cluster.radius, ColorF(0.91,0.05,0.48,0.2))
@@ -427,10 +472,9 @@ local function displayMissionMarkers(level, dtSim, dtReal)
           decals[decalCount] = marker.groundDecalData
         end
 
-        if not freeroam_bigMapMode.bigMapActive() and not activeMission then
+        if not freeroam_bigMapMode.bigMapActive() and not activeMission and not core_recoveryPrompt.isOpen() then
           if marker.interactInPlayMode then
             -- todo: optimize this
-            local veh = be:getPlayerVehicle(0)
             if veh then
               local canInteract = isAtParkingSpeed and (forceReevaluateOpenPrompt or parkingSpeedChanged)
 
@@ -449,10 +493,17 @@ local function displayMissionMarkers(level, dtSim, dtReal)
       marker:hide()
     end
   end
+  lastCamPos:set(updateData.camPos)
+  if veh then
+    playerVelLast:set(be:getObjectVelocityXYZ(veh:getID()))
+  end
   --print("Force forceReevaluateOpenPrompt " .. dumps(forceReevaluateOpenPrompt))
   forceReevaluateOpenPrompt = false
   if next(interactableElements) then
-    currentInteractableElements = interactableElements
+    table.clear(currentInteractableElements)
+    for i, elem in ipairs(interactableElements) do
+      currentInteractableElements[i] = elem
+    end
     openViewDetailPrompt(interactableElements)
   end
   if not activeMission and not next(interactableElements) then
@@ -486,25 +537,31 @@ local function onPreRender(dtReal, dtSim)
   profilerPushEvent("MissionEnter onPreRender")
   profilerPushEvent("MissionEnter groundMarkers")
   -- Disable navigation when player is close to the goal
-  if gameplay_missions_missionManager.getForegroundMissionId() == nil and core_groundMarkers.currentlyHasTarget() then
-    if freeroam_bigMapMode and not freeroam_bigMapMode.bigMapActive() and type(core_groundMarkers.endWP[1]) == "cdata" then -- is vec3
-      drawDistanceColumn(core_groundMarkers.endWP[1])
-      if core_groundMarkers.getPathLength() < 10 then
-        freeroam_bigMapMode.reachedTarget()
+  if gameplay_missions_missionManager then
+    if gameplay_missions_missionManager.getForegroundMissionId() == nil and core_groundMarkers.currentlyHasTarget() then
+      if freeroam_bigMapMode and not freeroam_bigMapMode.bigMapActive() and type(core_groundMarkers.endWP[1]) == "cdata" then -- is vec3
+        local nextFixedWP = core_groundMarkers.routePlanner:getNextFixedWP()
+        if nextFixedWP then
+          drawDistanceColumn(nextFixedWP)
+        end
+        if core_groundMarkers.getPathLength() < 10 then
+          freeroam_bigMapMode.reachedTarget()
+        end
       end
     end
-  end
-  if freeroam_bigMapMode and freeroam_bigMapMode.reachedTargetPos then
-    local veh = be:getPlayerVehicle(0)
-    if veh then
-      local vehPos = veh:getPosition()
-      if vehPos:distance(freeroam_bigMapMode.reachedTargetPos) > 50 then
-        freeroam_bigMapMode.resetForceVisible()
+    if freeroam_bigMapMode and freeroam_bigMapMode.reachedTargetPos then
+      local veh = getPlayerVehicle(0)
+      if veh then
+        local vehPos = veh:getPosition()
+        if vehPos:distance(freeroam_bigMapMode.reachedTargetPos) > 50 then
+          freeroam_bigMapMode.resetForceVisible()
+        end
       end
     end
   end
 
   profilerPopEvent("MissionEnter groundMarkers")
+
 
   -- check if we've switched level
   local level = getCurrentLevelIdentifier()
@@ -515,6 +572,7 @@ local function onPreRender(dtReal, dtSim)
   end
 
   profilerPopEvent("MissionEnter onPreRender")
+
 end
 
 

@@ -1,3 +1,25 @@
+.overlay {
+  pointer-events: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-image: url("/ui/modules/photomode/ui-overlays/reddit_template.png");
+}
+
+.overlay-text {
+  background-color: #ff6600;
+  padding: 4px;
+  margin-top: 40px;
+  color: white;
+  display: inline-block;
+  font-size: 90%;
+}
+
+
 .md-select-menu-container md-content {
   max-height: none;
   min-height: none;
@@ -203,4 +225,4 @@ align-items: center;
 
 .photomode-close .material-icons {
   font-size: 2.25em;
-} 
+}

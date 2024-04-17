@@ -16,6 +16,20 @@
   <md-checkbox ng-model="options.data.values.useSteamName" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
 </md-list-item>
 
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.utilities.highPerformancePlan' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.HighPerformancePlan" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+  <md-tooltip md-direction="right">{{:: 'ui.options.other.highPerformancePlanMessage' | translate}}</md-tooltip>
+</md-list-item>
+
+<!-- disabled until buggy ffb is fixed
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.utilities.g27ShiftLed' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.rpmLedsEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+</md-list-item>
+-->
+
+
 <md-divider></md-divider>
 <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.other.replay' | translate}}</h3></p></md-list-item>
 
@@ -183,131 +197,123 @@
 
 <md-divider></md-divider>
 
-<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.utilities' | translate}}</h3></p></md-list-item>
+<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.protocols' | translate}}</h3></p></md-list-item>
 
 <md-list-item md-no-ink>
   <p>{{:: 'ui.options.utilities.outgaugeSupport' | translate}}</p>
-  <md-checkbox ng-model="options.data.values.outgaugeEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+  <md-checkbox ng-model="options.data.values.protocols_outgauge_enabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
   <md-tooltip md-direction="right">{{:: 'ui.options.other.outGaugeMessage' | translate}}</md-tooltip>
 </md-list-item>
-<md-list-item md-no-ink ng-show="options.data.values.outgaugeEnabled">
+
+<md-list-item md-no-ink ng-disabled="!options.data.values.protocols_outgauge_enabled">
   <md-tooltip md-direction="right">{{:: 'ui.options.other.outGaugeMessage2' | translate}}</md-tooltip>
   <md-input-container>
-    <label>IP</label>
-    <input flex type="text" ng-model="options.data.values.outgaugeIP" ng-change="options.applyState()">
+    <label>{{:: 'ui.options.protocols.address' | translate}}</label>
+    <input flex type="text" ng-model="options.data.values.protocols_outgauge_address" ng-change="options.applyState()">
   </md-input-container>
   <md-input-container>
-    <label>Port</label>
-    <input flex type="text" ng-model="options.data.values.outgaugePort" ng-change="options.applyState()">
+    <label>{{:: 'ui.options.protocols.port' | translate}}</label>
+    <input flex type="text" ng-model="options.data.values.protocols_outgauge_port" ng-change="options.applyState()">
+  </md-input-container>
+  <md-input-container>
+    <label>{{:: 'ui.options.protocols.maxUpdateRate' | translate}}</label>
+    <input flex type="text" ng-model="options.data.values.protocols_outgauge_maxUpdateRate" ng-change="options.applyState()">
   </md-input-container>
 </md-list-item>
-
-<md-list-item md-no-ink>
-  <p>{{:: 'ui.options.utilities.highPerformancePlan' | translate}}</p>
-  <md-checkbox ng-model="options.data.values.HighPerformancePlan" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
-  <md-tooltip md-direction="right">{{:: 'ui.options.other.highPerformancePlanMessage' | translate}}</md-tooltip>
-</md-list-item>
-
-<!-- disabled until buggy ffb is fixed
-<md-list-item md-no-ink>
-  <p>{{:: 'ui.options.utilities.g27ShiftLed' | translate}}</p>
-  <md-checkbox ng-model="options.data.values.rpmLedsEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
-</md-list-item>
--->
-
-<md-divider></md-divider>
-
-<md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.motionSim' | translate}}</h3></p></md-list-item>
 
 <md-list-item md-no-ink>
   <p>{{:: 'ui.options.motionSim.enabled' | translate}}</p>
-  <md-checkbox ng-model="options.data.values.motionSimEnabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
+  <md-checkbox ng-model="options.data.values.protocols_motionSim_enabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
   <md-tooltip md-direction="right">{{:: 'ui.options.other.motionSimMessage' | translate}}</md-tooltip>
 </md-list-item>
-<md-list-item md-no-ink ng-show="options.data.values.motionSimEnabled">
+<md-list-item md-no-ink ng-disabled="!options.data.values.protocols_motionSim_enabled">
   <md-input-container>
-    <label>IP</label>
-    <input flex type="text" ng-model="options.data.values.motionSimIP" ng-change="options.applyState()">
+    <label>{{:: 'ui.options.protocols.address' | translate}}</label>
+    <input flex type="text" ng-model="options.data.values.protocols_motionSim_address" ng-change="options.applyState()">
   </md-input-container>
   <md-input-container>
-    <label>Port</label>
-    <input flex type="text" ng-model="options.data.values.motionSimPort" ng-change="options.applyState()">
+    <label>{{:: 'ui.options.protocols.port' | translate}}</label>
+    <input flex type="text" ng-model="options.data.values.protocols_motionSim_port" ng-change="options.applyState()">
+  </md-input-container>
+  <md-input-container>
+    <label>{{:: 'ui.options.protocols.maxUpdateRate' | translate}}</label>
+    <input flex type="text" ng-model="options.data.values.protocols_motionSim_maxUpdateRate" ng-change="options.applyState()">
   </md-input-container>
 </md-list-item>
 
-<!--update rate-->
-<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0" ng-show="options.data.values.motionSimEnabled">
-  <p flex="30">{{:: 'ui.options.motionSim.updateRate' | translate}}</p>
-  <md-slider flex
-    ng-model="options.data.values.motionSimHz" min="50" max="2000" step="50" aria-label="_"
-    ng-change="options.applyState()">
-  </md-slider>
-  <span style="margin-left:15px">{{ options.data.values.motionSimHz }}</span>
+<md-list-item md-no-ink>
+  <p>{{:: 'ui.options.protocols_others_enabled' | translate}}</p>
+  <md-checkbox ng-model="options.data.values.protocols_others_enabled" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
 </md-list-item>
 
-<md-list-item layout class="md-padding" style="padding:0; margin:0; margin-left:4px; margin-bottom:-16px" ng-show="options.data.values.motionSimEnabled">
-  <p flex="20">{{:: 'ui.options.motionSim.translation' | translate}}</p>
+<span ng-show="options.data.values.protocols_motionSim_enabled || options.data.values.protocols_others_enabled">
+<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:-26px; margin-bottom:0px; border-bottom:0px">
+  <p flex style="text-align:left; padding-top:0; padding-bottom:-26px">{{:: 'ui.options.motionSim.smoothing' | translate}}</p>
+</md-list-item>
+<md-list-item layout class="md-padding" style="padding:0; margin:0; margin-left:4px; margin-bottom:-26px; margin-top:-26px">
+  <p flex="20"></p>
   <p flex style="text-align:center">{{:: 'ui.options.motionSim.x' | translate}}</p>
   <p flex style="text-align:center">{{:: 'ui.options.motionSim.y' | translate}}</p>
   <p flex style="text-align:center">{{:: 'ui.options.motionSim.z' | translate}}</p>
 </md-list-item>
 <!--x, y, z velocities-->
-<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0" ng-show="options.data.values.motionSimEnabled">
+<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0">
   <p flex="20">{{:: 'ui.options.motionSim.velocity' | translate}}</p>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimVelocityXSmoothing" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimVelocityXSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimVelocityYSmoothing" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimVelocityYSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimVelocityZSmoothing" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimVelocityZSmoothing }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_velX" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_velX }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_velY" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_velY }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_velZ" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_velZ }}</span>
 </md-list-item>
 <!--x, y, z accelerations-->
-<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0" ng-show="options.data.values.motionSimEnabled">
+<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0">
   <p flex="20">{{:: 'ui.options.motionSim.acceleration' | translate}}</p>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAccelerationXSmoothing" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAccelerationXSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAccelerationYSmoothing" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAccelerationYSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAccelerationZSmoothing" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAccelerationZSmoothing }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_accX" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_accX }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_accY" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_accY }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_accZ" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_accZ }}</span>
 </md-list-item>
 
-<md-list-item layout class="md-padding" style="padding:0; margin:0; margin-left:4px; margin-bottom:-16px" ng-show="options.data.values.motionSimEnabled">
-  <p flex="20">{{:: 'ui.options.motionSim.rotation' | translate}}</p>
+<md-list-item layout class="md-padding" style="padding:0; margin:0; margin-left:4px; margin-bottom:-26px; margin-top:-16px;">
+  <p flex="20"></p>
   <p flex style="text-align:center">{{:: 'ui.options.motionSim.roll' | translate}}</p>
   <p flex style="text-align:center">{{:: 'ui.options.motionSim.pitch' | translate}}</p>
   <p flex style="text-align:center">{{:: 'ui.options.motionSim.yaw' | translate}}</p>
 </md-list-item>
 <!--roll, pitch, yaw position-->
-<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0" ng-show="options.data.values.motionSimEnabled">
+<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0">
   <p flex="20">{{:: 'ui.options.motionSim.absolute' | translate}}</p>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimPosRollSmoothing" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimPosRollSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimPosPitchSmoothing" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimPosPitchSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimPosYawSmoothing" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimPosYawSmoothing }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_rollPos" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_rollPos }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_pitchPos" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_pitchPos }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_yawPos" min="0" max="50" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_yawPos }}</span>
 </md-list-item>
 <!--roll, pitch, yaw angular velocity-->
-<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0" ng-show="options.data.values.motionSimEnabled">
+<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0">
   <p flex="20">{{:: 'ui.options.motionSim.velocity' | translate}}</p>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAVRollSmoothing" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAVRollSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAVPitchSmoothing" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAVPitchSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAVYawSmoothing" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAVYawSmoothing }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_rollVel" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_rollVel }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_pitchVel" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_pitchVel }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_yawVel" min="0" max="200" step="1" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_yawVel }}</span>
 </md-list-item>
 <!--roll, pitch, yaw angular acceleration-->
-<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0" ng-show="options.data.values.motionSimEnabled">
+<md-list-item layout class="md-padding" style="padding-top:0; padding-bottom:0">
   <p flex="20">{{:: 'ui.options.motionSim.acceleration' | translate}}</p>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAccRollSmoothing" min="0" max="2000" step="10" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAccRollSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAccPitchSmoothing" min="0" max="2000" step="10" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAccPitchSmoothing }}</span>
-  <md-slider flex style="margin-right:2px" ng-model="options.data.values.motionSimAccYawSmoothing" min="0" max="2000" step="10" aria-label="_" ng-change="options.applyState()"></md-slider>
-  <span style="width:20px; text-align:center">{{ options.data.values.motionSimAccYawSmoothing }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_rollAcc" min="0" max="2000" step="10" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_rollAcc }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_pitchAcc" min="0" max="2000" step="10" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_pitchAcc }}</span>
+  <md-slider flex style="margin-right:2px" ng-model="options.data.values.protocols_smoothing_yawAcc" min="0" max="2000" step="10" aria-label="_" ng-change="options.applyState()"></md-slider>
+  <span style="width:20px; text-align:center">{{ options.data.values.protocols_smoothing_yawAcc }}</span>
 </md-list-item>
+</span>
 
 <md-divider></md-divider>
 <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.online' | translate}}</h3></p></md-list-item>

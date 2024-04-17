@@ -10,8 +10,8 @@ local drawDebug = false
 
 local function checkSphereTether(t)
   -- we can assume getPlayerUnicycle() is not nil, because it is checked in isWalking()
-  if not be:getPlayerVehicle(0) then return end
-  local playerPos = be:getPlayerVehicle(0):getPosition()
+  if not getPlayerVehicle(0) then return end
+  local playerPos = getPlayerVehicle(0):getPosition()
   if drawDebug then
     debugDrawer:drawSphere(t.p1, t.r1, ColorF(1,0,0,0.2))
     debugDrawer:drawLine(playerPos, t.p1, ColorF(0,0,1,0.1))
@@ -34,8 +34,8 @@ end
 
 local function checkCapsuleTether(t)
   -- we can assume getPlayerUnicycle() is not nil, because it is checked in isWalking()
-  if not be:getPlayerVehicle(0) then return end
-  local playerPos = be:getPlayerVehicle(0):getPosition()
+  if not getPlayerVehicle(0) then return end
+  local playerPos = getPlayerVehicle(0):getPosition()
   local xnorm, dist = playerPos:xnormDistanceToLineSegment(t.p1, t.p2)
   if drawDebug then
     debugDrawer:drawSphere(t.p1, t.r1, ColorF(1,0,0,0.2))
@@ -86,13 +86,51 @@ M.startCapsuleTetherBetweenStaticAndVehicle = startCapsuleTetherBetweenStaticAnd
 M.startCapsuleTetherBetweenStatics = startCapsuleTetherBetweenStatics
 
 
+local function checkVehicleTether(t)
+  -- we can assume getPlayerUnicycle() is not nil, because it is checked in isWalking()
+  if not getPlayerVehicle(0) then return end
+  local playerPos = getPlayerVehicle(0):getPosition()
+
+  local veh = scenetree.findObjectById(t.vehId)
+  if not veh then return end
+  local vehPos = veh:getPosition()
+  if drawDebug then
+    debugDrawer:drawSphere(vehPos, t.r1, ColorF(1,0,0,0.2))
+    debugDrawer:drawLine(playerPos,vehPos, ColorF(0,0,1,0.1))
+    simpleDebugText3d(string.format("%0.1fm", (playerPos - vehPos):length()), lerp(vehPos, playerPos, 0.5))
+    --log("I","Tether: " .. string.format("%0.1fm", (playerPos - vehPos):length()))
+  end
+  -- allow tether to inverse, and call callback when the player gets too close
+  if t.inverse then
+    return (playerPos - vehPos):length() <= t.r1
+  else
+    return (playerPos - vehPos):length() > t.r1
+  end
+end
+
+local function startVehicleTether(vehId, radius, inverse, callback)
+  local t = {
+    checkfun = checkVehicleTether,
+    vehId = vehId,
+    r1 = radius,
+    callback = callback,
+    inverse = inverse or false,
+    data = data or {}
+  }
+  M.addTether(t)
+  return t
+end
+M.startVehicleTether = startVehicleTether
+
+
+
 local remove = false
 local function onUpdate()
   for _, t in ipairs(tethers) do
     if not t.remove and t.checkfun(t) then
       t.callback(t)
       if drawDebug then
-        log("D","","Broke tether!")
+        log("I","","Broke tether!")
         dump(t)
       end
       t.remove = true
@@ -127,7 +165,12 @@ local function addTether(t)
   table.insert(tethers, t)
 end
 
+local function removeTether(t)
+  table.remove(tethers, tableFindKey(tethers, t))
+end
+
 M.addTether = addTether
+M.removeTether = removeTether
 M.onUpdate = nop
 
 return M

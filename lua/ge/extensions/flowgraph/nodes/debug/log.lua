@@ -13,7 +13,6 @@ C.description = "Logs the input to the console. LogType can be I, D, W or E."
 C.color = ui_flowgraph_editor.nodeColors.debug
 C.icon = ui_flowgraph_editor.nodeIcons.debug
 C.category = 'dynamic_instant'
-C.todo = "Log type should be a combobox in properties"
 
 C.pinSchema = {
   { dir = 'in', type = 'any', name = 'value', default = "", hardcoded = true, defaultHardCodeType = 'string', description = 'Value that should be logged.' },

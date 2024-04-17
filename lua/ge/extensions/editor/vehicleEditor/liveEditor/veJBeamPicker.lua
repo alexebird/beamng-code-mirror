@@ -186,7 +186,7 @@ local pickedNodesCIDs = {}
 
 local function pickNode()
   -- Get nodes drawn in Vehicle Lua bdebug.lua
-  be:getPlayerVehicle(0):queueLuaCommand("bdebug.requestDrawnNodesGE('editor_vehicleEditor_liveEditor_veJBeamPicker.requestDrawnNodesCallback')")
+  getPlayerVehicle(0):queueLuaCommand("bdebug.requestDrawnNodesGE('editor_vehicleEditor_liveEditor_veJBeamPicker.requestDrawnNodesCallback')")
   if not nodesAvaliable then return end
 
   table.clear(hitNodes)
@@ -258,7 +258,7 @@ local pickedBeamsCIDs = {}
 
 local function pickBeam()
   -- Get beams drawn in Vehicle Lua bdebug.lua
-  be:getPlayerVehicle(0):queueLuaCommand("bdebug.requestDrawnBeamsGE('editor_vehicleEditor_liveEditor_veJBeamPicker.requestDrawnBeamsCallback')")
+  getPlayerVehicle(0):queueLuaCommand("bdebug.requestDrawnBeamsGE('editor_vehicleEditor_liveEditor_veJBeamPicker.requestDrawnBeamsCallback')")
   if not beamsAvaliable then return end
 
   table.clear(hitBeams)

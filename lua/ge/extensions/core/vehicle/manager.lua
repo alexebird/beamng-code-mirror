@@ -5,11 +5,15 @@
 local M = {}
 
 local jbeamIO = require('jbeam/io')
+local im
 
 local vehicles = {}
 
 local materialsCache = {}
 local debugEnabled = false
+local debugMgrContext
+
+local toolWindowName = 'Vehicle Manager'
 
 local function getDebug()
   return debugEnabled
@@ -98,7 +102,7 @@ local function spawnCCallback(objID, vehicleDir, configDataIn)
 
   local vehicleBundle
 
-  local status, err = xpcall(function () vehicleBundle = jbeamLoader.loadVehicleStage1(objID, vehicleDir, vehicleConfig) end, debug.traceback)
+  local status, err = xpcall(function () vehicleBundle = jbeamLoader.loadVehicleStage1(objID, vehicleDir, vehicleConfig, debugMgrContext) end, debug.traceback)
   vehicles[objID] = vehicleBundle
 
   if not vehicleBundle then
@@ -203,6 +207,7 @@ local function setVehicleColorsNames(id, paintNames, optional)
   if not vehicle or not paintNames then return end
 
   local data = core_vehicles.getModel(vehicle.jbeam)
+  if not data.model.paints then return end
   if optional ~= nil and vehicle.color == vehicle.colorPalette0 == vehicle.colorPalette1 then return end
 
   for i = 1, 3 do
@@ -246,6 +251,44 @@ local function reloadAllVehicles()
   end
 end
 
+local function onEditorGui()
+  if editor.beginWindow(toolWindowName, "Vehicle Manager") then
+    if im.Checkbox('Debug vehicle construction', debugMgrContext.dumpDebug) then
+      reloadVehicle(0)
+    end
+    im.SameLine()
+    if im.Button("reload") then
+      reloadVehicle(0)
+    end
+    for _, t in ipairs(debugMgrContext.debugTexts) do
+      im.TextUnformatted(t)
+    end
+    if im.Button('Clear') then
+      FS:removeFile('vehicleDebug_data.json')
+      FS:removeFile('vehicleDebug_activeParts.json')
+      FS:removeFile('vehicleDebug_config.json')
+      FS:removeFile('vehicleDebug_chosenParts.json')
+      debugMgrContext.debugTexts = {}
+    end
+  end
+  editor.endWindow()
+end
+
+local function onWindowMenuItem()
+  editor.showWindow(toolWindowName)
+end
+
+local function onEditorInitialized()
+  im = ui_imgui
+  debugMgrContext = {
+    dumpDebug = im.BoolPtr(false),
+    debugTexts = {}
+  }
+
+  editor.registerWindow(toolWindowName, im.ImVec2(420, 500))
+  editor.addWindowMenuItem(toolWindowName, onWindowMenuItem, {groupMenuName = 'Experimental'})
+end
+
 local function onUpdate()
   spawn.clearCache()
 end
@@ -259,6 +302,11 @@ M.onClientEndMission = onClientEndMission
 M.onFileChanged      = onFileChanged
 M.onFileChangedEnd   = onFileChangedEnd
 M.onUpdate = onUpdate
+
+
+-- Editor
+M.onEditorInitialized = onEditorInitialized
+M.onEditorGui = onEditorGui
 
 -- API
 M.getPlayerVehicleData = getPlayerVehicleData

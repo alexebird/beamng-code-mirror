@@ -70,8 +70,9 @@ local function newT(t)
   return setmetatable(t or {}, mt)
 end
 
-local function unifyParts(target, source, level, slotOptions, partPath)
-  --log('I', "jbeam.unifyParts",string.rep(" ", level).."* merging part "..source.partName.." ["..source.slotType.."] => "..target.partName.." ["..target.slotType.."] ... ")
+local function unifyParts(target, source_raw, level, slotOptions, partPath)
+  local source = deepcopy(source_raw)
+  --log('I', "jbeam.unifyParts",string.rep(" ", level).."* merging part "..tostring(source.partName).."{".. tostring(source) .. "}["..dumps(source.slotType).."] => "..tostring(target.partName).." ["..tostring(target.slotType).."] ... ")
   -- walk and merge all sections
   for sectionKey, section in pairs(source) do
     if sectionKey == 'slots' or sectionKey == 'slots2' or sectionKey == "information" then
@@ -150,8 +151,18 @@ local function unifyParts(target, source, level, slotOptions, partPath)
               target[sectionKey][k3] = v3
             end
           else
-            --we have a regular value, no special merging, just overwrite it
-            target[sectionKey][k3] = v3
+            if sectionKey == 'components' then
+              -- we are merging infinitly in here
+              if type(v3) == 'table' then
+                target[sectionKey][k3] = target[sectionKey][k3] or {}
+                tableMergeRecursive(target[sectionKey][k3], v3)
+              else
+                target[sectionKey][k3] = v3
+              end
+            else
+              --we have a regular value, no special merging, just overwrite it
+              target[sectionKey][k3] = v3
+            end
           end
         end
         counter = counter + 1
@@ -308,6 +319,8 @@ local function fillSlots_rec(ioCtx, userPartConfig, currentPart, level, _slotOpt
         chosenParts[slotId] = chosenPart.partName
 
         activePartsOrig[chosenPart.partName or slotId] = deepcopy(chosenPart) -- deepcopy is required as chosePart is modified/unified with all sub parts below
+
+        chosenPart = deepcopy(chosenPart) -- make it unique
 
         fillSlots_rec(ioCtx, userPartConfig, chosenPart, level + 1, slotOptions, chosenParts, activePartsOrig, newPath, unifyJournal)
 

@@ -6,19 +6,29 @@
         <h4>Test drive will end in {{ inspectVehicleStore.testDriveTimer }} S</h4>
       </div>
       <div v-if="inspectVehicleStore.needsRepair" style="padding: 0px 20px">
-        <p>You have returned the vehicle damaged. If you decide to leave, you will have to pay {{ inspectVehicleStore.claimPrice }} for the repairs</p>
+        <p>You have returned the vehicle damaged. If you decide to leave, you will have to pay {{ inspectVehicleStore.claimPrice }}$ for the repairs</p>
       </div>
       <template #buttons>
+        <BngButton class="no-grow" v-if="!inspectVehicleStore.testDriveActive" @click="buy" v-bng-on-ui-nav:menu.asMouse>
+          <BngBinding ui-event="menu" deviceMask="xinput" />Purchase Info</BngButton
+        >
+        <BngButton class="no-grow" v-if="inspectVehicleStore.testDriveActive" @click="endTestDrive" v-bng-on-ui-nav:menu.asMouse
+          ><span><BngBinding ui-event="menu" deviceMask="xinput" />End Test Drive</span></BngButton
+        >
         <BngButton
+          class="no-grow"
+          v-if="!inspectVehicleStore.testDriveActive && inspectVehicleStore.testDroveOnce"
+          :accent="'attention'"
+          @click="stopInspection">
+          Abandon the sale
+        </BngButton>
+
+        <BngButton
+          class="no-grow"
           v-if="!inspectVehicleStore.isTutorial && !inspectVehicleStore.testDriveActive && !inspectVehicleStore.testDroveOnce"
           @click="startTestDrive"
           :accent="'secondary'"
           >Start Test Drive</BngButton
-        >
-        <BngButton v-if="!inspectVehicleStore.testDriveActive" @click="buy">Purchase Info</BngButton>
-        <BngButton v-if="inspectVehicleStore.testDriveActive" @click="endTestDrive" v-bng-on-ui-nav:menu.asMouse><span><BngBinding ui-event="menu" deviceMask="xinput" />End Test Drive</span></BngButton>
-        <BngButton v-if="!inspectVehicleStore.testDriveActive && inspectVehicleStore.testDroveOnce" :accent="'attention'" @click="leaveInspectVehicle"
-          >Abandon the sale</BngButton
         >
       </template>
     </BngCard>
@@ -38,7 +48,7 @@ import { useUINavScope } from "@/services/uiNav"
 
 const inspectVehicleStore = useInspectVehicleStore()
 
-useUINavScope("inspectVehicle") 
+useUINavScope("inspectVehicle")
 
 function buy() {
   lua.career_modules_vehicleShopping.openPurchaseMenu("inspect", inspectVehicleStore.spawnedVehicleInfo.shopId)
@@ -58,13 +68,14 @@ function startTestDrive() {
   inspectVehicleStore.startTestDrive()
 }
 
-function leaveInspectVehicle() {
-  lua.career_modules_inspectVehicle.leaveInspectVehicle(inspectVehicleStore.needsRepair)
+
+const stopInspection = () => {
+  lua.career_modules_inspectVehicle.stopInspection()
 }
 
 function endTestDrive() {
   UINavEvents.clearFilteredEvents()
-  lua.career_modules_inspectVehicle.endTestDrive()
+  lua.career_modules_testDrive.stop()
 }
 
 const start = () => {
@@ -85,6 +96,9 @@ onUnmounted(kill)
 </script>
 
 <style scoped lang="scss">
+.no-grow {
+  flex-grow: 0 !important;
+}
 .inspectVehicle-menu {
   overflow: auto;
   //background: rgba(0,0,0,0.8);

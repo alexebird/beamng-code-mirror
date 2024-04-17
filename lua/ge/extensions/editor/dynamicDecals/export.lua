@@ -59,7 +59,7 @@ end
 
 local function sectionGui()
   if im.TreeNodeEx1("Export Skin", im.TreeNodeFlags_DefaultOpen) then
-    local vehicleObj = be:getPlayerVehicle(0)
+    local vehicleObj = getPlayerVehicle(0)
 
     -- vehicle name
     -- todo: get the vehicle name based on the selected vehicle

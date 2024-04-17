@@ -35,7 +35,7 @@
 "editorPlaceCameraAtPlayer": {"cat":"editor", "order": 1, "ctx": "tlua", "onDown" :"editor.placeCameraAtPlayer()", "actionMap": "Editor", "title": "Place Camera At Player", "desc": "Place free camera at current player position" },
 "editorPlacePlayerAtCamera": {"cat":"editor", "order": 1, "ctx": "tlua", "onDown" :"editor.placePlayerAtCamera()", "actionMap": "Editor", "title": "Place Player At Camera", "desc": "Place player at free camera position" },
 "editorFitViewToSelection": {"cat":"editor", "order": 1, "ctx": "tlua", "onDown" :"editor.fitViewToSelectionSmooth()", "actionMap": "Editor", "title": "Fit View To Selection", "desc": "Fit view to current selected object(s)" },
-"editorCameraZoom": {"cat":"editor", "order": 1, "ctx": "tlua", "onChange" :"if core_camera then core_camera.yAxisMoveStep(VALUE*20) end", "actionMap": "Editor",  "isCentered": true, "title": "Zoom Camera", "desc": "Moves camera forward/backward on mouse wheel" },
+"editorCameraZoom": {"cat":"editor", "order": 1, "ctx": "tlua", "onChange" :"if editor and (not editor.disableCameraZoom) and core_camera then core_camera.yAxisMoveStep(VALUE*20) end", "actionMap": "Editor",  "isCentered": true, "title": "Zoom Camera", "desc": "Moves camera forward/backward on mouse wheel" },
 
 //----------------------------------------------------
 // Object Menu
@@ -200,4 +200,5 @@
 "dynamicDecalsLockDepth": {"cat":"editor", "order": 1, "ctx": "tlua",   "onChange" :"editor_dynamicDecalsTool.lockDepth(VALUE)", "actionMap": "dynamicDecals", "title": "Lock Depth", "desc": "Lock Depth" },
 "finishPathLayer": {"cat":"editor", "order": 1, "ctx": "tlua",   "onDown" :"editor_dynamicDecalsTool.finishPathLayer()", "actionMap": "dynamicDecals", "title": "Finish Path Layer", "desc": "Finish Path Layer" },
 "removeLastPathLayerPoint": {"cat":"editor", "order": 1, "ctx": "tlua",   "onDown" :"editor_dynamicDecalsTool.removeLastPathLayerPoint()", "actionMap": "dynamicDecals", "title": "Remove Last Path Layer Point", "desc": "Remove Last Path Layer Point" },
+"dynamicDecalsLockSurfaceNormal": {"cat":"editor", "order": 1, "ctx": "tlua",   "onChange" :"editor_dynamicDecalsTool.lockSurfaceNormal(VALUE)", "actionMap": "dynamicDecals", "title": "Lock Surface Normal", "desc": "Lock Surface Normal" },
 }

@@ -57,7 +57,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("enabled")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "enabled"), editor.getTempBool_BoolBool(layer.enabled)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_enabled"), editor.getTempBool_BoolBool(layer.enabled)) then
     layer.enabled = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -71,7 +71,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("camera position")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if im.InputFloat3(string.format("##%s_%s_%s", layer.uid, guiId, "camPosition"), editor.getTempFloatArray3_Vec3Vec3(layer.camPosition), "%.6f") then
+  if im.InputFloat3(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_camPosition"), editor.getTempFloatArray3_Vec3Vec3(layer.camPosition), "%.6f") then
     layer.camPosition = editor.getTempFloatArray3_Vec3Vec3()
     api.setLayer(layer, true)
   end
@@ -81,7 +81,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("colorPaletteMapId")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth() - ((layer.colorPaletteMapId > 0) and (im.GetStyle().ItemSpacing.x + math.ceil(im.GetFontSize()) + 2 * im.GetStyle().FramePadding.y) or 0))
-  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "colorpalettemapid"), editor.getTempInt_NumberNumber(layer.colorPaletteMapId), "zero\0one\0two\0three\0\0") then
+  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_colorpalettemapid"), editor.getTempInt_NumberNumber(layer.colorPaletteMapId), "zero\0one\0two\0three\0\0") then
     layer.colorPaletteMapId = editor.getTempInt_NumberNumber()
     api.setLayer(layer, true)
   end
@@ -98,7 +98,7 @@ local function inspectLayerGui(layer, guiId)
       col = {tonumber(c[1]), tonumber(c[2]), tonumber(c[3]), 1}
     end
     im.SameLine()
-    im.ColorButton(string.format("##%s_%s_%s", layer.uid, guiId, "colorpalettemapidbutton"), editor.getTempImVec4_TableTable(col))
+    im.ColorButton(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_colorpalettemapidbutton"), editor.getTempImVec4_TableTable(col))
     im.tooltip("Vehicle color palette color")
   end
   im.NextColumn()
@@ -106,7 +106,7 @@ local function inspectLayerGui(layer, guiId)
   if layer.colorPaletteMapId == 0 then
     im.TextUnformatted("decal - use gradient color")
     im.NextColumn()
-    if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "decalUseGradientColor"), editor.getTempBool_BoolBool(layer.decalUseGradientColor)) then
+    if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_decalUseGradientColor"), editor.getTempBool_BoolBool(layer.decalUseGradientColor)) then
       layer.decalUseGradientColor = editor.getTempBool_BoolBool()
       api.setLayer(layer, true)
     end
@@ -121,7 +121,7 @@ local function inspectLayerGui(layer, guiId)
       im.TextUnformatted("color")
       im.NextColumn()
       im.PushItemWidth(im.GetContentRegionAvailWidth())
-      if editor.uiColorEdit4(string.format("##%s_%s_%s", layer.uid, guiId, "color"), editor.getTempFloatArray4_TableTable(layer.color:toTable()), nil, editor.getTempBool_BoolBool(false)) then
+      if editor.uiColorEdit4(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_color"), editor.getTempFloatArray4_TableTable(layer.color:toTable()), nil, editor.getTempBool_BoolBool(false)) then
         layer.color = Point4F.fromTable(editor.getTempFloatArray4_TableTable())
       end
       im.PopItemWidth()
@@ -135,7 +135,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("decal scale")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if editor.uiSliderFloat3(string.format("##%s_%s_%s", layer.uid, guiId, "decalScale"), editor.getTempFloatArray3_Vec3Vec3(layer.decalScale), 0.05, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat3(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_decalScale"), editor.getTempFloatArray3_Vec3Vec3(layer.decalScale), 0.05, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
     layer.decalScale = editor.getTempFloatArray3_Vec3Vec3()
   end
   im.PopItemWidth()
@@ -147,7 +147,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("decal rotation")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "decalRotation"), editor.getTempFloat_NumberNumber(layer.decalRotation * 180 / math.pi), 0, 360, nil, nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_decalRotation"), editor.getTempFloat_NumberNumber(layer.decalRotation * 180 / math.pi), 0, 360, nil, nil, editor.getTempBool_BoolBool(false)) then
     layer.decalRotation = (editor.getTempFloat_NumberNumber() / 180 * math.pi)
   end
   im.PopItemWidth()
@@ -159,7 +159,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("orient decals")
   helper.iconTooltip("If enabled decals are oriented towards the next decal in the path. Overrides 'decal rotation'.", true)
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "orientPathDecals"), editor.getTempBool_BoolBool(layer.orientDecals)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_orientPathDecals"), editor.getTempBool_BoolBool(layer.orientDecals)) then
     layer.orientDecals = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -169,7 +169,7 @@ local function inspectLayerGui(layer, guiId)
   helper.iconTooltip("Curve type", true)
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "pathType"), editor.getTempInt_NumberNumber(layer.pathType), "Linear\0Bezier\0\0") then
+  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_pathType"), editor.getTempInt_NumberNumber(layer.pathType), "Linear\0Bezier\0\0") then
     layer.pathType = editor.getTempInt_NumberNumber()
     api.setLayer(layer, true)
   end
@@ -181,7 +181,7 @@ local function inspectLayerGui(layer, guiId)
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
   if editor.uiInputText(
-    string.format("##%s_%s_%s", layer.uid, guiId, "pathLayerText"),
+    string.format("##%s_%s_%s", layer.uid, guiId, "inspector_pathLayerText"),
     editor.getTempCharPtr(layer.text),
     nil,
     im.InputTextFlags_AutoSelectAll,
@@ -200,7 +200,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("font path")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth() - 2 * tool.getIconSize() - 2 * im.GetStyle().ItemSpacing.x)
-  im.InputText("##fontPath_InputText", editor.getTempCharPtr(layer.fontPath), nil, im.InputTextFlags_ReadOnly)
+  im.InputText("##inspector_fontPath_InputText", editor.getTempCharPtr(layer.fontPath), nil, im.InputTextFlags_ReadOnly)
   im.PopItemWidth()
   im.SameLine()
   if editor.uiIconImageButton(editor.icons.folder, im.ImVec2(tool.getIconSize(), tool.getIconSize()), nil, nil, nil, string.format("##%s_%s_%s", layer.uid, guiId, "pathLayerFontPath_fileDialog")) then
@@ -228,7 +228,7 @@ local function inspectLayerGui(layer, guiId)
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
   if #layer.text > 0 then im.BeginDisabled() end
-  if editor.uiInputInt(string.format("##%s_%s_%s", layer.uid, guiId, "interpolationSteps"), editor.getTempInt_NumberNumber(layer.interpolationSteps), 1, 2) then
+  if editor.uiInputInt(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_interpolationSteps"), editor.getTempInt_NumberNumber(layer.interpolationSteps), 1, 2) then
     local value = editor.getTempInt_NumberNumber()
     if value < 0 then value = 0 end
     layer.interpolationSteps = value
@@ -264,7 +264,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("decal skew")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "decalSkew"), editor.getTempFloatArray2_TableTable({layer.decalSkew.x, layer.decalSkew.y}), -2.0, 2.0, nil, nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_decalSkew"), editor.getTempFloatArray2_TableTable({layer.decalSkew.x, layer.decalSkew.y}), -2.0, 2.0, nil, nil, editor.getTempBool_BoolBool(false)) then
     local value = editor.getTempFloatArray2_TableTable()
     layer.decalSkew = Point2F(value[1], value[2])
   end
@@ -276,7 +276,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("mirrored")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "mirrored"), editor.getTempBool_BoolBool(layer.mirrored)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_mirrored"), editor.getTempBool_BoolBool(layer.mirrored)) then
     layer.mirrored = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -284,7 +284,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("flipMirroredDecal")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "flipMirroredDecal"), editor.getTempBool_BoolBool(layer.flipMirroredDecal)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_flipMirroredDecal"), editor.getTempBool_BoolBool(layer.flipMirroredDecal)) then
     layer.flipMirroredDecal = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -293,7 +293,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("color texture scale")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "colorTextureScale"), editor.getTempFloatArray2_TableTable({layer.colorTextureScale.x, layer.colorTextureScale.y}), 0.01, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_colorTextureScale"), editor.getTempFloatArray2_TableTable({layer.colorTextureScale.x, layer.colorTextureScale.y}), 0.01, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
     local value = editor.getTempFloatArray2_TableTable()
     layer.colorTextureScale = Point2F(value[1], value[2])
   end
@@ -306,7 +306,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("alpha mask channel")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "alphaMaskChannel"), editor.getTempInt_NumberNumber(layer.alphaMaskChannel), "red\0green\0blue\0alpha\0\0") then
+  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_alphaMaskChannel"), editor.getTempInt_NumberNumber(layer.alphaMaskChannel), "red\0green\0blue\0alpha\0\0") then
     layer.alphaMaskChannel = editor.getTempInt_NumberNumber()
     api.setLayer(layer, true)
   end
@@ -315,7 +315,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("alpha mask blend mode")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "alphaMaskBlendMode"), editor.getTempInt_NumberNumber(layer.alphaMaskBlendMode), "multiply\0add\0\0") then
+  if im.Combo2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_alphaMaskBlendMode"), editor.getTempInt_NumberNumber(layer.alphaMaskBlendMode), "multiply\0add\0\0") then
     layer.alphaMaskBlendMode = editor.getTempInt_NumberNumber()
     api.setLayer(layer, true)
   end
@@ -324,7 +324,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("alpha mask scale")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "alphaMaskScale"), editor.getTempFloatArray2_TableTable({layer.alphaMaskScale.x, layer.alphaMaskScale.y}), 0.01, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_alphaMaskScale"), editor.getTempFloatArray2_TableTable({layer.alphaMaskScale.x, layer.alphaMaskScale.y}), 0.01, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
     local value = editor.getTempFloatArray2_TableTable()
     layer.alphaMaskScale = Point2F(value[1], value[2])
   end
@@ -337,7 +337,7 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("alpha mask rotation")
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "alphaMaskRotation"), editor.getTempFloat_NumberNumber(layer.alphaMaskRotation * 180 / math.pi), 0, 360, nil, nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_alphaMaskRotation"), editor.getTempFloat_NumberNumber(layer.alphaMaskRotation * 180 / math.pi), 0, 360, nil, nil, editor.getTempBool_BoolBool(false)) then
     layer.alphaMaskRotation = (editor.getTempFloat_NumberNumber() / 180 * math.pi)
   end
   im.tooltip("alpha mask rotation in degrees")
@@ -351,7 +351,7 @@ local function inspectLayerGui(layer, guiId)
   im.NextColumn()
   im.PushItemWidth(im.GetContentRegionAvailWidth())
   local val = 0
-  if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "alphaMaskIntensity"), editor.getTempFloat_NumberNumber(layer.alphaMaskIntensity), 0.0, 2.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
+  if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_alphaMaskIntensity"), editor.getTempFloat_NumberNumber(layer.alphaMaskIntensity), 0.0, 2.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
     layer.alphaMaskIntensity = editor.getTempFloat_NumberNumber()
   end
   im.PopItemWidth()
@@ -362,7 +362,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("wrap alpha mask X")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "wrapAlphaMaskX"), editor.getTempBool_BoolBool(layer.wrapAlphaMaskX)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_wrapAlphaMaskX"), editor.getTempBool_BoolBool(layer.wrapAlphaMaskX)) then
     layer.wrapAlphaMaskX = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -370,7 +370,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("wrap alpha mask Y")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "wrapAlphaMaskY"), editor.getTempBool_BoolBool(layer.wrapAlphaMaskY)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_wrapAlphaMaskY"), editor.getTempBool_BoolBool(layer.wrapAlphaMaskY)) then
     layer.wrapAlphaMaskY = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -378,7 +378,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("wrap color mask X")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "wrapColorTextureX"), editor.getTempBool_BoolBool(layer.wrapColorTextureX)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_wrapColorTextureX"), editor.getTempBool_BoolBool(layer.wrapColorTextureX)) then
     layer.wrapColorTextureX = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -386,7 +386,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("wrap color mask Y")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "wrapColorTextureY"), editor.getTempBool_BoolBool(layer.wrapColorTextureY)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_wrapColorTextureY"), editor.getTempBool_BoolBool(layer.wrapColorTextureY)) then
     layer.wrapColorTextureY = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -394,7 +394,7 @@ local function inspectLayerGui(layer, guiId)
 
   im.TextUnformatted("alpha mask invert")
   im.NextColumn()
-  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "alphaMaskInvert"), editor.getTempBool_BoolBool(layer.alphaMaskInvert)) then
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_alphaMaskInvert"), editor.getTempBool_BoolBool(layer.alphaMaskInvert)) then
     layer.alphaMaskInvert = editor.getTempBool_BoolBool()
     api.setLayer(layer, true)
   end
@@ -404,7 +404,7 @@ local function inspectLayerGui(layer, guiId)
     im.TextUnformatted("SDF thickness")
     im.NextColumn()
     im.PushItemWidth(im.GetContentRegionAvailWidth())
-    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "sdfThickness"), editor.getTempFloat_NumberNumber(layer.sdfThickness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
+    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_sdfThickness"), editor.getTempFloat_NumberNumber(layer.sdfThickness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
       layer.sdfThickness = editor.getTempFloat_NumberNumber()
     end
     im.PopItemWidth()
@@ -416,7 +416,7 @@ local function inspectLayerGui(layer, guiId)
     im.TextUnformatted("SDF softness")
     im.NextColumn()
     im.PushItemWidth(im.GetContentRegionAvailWidth())
-    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "sdfSoftness"), editor.getTempFloat_NumberNumber(layer.sdfSoftness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
+    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_sdfSoftness"), editor.getTempFloat_NumberNumber(layer.sdfSoftness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
       layer.sdfSoftness = editor.getTempFloat_NumberNumber()
     end
     im.PopItemWidth()
@@ -429,7 +429,7 @@ local function inspectLayerGui(layer, guiId)
     im.NextColumn()
     im.PushItemWidth(im.GetContentRegionAvailWidth())
     local sdfOutlineColorTbl = layer.sdfOutlineColor:toTable()
-    if editor.uiColorEdit4(string.format("##%s_%s_%s", layer.uid, guiId, "sdfOutlineColor"), editor.getTempFloatArray3_TableTable({sdfOutlineColorTbl[1]/255, sdfOutlineColorTbl[2]/255, sdfOutlineColorTbl[3]/255}), nil, editor.getTempBool_BoolBool(false)) then
+    if editor.uiColorEdit4(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_sdfOutlineColor"), editor.getTempFloatArray3_TableTable({sdfOutlineColorTbl[1]/255, sdfOutlineColorTbl[2]/255, sdfOutlineColorTbl[3]/255}), nil, editor.getTempBool_BoolBool(false)) then
       local value = editor.getTempFloatArray3_TableTable()
       layer.sdfOutlineColor = ColorI(value[1] * 255, value[2] * 255, value[3] * 255, 255)
     end
@@ -442,7 +442,7 @@ local function inspectLayerGui(layer, guiId)
     im.TextUnformatted("SDF outline thickness")
     im.NextColumn()
     im.PushItemWidth(im.GetContentRegionAvailWidth())
-    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "sdfOutlineThickness"), editor.getTempFloat_NumberNumber(layer.sdfOutlineThickness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
+    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_sdfOutlineThickness"), editor.getTempFloat_NumberNumber(layer.sdfOutlineThickness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
       layer.sdfOutlineThickness = editor.getTempFloat_NumberNumber()
     end
     im.PopItemWidth()
@@ -454,7 +454,7 @@ local function inspectLayerGui(layer, guiId)
     im.TextUnformatted("SDF outline softness")
     im.NextColumn()
     im.PushItemWidth(im.GetContentRegionAvailWidth())
-    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "sdfOutlineSoftness"), editor.getTempFloat_NumberNumber(layer.sdfOutlineSoftness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
+    if editor.uiSliderFloat(string.format("##%s_%s_%s", layer.uid, guiId, "inspector_sdfOutlineSoftness"), editor.getTempFloat_NumberNumber(layer.sdfOutlineSoftness), 0.0, 1.0, "%.2f", nil, editor.getTempBool_BoolBool(false)) then
       layer.sdfOutlineSoftness = editor.getTempFloat_NumberNumber()
     end
     im.PopItemWidth()
@@ -554,9 +554,19 @@ local function inspectLayerGui(layer, guiId)
   im.TextUnformatted("dataPoints")
   im.NextColumn()
   if im.TreeNode1("Data##dataPointsTreeNode") then
+
     local count = #layer.dataPoints
-    im.TextUnformatted(string.format("count: %d", count))
-    editor.uiButtonRightAlign(string.format("Show data points##%s", layer.uid), nil, true)
+    if im.Button(string.format("Reverse data points##%s", layer.uid)) then
+      local newDataPoints = {}
+      for i = count, 1, -1 do
+        table.insert(newDataPoints, layer.dataPoints[i])
+      end
+      layer.dataPoints = newDataPoints
+      api.setLayer(layer, true)
+    end
+    im.tooltip("Reverses the order of the data points")
+
+    im.Button(string.format("Show data points##%s", layer.uid))
     if im.IsItemHovered() then
       local layerDataCopy = {
         zBufferDepth = layer.zBufferDepth,
@@ -576,6 +586,9 @@ local function inspectLayerGui(layer, guiId)
         debugDrawer:drawTextAdvanced(pos, String(string.format("  %d  ", i)), ColorF(1,1,0,1), true, false, ColorI(40, 40, 40, 0.75*255))
       end
     end
+    im.tooltip("Hover the button to show the position of the data points in the 3d viewport")
+
+    im.TextUnformatted(string.format("count: %d", count))
 
     for k, data in ipairs(layer.dataPoints) do
       im.TextUnformatted(tostring(k))
@@ -609,7 +622,7 @@ local function inspectLayerGui(layer, guiId)
         editor.setAxisGizmoTransform(gizmo.transform)
 
         gizmo.translateFn = function(newGizmoTransform)
-          local vehicleObj = be:getPlayerVehicle(0)
+          local vehicleObj = getPlayerVehicle(0)
           api.setDecalLocalPos(layerData, newGizmoTransform:getPosition() - vehicleObj:getPosition())
           layerData.dataPoints[k] = deepcopy(layerData.cursorPosScreenUv)
           api.setLayer(layerData, true)
@@ -672,7 +685,7 @@ local function toolbarActionGui()
     im.tooltip("Finish path layer")
 
     im.SameLine()
-    if editor.uiIconImageButton(editor.icons.delete, nil, nil, nil, nil, "Remove last path layer data point") then
+    if editor.uiIconImageButton(editor.icons.keyboard_return, nil, nil, nil, nil, "Remove last path layer data point") then
       api.removeLastPathLayerPoint()
     end
     im.tooltip("Remove last path layer data point")

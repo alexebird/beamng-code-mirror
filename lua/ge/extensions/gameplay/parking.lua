@@ -20,16 +20,17 @@ local max = math.max
 local random = math.random
 
 local sites, vehPool, vars
-local playerPos, camPos, camDirVec, focusPos = vec3(), vec3(), vec3(), vec3()
+local focusPos = vec3()
 local active = false
 local worldLoaded = false
 local parkingSpotsAmount = 0
 local respawnTicks = 0
-local debugLevel = 0
+
+M.debugLevel = 0
 
 local function loadSites() -- loads sites data containing parking spots
   -- by default, the file "city.sites.json" in the root folder of the current level will be used
-  extensions.load("gameplay_city")
+  if not gameplay_city then return end
   gameplay_city.loadSites()
   sites = gameplay_city.getSites()
   parkingSpotsAmount = sites and #sites.parkingSpots.sorted or 0
@@ -40,7 +41,7 @@ local function setSites(data) -- sets sites data, can override the default sites
     if FS:fileExists(data) then
       sites = gameplay_sites_sitesManager.loadSites(data)
     end
-  elseif type(data) == "table" and sites.parkingSpots then -- assuming that given data is valid sites data
+  elseif type(data) == "table" and data.parkingSpots then -- assuming that given data is valid sites data
     sites = data
   else
     sites = nil
@@ -87,14 +88,14 @@ local function moveToParkingSpot(vehId, parkingSpot, lowPrecision) -- assigns a 
     offsetRot = quatFromEuler(0, 0, (randomGauss3() / 3 - 0.5) * offsetVal * 0.25)
   end
 
-  parkingSpot:moveResetVehicleTo(vehId, lowPrecision, backwards, offsetPos, offsetRot)
-  if debugLevel > 0 then
+  parkingSpot:moveResetVehicleTo(vehId, lowPrecision, backwards, offsetPos, offsetRot, true, false)
+  if M.debugLevel > 0 then
     log("I", logTag, "Teleported vehId "..vehId.." to parking spot "..parkingSpot.id)
   end
 
   --core_vehicleBridge.executeAction(be:getObjectByID(vehId), "setIgnitionLevel", 0)
   be:getObjectByID(vehId):queueLuaCommand("electrics.setIgnitionLevel(0)")
-  core_vehicle_manager.setVehiclePaintsNames(vehId, {gameplay_traffic.getRandomPaint(vehId, 0.75)})
+  core_vehicle_manager.setVehiclePaintsNames(vehId, {getRandomPaint(vehId, 0.75)})
 
   if parkedVehData[vehId] then
     if parkedVehData[vehId].parkingSpotId then
@@ -129,7 +130,7 @@ end
 local function checkParkingSpot(vehId, parkingSpot) -- checks if a parking spot is ready to use for a parked vehicle
   local obj = be:getObjectByID(vehId or 0)
 
-  if parkingSpot.vehicle or parkingSpot.ignoreOthers or parkingSpot.customFields.tags.ignoreOthers or not obj then
+  if parkingSpot.vehicle or parkingSpot.ignoreOthers or parkingSpot.customFields.tags.ignoreOthers or parkingSpot:hasAnyVehicles() or not obj then
     return false
   end
 
@@ -144,12 +145,6 @@ local function checkParkingSpot(vehId, parkingSpot) -- checks if a parking spot 
     return false
   end
 
-  for _, veh in ipairs(getAllVehicles()) do
-    local sqRadius = veh:getId() == be:getPlayerVehicleID(0) and 36 or 4 -- arbitrary, for now
-    if not veh.isParked and parkingSpot.pos:squaredDistance(veh:getPosition()) <= sqRadius then
-      return false
-    end
-  end
   return true
 end
 
@@ -159,9 +154,9 @@ local function findParkingSpots(pos, minRadius, maxRadius) -- finds and returns 
   minRadius = minRadius or 0
   maxRadius = maxRadius or areaRadius
 
-  local psList = sites:getRadialParkingSpots(pos, 0, maxRadius)
+  local psList = sites:getRadialParkingSpots(pos, minRadius, maxRadius)
 
-  if debugLevel > 0 then
+  if M.debugLevel > 0 then
     log("I", logTag, "Found and validated "..#psList.." parking spots in area")
   end
   table.sort(psList, function(a, b) return a.squaredDistance < b.squaredDistance end) -- sorts from closest to farthest
@@ -197,6 +192,13 @@ local function filterParkingSpots(psList, filters) -- filters the sorted list of
 
   for i = psCount, 1, -1 do
     local ps = psList[i].ps
+    local remove = false
+
+    if filters.checkVehicles then -- strict but slow check for other vehicles occupying this spot
+      if ps:hasAnyVehicles() then
+        remove = true
+      end
+    end
 
     if filters.useProbability then
       local prob = ps.customFields:has("probability") and ps.customFields:get("probability") or 1
@@ -212,31 +214,34 @@ local function filterParkingSpots(psList, filters) -- filters the sorted list of
           timeDayCoef = nightValue
         end
       end
-      prob = prob * timeDayCoef * vars.baseProbability
+      prob = prob * timeDayCoef
 
       if prob <= random() then
-        table.remove(psList, i)
+        remove = true
       end
+    end
+
+    if remove then
+      table.remove(psList, i)
     end
   end
 
-  if debugLevel > 0 then
+  if M.debugLevel > 0 then
     log("I", logTag, "Filtered and accepted "..#psList.." / "..psCount.." parking spots")
   end
 
   return psList
 end
 
-local function forceTeleport(vehId, psList, startIdx, minDist, maxDist) -- forces a parked car to teleport to a new parking spot
+local function forceTeleport(vehId, psList, minDist, maxDist) -- forces a parked car to teleport to a new parking spot
   if not parkedVehData[vehId] then return end
-  startIdx = startIdx or 1
   minDist = minDist or 0
   maxDist = maxDist or 10000
   psList = psList or findParkingSpots(core_camera.getPosition(), minDist, maxDist)
 
-  for i = startIdx, #psList do
-    local ps = psList[i].ps
-    if psList[i].squaredDistance >= square(minDist) and psList[i].squaredDistance <= square(maxDist) and checkParkingSpot(vehId, ps, true) then
+  for _, psData in ipairs(psList) do
+    local ps = psData.ps
+    if psData.squaredDistance >= square(minDist) and psData.squaredDistance <= square(maxDist) and checkParkingSpot(vehId, ps) then
       if parkedVehData[vehId].parkingSpotId then
         sites.parkingSpots.objects[parkedVehData[vehId].parkingSpotId].vehicle = nil
         parkedVehData[vehId].parkingSpotId = nil
@@ -248,55 +253,59 @@ local function forceTeleport(vehId, psList, startIdx, minDist, maxDist) -- force
   end
 end
 
-local function scatterParkedCars(vehIds, minDist, maxDist) -- randomly teleports all parked vehicles to parking spots
-  if not sites then return end
+local function getRandomParkingSpots(originPos, minDist, maxDist, minCount, filters) -- returns a list of random parking spots, with a bias for origin position
+  if not sites then return {} end
   minDist = minDist or 0
   maxDist = maxDist or 10000
   local radius = max(minDist, 100)
   local psList, psCount
-  vehIds = vehIds or parkedVehIds
-  local vehCount = #vehIds
+  if not minCount then
+    minCount = math.huge
+    radius = maxDist
+  end
 
   repeat
-    psList = findParkingSpots(core_camera.getPosition(), minDist, radius)
-    psList = filterParkingSpots(psList)
+    psList = findParkingSpots(originPos or core_camera.getPosition(), minDist, radius)
+    psList = filterParkingSpots(psList, filters)
     psCount = #psList
     radius = radius * 2
-  until psCount >= vehCount or radius >= maxDist
+  until psCount >= minCount or radius >= maxDist
 
-  if vehCount == 0 or psCount == 0 or radius >= maxDist then return end
-
-  if psCount / vehCount >= 5 then -- parking spot final index limited by ratio of parking spots to vehicles
-    psCount = vehCount * 5
+  if minCount == math.huge then
+    minCount = max(1, math.ceil(psCount / 4)) -- auto minimum count
   end
+  if psCount < minCount then return {} end
 
-  local numList = {}
-  for i = 1, vehCount do
-    local linearRange = psCount / min(psCount, vehCount * 2)
-    local new
-    if i * linearRange - psCount * square(i / vehCount) >= 0 then -- linear range
-      new = math.ceil(lerp((i - 1) * linearRange, i * linearRange, random()))
-    else -- exponential range
-      new = math.ceil(lerp(psCount * square((i - 1) / vehCount), psCount * square(i / vehCount), random()))
+  local finalPsList = {}
+  local selected = {}
+  local ratio = min(0.95, 1 - (minCount / psCount))
+  local fallbackValue = 1
+
+  repeat
+    for i, ps in ipairs(psList) do
+      local minValue = min(fallbackValue, lerp(ratio, 1, square(i / psCount))) -- minValue is lower for nearer parking spots
+      if not selected[ps.ps.name] and random() >= minValue then
+        selected[ps.ps.name] = 1
+        table.insert(finalPsList, ps)
+      end
+      if finalPsList[minCount] then break end
     end
-    table.insert(numList, new)
 
-    if numList[i - 1] and numList[i - 1] == new then
-      numList[i] = min(psCount, numList[i] + 1)
-    end
-  end
-  if debugLevel > 0 then dump(numList) end
+    fallbackValue = fallbackValue / 2
+  until finalPsList[minCount]
 
-  local newPsList = {}
-  for i, v in ipairs(numList) do -- favored parking spots
-    table.insert(newPsList, psList[v])
-  end
-  for i, v in ipairs(psList) do -- all other parking spots
-    table.insert(newPsList, v)
-  end
+  return finalPsList, psList
+end
 
-  for i, id in ipairs(vehIds) do
-    forceTeleport(id, newPsList, i)
+local function scatterParkedCars(vehIds, minDist, maxDist) -- randomly teleports all parked vehicles to parking spots
+  vehIds = vehIds or parkedVehIds
+  local randomPsList, psList = getRandomParkingSpots(core_camera.getPosition(), minDist, maxDist, #vehIds)
+  if not psList then return end
+
+  randomPsList = arrayConcat(psList, randomPsList)
+
+  for _, id in ipairs(vehIds) do
+    forceTeleport(id, randomPsList)
   end
 end
 
@@ -360,7 +369,7 @@ end
 resetParkingVars()
 
 local function setParkingVars(data) -- sets parking related variables
-  if type(data) ~= 'table' then
+  if type(data) ~= "table" then
     if not data then resetParkingVars() end
     return
   end
@@ -382,22 +391,7 @@ local function getParkingVars() -- gets parking related variables
   return vars
 end
 
-local function setDebugLevel(val) -- sets the debug level (from 0 to 3)
-  -- 0 = off, 1 = parking spot boxes, 2 = parking spot corners, 3 = full (to be done)
-  debugLevel = val or 0
-  if type(debugLevel) ~= "number" then
-    debugLevel = 1
-  end
-
-  if debugLevel > 0 then
-    log("I", logTag, "Vehicle switching enabled for parked vehicles")
-  end
-
-  for _, v in ipairs(parkedVehIds) do
-    be:getObjectByID(v).playerUsable = debugLevel > 0
-  end
-end
-
+local bbCenter, vehDirection, bbHalfExtents = vec3(), vec3(), vec3()
 local function trackParking(vehId) -- tracks parking status of a driving vehicle
   local valid = false
   local result = {
@@ -407,18 +401,23 @@ local function trackParking(vehId) -- tracks parking status of a driving vehicle
   if not obj then return valid, result end
 
   local vehData = trackedVehData[vehId]
-  local vehBB = obj:getSpawnWorldOOBB()
-  vehData.frontPos:set(vehBB:getCenter() + obj:getDirectionVector() * vehBB:getHalfExtents().y)
+  bbCenter:set(be:getObjectOOBBCenterXYZ(vehId))
+  vehDirection:set(obj:getDirectionVectorXYZ())
+  bbHalfExtents:set(be:getObjectOOBBHalfExtentsXYZ(vehId))
 
-  if vehData.focusPos:squaredDistance(vehData.frontPos) >= square(vehData.maxDist * 0.5) then -- focus pos and nearby parking spots low frequency update
-    vehData.psList = findParkingSpots(vehData.frontPos, 0, vehData.maxDist)
+  vehDirection:setScaled(bbHalfExtents.y)
+  vehData.frontPos:setAdd2(bbCenter, vehDirection)
+
+  local maxDist = M.debugLevel >= 3 and 400 or vehData.maxDist
+  if vehData.focusPos:squaredDistance(vehData.frontPos) >= square(maxDist * 0.5) then -- focus pos and nearby parking spots low frequency update
+    vehData.psList = findParkingSpots(vehData.frontPos, 0, maxDist)
     vehData.psList = filterParkingSpots(vehData.psList, emptyFilters)
     vehData.focusPos:set(vehData.frontPos)
   end
 
   vehData.psList = updateParkingSpots(vehData.psList, vehData.frontPos) or {}
 
-  if debugLevel > 0 then
+  if M.debugLevel > 0 then
     for _, v in ipairs(vehData.psList) do
       local ps = v.ps
       local psDirVec = vec3(0, 1, 0):rotated(ps.rot)
@@ -441,16 +440,14 @@ local function trackParking(vehId) -- tracks parking status of a driving vehicle
     result.parkingSpot = bestPs
 
     if not bestPs.vertices[1] then bestPs:calcVerts() end
-
     valid, result.corners = bestPs:checkParking(vehId, vars.precision)
-
     for _, v in ipairs(result.corners) do
       if v then
         result.cornerCount = result.cornerCount + 1
       end
     end
 
-    if debugLevel >= 2 then
+    if M.debugLevel >= 2 then
       for i, v in ipairs(result.corners) do
         local dColor = v and ColorF(0.3, 1, 0.3, 0.5) or ColorF(1, 0.3, 0.3, 0.5)
         debugDrawer:drawCylinder(bestPs.vertices[i], bestPs.vertices[i] + vec3(0, 0, 10), 0.05, dColor)
@@ -482,7 +479,7 @@ local function processNextSpawn(vehId, ignorePool) -- processes the next vehicle
     if idx == 0 then idx = psCount end
     local ps = currParkingSpots[idx].ps
     -- consider using a static raycast
-    if ps.pos:squaredDistance(camPos) > square(areaRadius * 0.5) and checkParkingSpot(newId, ps) then
+    if ps.pos:squaredDistance(core_camera.getPosition()) > square(areaRadius * 0.5) and checkParkingSpot(newId, ps) then
       vehPool:setVeh(newId, true)
       moveToParkingSpot(newId, ps)
       break
@@ -507,7 +504,7 @@ local function processVehicles(vehIds, ignoreScatter) -- activates a group of ve
     if obj then
       if not vehPool then
         vehPool = core_vehiclePoolingManager.createPool()
-        vehPool.name = 'parkedCars'
+        vehPool.name = "parkedCars"
       end
 
       parkedVehData[id] = {
@@ -553,24 +550,20 @@ local function setupVehicles(amount, options) -- spawns and prepares simple park
     deleteVehicles()
   end
 
-  if options.checkParkingSpots then
-    local spots = getParkingSpots()
-    if not spots or not spots.sorted or not spots.sorted[1] then
-      log('W', logTag, 'No parking spots found, skipping parked cars...')
-      return false
-    end
+  if not sites then
+    loadSites()
   end
 
   amount = amount or -1
   if amount == -1 then
-    amount = settings.getValue('trafficParkedAmount')
+    amount = settings.getValue("trafficParkedAmount")
     if amount == 0 then -- auto amount
       amount = clamp(gameplay_traffic.getIdealSpawnAmount(nil, true), 4, 16)
     end
   end
 
   local group
-  if type(options.vehGroup) == 'table' then
+  if type(options.vehGroup) == "table" then
     group = options.vehGroup
   else
     local params = {filters = {}}
@@ -584,14 +577,32 @@ local function setupVehicles(amount, options) -- spawns and prepares simple park
 
   if amount <= 0 or not group or not group[1] then
     if amount <= 0 then
-      log('W', logTag, 'Parked vehicle amount to spawn is zero!')
+      log("W", logTag, "Parked vehicle amount to spawn is zero!")
     else
-      log('W', logTag, 'Parked vehicle group is undefined!')
+      log("W", logTag, "Parked vehicle group is undefined!")
     end
     return false
   end
 
-  core_multiSpawn.spawnGroup(group, amount, {name = 'autoParking', mode = 'roadBehind', gap = 50, instant = not worldLoaded, ignoreAdjust = not worldLoaded})
+  local transforms
+  local psList = getRandomParkingSpots(options.pos, nil, nil, amount, {checkVehicles = true})
+  if psList[1] then
+    if psList[amount] then
+      transforms = {}
+      for _, ps in ipairs(psList) do
+        table.insert(transforms, {pos = ps.ps.pos, rot = ps.ps.rot})
+      end
+    else
+      M.queueTeleport = true
+    end
+  else
+    if not options.ignoreParkingSpots then
+      log("W", logTag, "No parking spots found, skipping parked cars...")
+      return false
+    end
+  end
+
+  core_multiSpawn.spawnGroup(group, amount, {name = "autoParking", mode = "roadBehind", gap = 50, customTransforms = transforms, instant = not worldLoaded, ignoreAdjust = not worldLoaded})
 
   return true
 end
@@ -600,7 +611,7 @@ local function getParkedCarsList(override)
   if override then
     local list = {}
     for _, v in ipairs(getAllVehicles()) do
-      if v.isParked == 'true' then
+      if v.isParked == "true" then
         table.insert(list, v:getId())
       end
     end
@@ -625,8 +636,8 @@ local function resetAll() -- resets everything
 end
 
 local function onVehicleGroupSpawned(vehList, groupId, groupName)
-  if groupName == 'autoParking' then
-    processVehicles(vehList)
+  if groupName == "autoParking" then
+    processVehicles(vehList, true)
   end
 end
 
@@ -654,7 +665,7 @@ local function onVehicleActiveChanged(vehId, active)
           if otherVeh:getActive() and not parkedVehData[otherId] then
             local radius = otherVeh:isPlayerControlled() and 100 or 20
             if otherVeh:getPosition():squaredDistance(be:getObjectByID(vehId):getPosition()) < square(radius) then
-              forceTeleport(vehId, nil, nil, 100)
+              forceTeleport(vehId, nil, 100)
               break
             end
           end
@@ -667,15 +678,18 @@ end
 local function onUpdate(dt, dtSim)
   if not active or not sites or not be:getEnabled() or freeroam_bigMapMode.bigMapActive() then return end
 
-  camPos:set(core_camera.getPosition())
-  camDirVec:set(core_camera.getForward())
+  local camPos = core_camera.getPosition()
+  local camDirVec = core_camera.getForward()
+  local playerPos = map.objects[be:getPlayerVehicleID(0)] and map.objects[be:getPlayerVehicleID(0)].pos or camPos
 
   if not worldLoaded and parkedVehIds[1] and camPos.z ~= 0 then
-    scatterParkedCars()
+    --scatterParkedCars()
     worldLoaded = true
   end
-
-  playerPos = map.objects[be:getPlayerVehicleID(0)] and map.objects[be:getPlayerVehicleID(0)].pos or camPos
+  if M.queueTeleport then
+    scatterParkedCars()
+    M.queueTeleport = false
+  end
 
   for id, data in pairs(trackedVehData) do
     local valid, pData = trackParking(id)
@@ -728,7 +742,7 @@ local function onUpdate(dt, dtSim)
   if not parkedVehIds[1] or parkedVehCount >= parkingSpotsAmount then return end -- unable to teleport vehicles to new parking spots
 
   -- only search for parking spots whenever needed
-  if focusPos:squaredDistance(camPos) >= square(stepDist) then
+  if vars.baseProbability > 0 and focusPos:squaredDistance(camPos) >= square(stepDist) then
     -- consider using a smoother for the look direction, similar to the traffic system
     local aheadPos = camPos + camDirVec:z0():normalized() * (lookDist + stepDist) + camDirVec:cross(vec3(0, 0, 1)):z0():normalized() * random(-50, 50)
     currParkingSpots = findParkingSpots(aheadPos, 0, areaRadius)
@@ -751,16 +765,18 @@ local function onUpdate(dt, dtSim)
     currVeh.radiusCoef = lerp(currVeh.radiusCoef, clamp(80 / pos:distance(camPos + camDirVec * 15), 1, 6), dtSim * dtCoef) -- stronger value while player or camera is near target
 
     if not currVeh.searchFlag and currParkingSpots[1] then
-      local dirValue = max(0, camDirVec:dot((pos - camPos):normalized()) * areaRadius) -- higher value while looking at target vehicle
-      if pos:squaredDistance(camPos) > square(areaRadius * currVeh.radiusCoef * 0.5 + dirValue) and pos:squaredDistance(playerPos) > square(areaRadius * 0.5) then
-        processNextSpawn(currId) -- respawn the next available vehicle
+      if vars.baseProbability == 1 or vars.baseProbability >= random() then
+        local dirValue = max(0, camDirVec:dot((pos - camPos):normalized()) * areaRadius) -- higher value while looking at target vehicle
+        if pos:squaredDistance(camPos) > square(areaRadius * currVeh.radiusCoef * 0.5 + dirValue) and pos:squaredDistance(playerPos) > square(areaRadius * 0.5) then
+          processNextSpawn(currId) -- respawn the next available vehicle
+        end
       end
 
       currVeh.searchFlag = true -- stop searching until next parking spot query
     end
 
     if currVeh._teleport then
-      forceTeleport(currId, nil, nil, 100)
+      forceTeleport(currId, nil, 100)
     end
   end
 
@@ -786,7 +802,7 @@ local function onClientEndMission()
 end
 
 local function onSerialize()
-  local data = {active = active, debugLevel = debugLevel, parkedVehIds = deepcopy(parkedVehIds), trackedVehIds = tableKeys(trackedVehData), vars = deepcopy(vars)}
+  local data = {active = active, debugLevel = M.debugLevel, parkedVehIds = deepcopy(parkedVehIds), trackedVehIds = tableKeys(trackedVehData), vars = deepcopy(vars)}
   resetAll()
   return data
 end
@@ -799,14 +815,13 @@ local function onDeserialized(data)
   end
   setParkingVars(data.vars)
   active = data.active
-  debugLevel = data.debugLevel
+  M.debugLevel = data.debugLevel
 end
 
 -- public interface
 M.setSites = setSites
 M.setState = setState
 M.getState = getState
-M.setDebugLevel = setDebugLevel
 M.setupVehicles = setupVehicles
 M.processVehicles = processVehicles
 M.deleteVehicles = deleteVehicles
@@ -820,6 +835,7 @@ M.getTrackingData = getTrackingData
 M.getParkingSpots = getParkingSpots
 M.findParkingSpots = findParkingSpots
 M.filterParkingSpots = filterParkingSpots
+M.getRandomParkingSpots = getRandomParkingSpots
 M.checkParkingSpot = checkParkingSpot
 M.moveToParkingSpot = moveToParkingSpot
 M.getCurrentParkingSpot = getCurrentParkingSpot

@@ -40,9 +40,9 @@ local function startAssociatedFlowgraph(level)
         mgr.stopRunningOnClientEndMission = true -- make mgr self-destruct when level is ended.
         mgr.removeOnStopping = true -- make mgr self-destruct when level is ended.
         log("I", "Flowgraph loading", "Loaded level-associated flowgraph from file "..dumps(path))
-       else
-         log("E", "Flowgraph loading", "Could not find file in either '" .. absolutePath.."' or '" .. relativePath.."'!")
-       end
+      else
+        log("E", "Flowgraph loading", "Could not find file in either '" .. absolutePath.."' or '" .. relativePath.."'!")
+      end
     end
   end
 end
@@ -74,10 +74,6 @@ local function startFreeroam(level, startPointName, wasDelayed, spawnVehicle)
   -- come from a delayed start, load the FGs (starting from main menu)
   if not delaying then
     startAssociatedFlowgraph(level)
-  end
-
-  if false and not shipping_build and settings.getValue('enableCrashCam') then
-    extensions.load('core_crashCamMode')
   end
 end
 
@@ -188,34 +184,48 @@ end
 local function onUpdate(dtReal, dtSim, dtRaw)
   if worldReadyState == 0 then
     commands.initCamera()
-    if not be:getPlayerVehicle(0) then
+    if not getPlayerVehicle(0) then
       commands.setFreeCamera()
     end
   end
 end
 
-local function onAnyMissionChanged(state)
-  if false and not shipping_build then
-    if state == "started" then
-      if core_crashCamMode then
-        extensions.unload('core_crashCamMode')
-      end
-    elseif state == "stopped" then
-      if settings.getValue('enableCrashCam') then
-        extensions.load('core_crashCamMode')
-      end
-    end
+local function isStateFreeroam()
+  if core_gamestate.state and (core_gamestate.state.state == "freeroam") then
+    return true
   end
+  return false
 end
 
-local function onSettingsChanged()
-  if false and not shipping_build then
-    if settings.getValue('enableCrashCam') then
-      extensions.load('core_crashCamMode')
-    elseif core_crashCamMode then
-      extensions.unload('core_crashCamMode')
-    end
+local function onSpeedTrapTriggered(speedTrapData, playerSpeed, overSpeed)
+  if not speedTrapData.speedLimit then return end
+  if not isStateFreeroam() or speedTrapData.subjectID ~= be:getPlayerVehicleID(0) then
+    return
   end
+  local veh = getPlayerVehicle(0)
+  local highscore, leaderboard = gameplay_speedTrapLeaderboards.addRecord(speedTrapData, playerSpeed, overSpeed, veh)
+  ui_message({txt="ui.freeroam.speedTrap.speedingMessage", context={licensePlate = core_vehicles.getVehicleLicenseText(veh), recordedSpeed = playerSpeed, speedLimit = speedTrapData.speedLimit}}, 10, 'speedTrap')
+
+  local message
+  if highscore then
+    if leaderboard[2] then
+      message = {txt="ui.freeroam.speedTrap.newRecord", context={recordedSpeed = playerSpeed, previousSpeed = leaderboard[2].speed}}
+    else
+      message = {txt="ui.freeroam.speedTrap.newRecordNoOld", context={recordedSpeed = playerSpeed}}
+    end
+  else
+    message = {txt="ui.freeroam.speedTrap.noNewRecord", context={recordedSpeed = playerSpeed, recordSpeed = leaderboard[1].speed}}
+  end
+
+  ui_message(message, 10, 'speedTrapRecord')
+end
+
+local function onRedLightCamTriggered(speedTrapData, playerSpeed)
+  if not isStateFreeroam() or speedTrapData.subjectID ~= be:getPlayerVehicleID(0) then
+    return
+  end
+  local veh = getPlayerVehicle(0)
+  ui_message({txt="ui.freeroam.speedTrap.redLightMessage", context={licensePlate = core_vehicles.getVehicleLicenseText(veh)}}, 10, 'speedTrap')
 end
 
 -- public interface
@@ -231,7 +241,7 @@ M.onVehicleSpawned = onVehicleSpawned
 M.onResetGameplay = onResetGameplay
 M.startTrackBuilder = startTrackBuilder
 M.onUpdate = onUpdate
-M.onAnyMissionChanged = onAnyMissionChanged
-M.onSettingsChanged = onSettingsChanged
+M.onSpeedTrapTriggered = onSpeedTrapTriggered
+M.onRedLightCamTriggered = onRedLightCamTriggered
 
 return M

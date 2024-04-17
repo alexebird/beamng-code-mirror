@@ -4,7 +4,7 @@
 
 local M = {}
 local function saveVehicle()
-  local veh = be:getPlayerVehicle(0)--get vehicle that drove into trigger see data next: figure out how to transport truck with trailerS
+  local veh = getPlayerVehicle(0)--get vehicle that drove into trigger see data next: figure out how to transport truck with trailerS
   local vehicleName = string.match(veh:getPath(), "vehicles/([^/]*)/")
   TorqueScriptLua.setVar( '$beamngVehicle', vehicleName )
   local mycolor = getVehicleColor()

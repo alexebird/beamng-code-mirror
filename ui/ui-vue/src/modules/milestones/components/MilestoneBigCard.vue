@@ -1,15 +1,15 @@
 <template>
   <div class="milestone-card">
     <div class="header-wrapper">
-      <bng-card-heading class="header"> </bng-card-heading>
+      <BngCardHeading class="header"> </BngCardHeading>
     </div>
-    <bng-card class="card">
+    <BngCard class="card">
       <div class="content">
         <div class="content-wrapper" :class="[type, { 'large-badge': isLargeBadge(type) }]">
-          <scrolling-background class="animated-background" icon="test/images/Union.svg"></scrolling-background>
+          <ScrollingBackground class="animated-background" icon="test/images/Union.svg"></ScrollingBackground>
           <div class="sash"></div>
           <div v-if="isLargeBadge(type)" class="main-content">
-            <milestone-badge class="badge" :type="type"></milestone-badge>
+            <MilestoneBadge class="badge" :type="type"></MilestoneBadge>
             <span class="message"><slot></slot></span>
           </div>
           <div v-else class="main-content">
@@ -21,7 +21,7 @@
           </div>
         </div>
       </div>
-    </bng-card>
+    </BngCard>
   </div>
 </template>
 

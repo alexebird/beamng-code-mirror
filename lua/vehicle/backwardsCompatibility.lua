@@ -383,7 +383,7 @@ local function checkTrailerIgnitionStates()
 
   local ignitionProbablyNotNeeded = not hasTorqueSource and not hasVehicleController
   if ignitionProbablyNotNeeded and not (v.data.electrics and v.data.electrics.allowedIgnitionLevels) then
-    log("I", "backwardsCompatibility.init", "Assuming trailer-like vehicle, locking available ignition levels to [0] and disabling ignition effects, provide your own 'electrics.allowedIgnitionLevels' and 'electrics.ignitionLevelOverrideType' in jbeam to override this.")
+    --log("I", "backwardsCompatibility.init", "Assuming trailer-like vehicle, locking available ignition levels to [0] and disabling ignition effects, provide your own 'electrics.allowedIgnitionLevels' and 'electrics.ignitionLevelOverrideType' in jbeam to override this.")
     v.data.electrics = v.data.electrics or {}
     v.data.electrics.allowedIgnitionLevels = {0}
     v.data.electrics.ignitionLevelOverrideType = "none"

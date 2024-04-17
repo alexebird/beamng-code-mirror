@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Displays a text in an imgui window."
 C.category = 'repeat_instant'
 
-C.todo = ""
 C.pinSchema = {
   { dir = 'in', type = 'any', name = 'text', description = 'Text to display.' },
 }

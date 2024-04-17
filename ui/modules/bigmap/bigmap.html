@@ -294,24 +294,25 @@
                   <div class="icon-mask reward-stars-meter" style="background-position: {{ (selectedMission._totals.stars[1] > 0 ? 100 - ( selectedMission._totals.stars[0] / selectedMission._totals.stars[1] * 100 ) : 100) }}%; margin-right: 1em; margin-bottom: 0.1em;" aria-label="Total stars: {{ (selectedMission._totals.stars[1] > 0 ? selectedMission._totals.stars[0] / selectedMission._totals.stars[1] * 100 : 0) }}%"></div>
                   <div class="flex-row align-center" ng-show="selectedMission._totals.bonusstars[0] > 0">
                     <div class="career-bonus-star"></div>
-                    <div class="mission-rewards-label">{{ selectedMission._totals.bonusstars[0] }}/{{ selectedMission._totals.bonusstars[1] }}</div>
+                    <div class="mission-rewards-label">{{ selectedMission._totals.bonusstars[1] }}</div>
                   </div>
                 </div>
-                <div class="flex-row" ng-if="inCareer">
+                <h4 style="margin-bottom: 0em;">Potential Rewards</h4>
+                <div class="flex-row" ng-if="inCareer" >
                   <div class="flex-row align-center">
                     <div bng-branch-icon="beamXP" style="transform: translate(0, -0.125em); width: 1.75em; height: 1.75em;"></div>
-                    <div class="mission-rewards-label">{{ selectedMission._totals.beamXP[0] }}/{{ selectedMission._totals.beamXP[1] }}</div>
+                    <div class="mission-rewards-label">{{ selectedMission._totals.beamXP[1] }}</div>
                   </div>
                   <div class="flex-row align-center">
                     <div bng-branch-icon="beambucks" style="transform: translate(0, -0.125em); width: 1.75em; height: 1.75em;"></div>
-                    <div class="mission-rewards-label">{{ selectedMission._totals.money[0] }}/{{ selectedMission._totals.money[1] }}</div>
+                    <div class="mission-rewards-label">{{ selectedMission._totals.money[1] }}</div>
                   </div>
                 </div>
                 <div class="flex-row">
                   <div class="flex-row align-center" ng-repeat="(type, reward) in selectedMission._totals.branches">
                     <div bng-branch-icon="{{ type }}" style="transform: translate(0, -0.125em); width: 1.75em; height: 1.75em;"></div>
                     <!-- we can use (( career )) instead -->
-                    <div class="mission-rewards-label">{{ reward[0] }}/{{ reward[1] }}</div>
+                    <div class="mission-rewards-label">{{ reward[1] }}</div>
                   </div>
                 </div>
               </div>
@@ -341,9 +342,9 @@
                   </table>
                 </div>
               </div>
+            -->
             </div>
 
-            -->
 
             <!-- hide for now as no behavior implementation yet -->
             <div class="stats-action" ng-hide="true">

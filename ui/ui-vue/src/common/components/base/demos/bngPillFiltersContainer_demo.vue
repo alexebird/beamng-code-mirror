@@ -2,48 +2,48 @@
   <div class="filters-container-demo-page">
     <div>
       <label>Select Single</label>
-      <bng-pill-filters-container
+      <BngPillFiltersContainer
         ref="bngPillFiltersContainerRef"
         :html-id="'filters-container-1'"
         :options="bngPillOptions"
         :select-many="false"
         :has-checked-icon="false"
-      ></bng-pill-filters-container>
+      ></BngPillFiltersContainer>
       <div class="actions">
-        <bng-button class="btn" @click="onSelectPrevious">Previous</bng-button>
-        <bng-button class="btn" @click="onSelectNext">Next</bng-button>
+        <BngButton class="btn" @click="onSelectPrevious">Previous</BngButton>
+        <BngButton class="btn" @click="onSelectNext">Next</BngButton>
       </div>
     </div>
     <div>
       <label>Focus Select</label>
-      <bng-pill-filters-container
+      <BngPillFiltersContainer
         ref="bngPillFiltersContainerRef2"
         :html-id="'filters-container-2'"
         :options="bngPillOptions"
         :select-many="false"
         :select-on-navigation="false"
         :has-checked-icon="false"
-      ></bng-pill-filters-container>
+      ></BngPillFiltersContainer>
       <div class="actions">
-        <bng-button class="btn" @click="onFocusSelectPrevious">Previous</bng-button>
-        <bng-button class="btn" @click="onFocusSelectNext">Next</bng-button>
-        <bng-button class="btn" @click="onSelectCurrent">Select Current</bng-button>
+        <BngButton class="btn" @click="onFocusSelectPrevious">Previous</BngButton>
+        <BngButton class="btn" @click="onFocusSelectNext">Next</BngButton>
+        <BngButton class="btn" @click="onSelectCurrent">Select Current</BngButton>
       </div>
     </div>
     <div>
       <label>Required</label>
-      <bng-pill-filters-container
+      <BngPillFiltersContainer
         ref="bngPillFiltersContainerRef3"
         :html-id="'filters-container-3'"
         :options="bngPillOptions"
         :select-on-navigation="false"
         :required="true"
         :has-checked-icon="false"
-      ></bng-pill-filters-container>
+      ></BngPillFiltersContainer>
       <div class="actions">
-        <bng-button class="btn" @click="onRequiredSelectPrevious">Previous</bng-button>
-        <bng-button class="btn" @click="onRequiredSelectNext">Next</bng-button>
-        <bng-button class="btn" @click="onRequiredSelectCurrent">Select Current</bng-button>
+        <BngButton class="btn" @click="onRequiredSelectPrevious">Previous</BngButton>
+        <BngButton class="btn" @click="onRequiredSelectNext">Next</BngButton>
+        <BngButton class="btn" @click="onRequiredSelectCurrent">Select Current</BngButton>
       </div>
     </div>
   </div>
@@ -55,15 +55,15 @@ import { BngButton } from "@/common/components/base"
 import { ref } from "vue"
 
 const bngPillOptions = [
-  { id: 1, value: 0, name: "All" },
-  { id: 2, value: 1, name: "Body" },
-  { id: 3, value: 2, name: "Engine" },
-  { id: 4, value: 3, name: "Transmission" },
-  { id: 5, value: 4, name: "Suspension" },
-  { id: 6, value: 5, name: "Electrics" },
-  { id: 7, value: 6, name: "Electrics1" },
-  { id: 8, value: 7, name: "Electrics2" },
-  { id: 9, value: 8, name: "Electrics3" },
+  { id: 1, value: 0, label: "All" },
+  { id: 2, value: 1, label: "Body" },
+  { id: 3, value: 2, label: "Engine" },
+  { id: 4, value: 3, label: "Transmission" },
+  { id: 5, value: 4, label: "Suspension" },
+  { id: 6, value: 5, label: "Electrics" },
+  { id: 7, value: 6, label: "Electrics1" },
+  { id: 8, value: 7, label: "Electrics2" },
+  { id: 9, value: 8, label: "Electrics3" },
 ]
 
 const bngPillFiltersContainerRef = ref(null)

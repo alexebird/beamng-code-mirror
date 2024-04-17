@@ -224,6 +224,7 @@ local function sendAll(skt, data, length)
     end
     index = sent + 1
   end
+
   return nil
 end
 
@@ -246,6 +247,7 @@ M.sendMessage = function(skt, message)
   end
 
   message = mp.packWorkBuffer(message)
+
   --message = mp.pack(message)
   local length = #message
   local lenPrefix = packUnsignedInt32Network(length)
@@ -261,6 +263,7 @@ M.sendMessage = function(skt, message)
   end
 
   local err = sendAll(skt, message, length)
+
   if err then
     log('E', logTag, 'Error writing to socket: ' .. tostring(err))
     return

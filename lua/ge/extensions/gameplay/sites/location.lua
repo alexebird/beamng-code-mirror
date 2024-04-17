@@ -46,13 +46,16 @@ function C:drawDebug(drawMode, clr)
   drawMode = drawMode or self._drawMode
   if drawMode == 'none' then return end
 
-  local alpha = (drawMode == 'normal') and 0.4 or 1
-  if drawMode ~= 'faded' then
+  local drawSqDist = square(editor.isEditorActive() and editor.getPreference("gizmos.visualization.visualizationDrawDistance") or 300)
+  local camSqDist = self.pos:squaredDistance(core_camera.getPosition())
+
+  local alpha = drawMode == 'normal' and 0.4 or 1
+  local textDrawDist = drawMode == 'highlight' and math.huge or drawSqDist
+  if drawMode ~= 'faded' and camSqDist <= textDrawDist then
     debugDrawer:drawTextAdvanced((self.pos), String(self.name), ColorF(1, 1, 1, alpha), true, false, ColorI(0, 0, 0, alpha * 255))
   end
 
-  local drawSqDist = square(editor.isEditorActive() and editor.getPreference("gizmos.visualization.visualizationDrawDistance") or 300)
-  if self.pos:squaredDistance(core_camera.getPosition()) > drawSqDist then return end
+  if camSqDist > drawSqDist then return end
 
   clr = clr or self.color:toTable()
   --if drawMode == 'highlight' then clr = {1,1,1,1} end

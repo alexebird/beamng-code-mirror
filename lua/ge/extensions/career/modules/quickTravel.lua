@@ -12,7 +12,7 @@ local basePrice = 5
 local pricePerM = 0.004
 
 local function getDistanceToPoint(pos)
-  routePlanner:setupPath(be:getPlayerVehicle(0):getPosition(), pos)
+  routePlanner:setupPath(getPlayerVehicle(0):getPosition(), pos)
   return routePlanner.path[1].distToTarget
 end
 
@@ -25,21 +25,21 @@ local function getPriceForQuickTravel(pos)
 end
 
 local function turnTowardsPos(pos)
-  core_vehicleBridge.requestValue(be:getPlayerVehicle(0), function()
-    gameplay_walk.setRot(pos - be:getPlayerVehicle(0):getPosition())
+  core_vehicleBridge.requestValue(getPlayerVehicle(0), function()
+    gameplay_walk.setRot(pos - getPlayerVehicle(0):getPosition())
   end , 'ping')
 end
 
 local function quickTravelToPos(pos, useWalkingMode, reasonString)
   local price = getPriceForQuickTravel(pos)
-  if career_modules_playerAttributes.getAttribute("money").value < price then return end
+  if career_modules_playerAttributes.getAttributeValue("money") < price then return end
   if useWalkingMode then
     gameplay_walk.setWalkingMode(true)
-    spawn.safeTeleport(be:getPlayerVehicle(0), pos)
+    spawn.safeTeleport(getPlayerVehicle(0), pos)
     turnTowardsPos(pos)
   end
   -- TODO if we want to quicktravel with the vehicle, then we need to set the partcondition reset point first
-  career_modules_playerAttributes.addAttribute("money", -price, {label=(reasonString or "Paid for Quicktraveling")})
+  career_modules_playerAttributes.addAttributes({money=-price}, {tags={"quickTravel","buying"}, label=(reasonString or "Paid for Quicktraveling")})
 end
 
 local function quickTravelToGarage(garage)

@@ -61,6 +61,7 @@ Experiment with these features by checking out the SDF properties in the 'Decal 
 ]]
 
 local blendModesNamesCharPtr = nil
+local meshesFilter = im.ImGuiTextFilter()
 
 local function setPropertyInChildrenRec(layer, property, value)
   if layer.children then
@@ -92,6 +93,8 @@ end
 
 local function inspectLayerGui(layer, guiId)
   local widgetId = string.format("%s_%s", layer.uid, guiId)
+  local vehicleObj = getPlayerVehicle(0)
+
   if widgets.draw({layer.decalScale.x, layer.decalScale.y, layer.decalScale.z}, api.propertiesMap["decalScale"], widgetId, editor.getTempBool_BoolBool(false)) then
     layer.decalScale.x = api.propertiesMap["decalScale"].value[1]
     layer.decalScale.z = api.propertiesMap["decalScale"].value[3]
@@ -180,7 +183,6 @@ local function inspectLayerGui(layer, guiId)
     api.setLayer(layer, true)
   end
   im.SameLine()
-  local vehicleObj = be:getPlayerVehicle(0)
   local paletteColor = {1, 1, 1, 0}
   if layer.colorPaletteMapId == 0 then
     paletteColor = layer.color:toTable()
@@ -312,11 +314,128 @@ local function inspectLayerGui(layer, guiId)
   end
   im.Separator()
 
+  local meshes = (layer.meshes and layer.meshes[vehicleObj.jbeam]) or nil
+  local sMeshes = api.getShapeMeshes()
+
+  local function setMeshEnable(name, val)
+    -- mesh has been enabled
+    if val == true then
+      if not layer.meshes then layer.meshes = {} end
+      if not layer.meshes[vehicleObj.jbeam] then layer.meshes[vehicleObj.jbeam] = {} end
+
+      table.insert(layer.meshes[vehicleObj.jbeam], name)
+
+      -- check if all possible meshes are enabled and if so set the object to nil
+      local sMeshesCopy = api.getShapeMeshes()
+      for _, n in ipairs(layer.meshes[vehicleObj.jbeam]) do
+        if sMeshesCopy[n] then
+          sMeshesCopy[n] = nil
+        end
+      end
+      if tableSize(sMeshesCopy) == 0 then
+        layer.meshes[vehicleObj.jbeam] = nil
+        if tableSize(layer.meshes) == 0 then
+          layer.meshes = nil
+        end
+      end
+
+      api.setLayer(layer, true)
+    else -- mesh has been disabled
+      -- layer.meshes object is present, just remove the deselected one
+      if meshes then
+        for k, v in ipairs(layer.meshes[vehicleObj.jbeam]) do
+          if v == name then
+            table.remove(layer.meshes[vehicleObj.jbeam], k)
+            api.setLayer(layer, true)
+          end
+        end
+      else -- layer.meshes is nil so we need to add all meshes but the deselected one
+        if not layer.meshes then layer.meshes = {} end
+        if not layer.meshes[vehicleObj.jbeam] then layer.meshes[vehicleObj.jbeam] = {} end
+
+        for name2, _ in pairs(sMeshes) do
+          if name2 ~= name then
+            table.insert(layer.meshes[vehicleObj.jbeam], name2)
+            api.setLayer(layer, true)
+          end
+        end
+      end
+    end
+  end
+
+  local cpos = im.GetCursorPos()
+  im.SetCursorPosX(cpos.x + 80)
+  if im.SmallButton("enable all") then
+    if layer.meshes and layer.meshes[vehicleObj.jbeam] then
+      layer.meshes[vehicleObj.jbeam] = nil
+    end
+
+    if layer.meshes and tableSize(layer.meshes) == 0 then
+      layer.meshes = nil
+    end
+    api.setLayer(layer, true)
+  end
+  im.SameLine()
+  if im.SmallButton("disable all") then
+    if not layer.meshes then layer.meshes = {} end
+    layer.meshes[vehicleObj.jbeam] = {}
+    api.setLayer(layer, true)
+  end
+  im.SameLine()
+  editor.uiInputSearchTextFilter("##InspectorMeshesFilter", meshesFilter, im.GetContentRegionAvailWidth())
+
+  im.SetCursorPos(cpos)
+
+  if im.TreeNode1(string.format("Meshes##%s", widgetId)) then
+    if im.BeginChild1(string.format("MeshesChild_%s", widgetId), im.ImVec2(0, 240), true) then
+      local i = 1
+      for name, _ in pairs(sMeshes) do
+        if im.ImGuiTextFilter_PassFilter(meshesFilter, name) then
+          local enabled = meshes == nil or tableContains(meshes, name)
+          if im.Checkbox(string.format("##%s_shapeMesh_%d_checkbox", widgetId, i), editor.getTempBool_BoolBool(enabled)) then
+            setMeshEnable(name, editor.getTempBool_BoolBool())
+          end
+          im.SameLine()
+          if im.Selectable1(string.format("%s##%s_shapeMesh_%d_selectable", name, widgetId, i), enabled) then
+            setMeshEnable(name, not enabled)
+          end
+        end
+        i = i + 1
+      end
+      im.EndChild()
+    end
+
+    im.TreePop()
+  end
+
   im.Separator()
   im.Separator()
   im.Separator()
 
   im.Columns(2, "layerDataColumns")
+
+  im.TextUnformatted("project using surface normal")
+  im.NextColumn()
+  if im.Checkbox(string.format("##%s_%s_%s", layer.uid, guiId, "useSurfaceNormal"), editor.getTempBool_BoolBool(layer.useSurfaceNormal)) then
+    layer.useSurfaceNormal = editor.getTempBool_BoolBool()
+    -- ALERT
+    -- This is a hack. The decal matrix is not recalculated for this layer as long as it has the 'decalPos' and 'decalNorm' field.
+    layer.decalPos = nil
+    layer.decalNorm = nil
+    api.setLayer(layer, true)
+  end
+  im.NextColumn()
+
+  im.PushItemWidth(im.GetContentRegionAvailWidth())
+  if editor.uiSliderFloat2(string.format("##%s_%s_%s", layer.uid, guiId, "colorTextureScale"), editor.getTempFloatArray2_TableTable({layer.colorTextureScale.x, layer.colorTextureScale.y}), 0.01, 6.0, nil, nil, editor.getTempBool_BoolBool(false)) then
+    local value = editor.getTempFloatArray2_TableTable()
+    layer.colorTextureScale = Point2F(value[1], value[2])
+  end
+  im.PopItemWidth()
+  if editor.getTempBool_BoolBool() == true then
+    api.setLayer(layer, true)
+  end
+  im.NextColumn()
 
   im.TextUnformatted("color texture scale")
   im.NextColumn()
@@ -652,7 +771,6 @@ local function sdfIntroWindow()
       editor.setPreference("dynamicDecalsTool.decalProperties.doNotShowSdfIntroAgain", editor.getTempBool_BoolBool())
     end
     im.tooltip("Do not pop up SDF introduction modal again")
-
   end
   editor.endWindow()
 end
@@ -763,6 +881,10 @@ local function sectionGui(guiId)
   if widgets.draw(api.getMirrorDebug(), mirrorDebugProperty, guiId) then
     api.setMirrorDebug(mirrorDebugProperty.value)
   end
+
+  if im.Checkbox("Project using surface normal", editor.getTempBool_BoolBool(api.getUseSurfaceNormal())) then
+    api.setUseSurfaceNormal(editor.getTempBool_BoolBool())
+  end
   im.Separator()
 
   if im.TreeNodeEx1("Textures", im.TreeNodeFlags_DefaultOpen) then
@@ -777,7 +899,6 @@ local function sectionGui(guiId)
     im.SameLine()
     im.PushItemWidth(im.GetContentRegionAvailWidth() - (im.CalcTextSize("Select").x + 3 * im.GetStyle().ItemSpacing.x))
     if im.InputText(string.format("##%s_%s", guiId, "decalLayerFontCharacter"), editor.getTempCharPtr(api.getDecalLayerFontCharacter()), nil, im.InputTextFlags_AutoSelectAll) then
-    -- if im.InputText(string.format("##%s_%s", guiId, "decalLayerFontCharacter"), editor.getTempCharPtr("?"), nil, im.InputTextFlags_AutoSelectAll)) then
       api.setDecalLayerFontCharacter(string.sub(editor.getTempCharPtr(), 1, 1))
     end
     im.PopItemWidth()
@@ -791,8 +912,9 @@ local function sectionGui(guiId)
       fonts.checkOrGenerateFontBitmaps(api.getDecalLayerFontPath())
       editor.showWindow(fontCharacterSelectionWindowName)
     end
-    if #api.getDecalLayerFontPath() <= 1 or true then im.EndDisabled() end
-    -- im.EndDisabled()
+    if #api.getDecalLayerFontPath() <= 1 or true then
+      im.EndDisabled()
+    end
 
     if widgets.draw(api.getDecalTexturePath("color"), api.propertiesMap["decalColorTexturePath"], guiId) then
       api.setDecalTexturePath("color", api.propertiesMap["decalColorTexturePath"].value)
@@ -838,7 +960,7 @@ local function sectionGui(guiId)
       api.setColorPaletteMapId(api.propertiesMap["colorPaletteMapId"].value)
     end
     im.SameLine()
-    local vehicleObj = be:getPlayerVehicle(0)
+    local vehicleObj = getPlayerVehicle(0)
     local paletteColor = {1, 1, 1, 0}
     if colorPaletteMapId == 0 then
       paletteColor = api.getDecalColor():toTable()

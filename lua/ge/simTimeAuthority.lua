@@ -143,7 +143,8 @@ local function requestValue()
   guihooks.trigger("BullettimeValueChanged", M.simulationSpeed)
 end
 
-local function pause(paused)
+local function pause(paused, playPauseSound)
+  if playPauseSound == nil then playPauseSound = true end
   extensions.hook("onSimTimePauseCalled", paused)
   if core_replay.state.state == "playing" then
     core_replay.pause(paused)
@@ -156,6 +157,9 @@ local function pause(paused)
       end
       M.simulationSpeed = 0
       updateDispatch = nop
+      if playPauseSound then
+        Engine.Audio.playOnce('AudioGui', 'event:>UI>Main>Pause')
+      end
     else
       simulationSpeed_smooth:set(initialTimeScale) -- start smoother in current value, not in zero
       setTargetSpeed(initialTimeScale) -- restore the original physics scale
@@ -166,7 +170,8 @@ local function pause(paused)
   end
 end
 
-local function pauseSmooth(paused, rateLimit, startAccel, stopAccel)
+local function pauseSmooth(paused, rateLimit, startAccel, stopAccel, playPauseSound)
+  if playPauseSound == nil then playPauseSound = true end
   extensions.hook("simTimePauseCalled", paused)
   if core_replay.state.state == "playing" then
     core_replay.pause(paused)
@@ -180,6 +185,9 @@ local function pauseSmooth(paused, rateLimit, startAccel, stopAccel)
         initialTimeScale = M.simulationSpeed -- backup the original physics scale
       end
       M.simulationSpeed = 0
+      if playPauseSound then
+        Engine.Audio.playOnce('AudioGui', 'event:>UI>Main>Pause')
+      end
     else
       M.simulationSpeed = initialTimeScale
       if getPause() then
@@ -193,6 +201,7 @@ local function pauseSmooth(paused, rateLimit, startAccel, stopAccel)
 end
 
 local function togglePause()
+  extensions.hook("onTogglePause")
   if core_replay.state.state == "playing" then
     core_replay.togglePlay()
   else
@@ -210,6 +219,10 @@ local function onDeserialized(data)
   -- TODO: verify this is working
   M.simulationSpeed = data.simulationSpeed
   initialTimeScale = data.initialTimeScale
+end
+
+local function getInitialTimeScale()
+  return initialTimeScale
 end
 
 -- the extension system registers the function pointers, thus functions called back by it cannot be nop'ed. So we wrap it in another function.
@@ -230,6 +243,7 @@ M.getPause = getPause
 M.togglePause = togglePause
 M.requestValue = requestValue
 M.reportSpeed = reportSpeed
+M.getInitialTimeScale = getInitialTimeScale
 
 M.onSerialize    = onSerialize
 M.onDeserialized = onDeserialized

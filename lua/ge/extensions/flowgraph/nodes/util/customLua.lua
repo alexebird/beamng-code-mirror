@@ -202,6 +202,7 @@ function C:buildBaseEnv()
     env.worldEditorCppApi = worldEditorCppApi
     env.rainbowColor = rainbowColor
     env.readJsonFile = jsonReadFile
+    env.getPlayerVehicle = getPlayerVehicle
 
     -- env.extension = extensions
     -- add all non-virtual extensions from the global table to the env
@@ -251,7 +252,6 @@ function C:buildBaseEnv()
     env.writeFile = writeFile
     env.serialize = serialize
     env.deserialize = deserialize
-    env.getTime = getTime
 
     -- json stuff
     env.jsonEncode = jsonEncode

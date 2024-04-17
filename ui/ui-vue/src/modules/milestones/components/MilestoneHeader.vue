@@ -1,12 +1,12 @@
 <template>
   <div class="milestone-header">
     <span class="header">
-      <bng-card-heading class="card-heading">
+      <BngCardHeading class="card-heading">
         <slot name="header"></slot>
-      </bng-card-heading>
+      </BngCardHeading>
     </span>
     <span class="subheader">
-      <bng-icon v-if="icon" class="subheader-icon input-icon" :type="icon" />
+      <BngOldIcon v-if="icon" class="subheader-icon input-icon" :type="icon" />
       <span class="subheader-text">
         <slot name="subheader"></slot>
       </span>
@@ -15,8 +15,7 @@
 </template>
 
 <script setup>
-import BngCardHeading from "@/common/components/base/bngCardHeading"
-import { BngIcon } from "@/common/components/base"
+import { BngCardHeading, BngOldIcon } from "@/common/components/base"
 
 defineProps({ icon: String })
 </script>

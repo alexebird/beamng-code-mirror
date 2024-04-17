@@ -13,7 +13,7 @@ local imUtils = require('ui/imguiUtils')
 
 
 local renderViewName = 'Demo view 1' -- the name is the unique identifier for renderviews
-local targetRenderView = DebugDrawerTargetRenderViews(false, {renderViewName})
+--local targetRenderView = DebugDrawerTargetRenderViews({renderViewName})
 local renderView = nil
 
 local windowOpen = im.BoolPtr(true)
@@ -58,9 +58,9 @@ local function onUpdate(dtReal, dtSim, dtRaw)
   renderView.cameraMatrix = mat
 
   -- how to debug drawdraw in only a certain view
-  debugDrawer:setTargetRenderViews(targetRenderView)
+  --debugDrawer:setTargetRenderViews(targetRenderView)
   debugDrawer:drawTextAdvanced((vec3(20,20,0)), 'Hello world view :)', ColorF(0,0,0,1), false, true, ColorI(0, 0, 0, 255))
-  debugDrawer:clearTargetRenderViews()
+  --debugDrawer:clearTargetRenderViews()
 
   -- display the texture in imgui
   im.Begin("Render view test", windowOpen)

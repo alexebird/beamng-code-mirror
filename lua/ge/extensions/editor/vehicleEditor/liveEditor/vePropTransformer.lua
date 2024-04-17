@@ -88,6 +88,51 @@ local function getClosestObjectToCamera(cameraPos, hitObjects)
   return chosenObjData
 end
 
+local function setBaseTranslationGlobalWithoutOffset(prop, pos)
+  local prevPosNoNodeOffsetMove = prop.baseTranslationGlobalRigid or prop.baseTranslationGlobalElastic or prop.baseTranslationGlobal
+  local prevPos = prop.baseTranslationGlobalRigidWithNodeOffsetMove or prop.baseTranslationGlobalElasticWithNodeOffsetMove or prop.baseTranslationGlobalWithNodeOffsetMove or pos
+  local posNoOffset = vec3(pos)
+
+  if prop.nodeMove and type(prop.nodeMove) == 'table' and prop.nodeMove.x and prop.nodeMove.y and prop.nodeMove.z then
+    posNoOffset.x, posNoOffset.y, posNoOffset.z = posNoOffset.x - prop.nodeMove.x, posNoOffset.y - prop.nodeMove.y, posNoOffset.z - prop.nodeMove.z
+  end
+  if prop.nodeOffset and type(prop.nodeOffset) == 'table' and prop.nodeOffset.x and prop.nodeOffset.y and prop.nodeOffset.z and not prop.ignoreNodeOffset then
+    if prevPosNoNodeOffsetMove then
+      if fsign(prevPosNoNodeOffsetMove.x + (pos - prevPos).x) > 0 then
+        posNoOffset.x = posNoOffset.x - prop.nodeOffset.x
+      else
+        posNoOffset.x = posNoOffset.x + prop.nodeOffset.x
+      end
+    else
+      if prop.nodeOffset.x >= 0 then
+        if pos.x >= 0 then
+          posNoOffset.x = posNoOffset.x - prop.nodeOffset.x
+        else
+          posNoOffset.x = posNoOffset.x + prop.nodeOffset.x
+        end
+      else
+        -- For negative nodeOffset.x case, assumes that offset does not make position pass through zero to other side
+        if pos.x >= 0 then
+          posNoOffset.x = posNoOffset.x + prop.nodeOffset.x
+        else
+          posNoOffset.x = posNoOffset.x - prop.nodeOffset.x
+        end
+      end
+    end
+
+    posNoOffset.y = posNoOffset.y - prop.nodeOffset.y
+    posNoOffset.z = posNoOffset.z - prop.nodeOffset.z
+  end
+
+  if prop.baseTranslationGlobalRigid then
+    prop.baseTranslationGlobalRigid = posNoOffset
+  elseif prop.baseTranslationGlobalElastic then
+    prop.baseTranslationGlobalElastic = posNoOffset
+  else
+    prop.baseTranslationGlobal = posNoOffset
+  end
+end
+
 local dragging = false
 
 local function gizmoBeginDrag()
@@ -97,6 +142,17 @@ local function gizmoBeginDrag()
 
   state.lastPropBaseTranslationGlobal:set(propObj:getBaseTranslationGlobal())
   state.lastPropBaseRotationGlobal:set(propObj:getBaseRotationGlobalQuat())
+
+  if prop.baseTranslationGlobalRigidWithNodeOffsetMove then
+    prop.baseTranslationGlobalRigidWithNodeOffsetMove:set(state.lastPropBaseTranslationGlobal)
+  elseif prop.baseTranslationGlobalElasticWithNodeOffsetMove then
+    prop.baseTranslationGlobalElasticWithNodeOffsetMove:set(state.lastPropBaseTranslationGlobal)
+  else
+    if not prop.baseTranslationGlobalWithNodeOffsetMove then
+      prop.baseTranslationGlobalWithNodeOffsetMove = vec3()
+    end
+    prop.baseTranslationGlobalWithNodeOffsetMove:set(state.lastPropBaseTranslationGlobal)
+  end
 
   state.axisGizmo.startPos = editor.getAxisGizmoTransform():inverse():getColumn(3)
   state.axisGizmo.startRot = quat(editor.getAxisGizmoTransform():toQuatF())
@@ -116,6 +172,16 @@ local function gizmoDragging()
   local rot = quat(editor.getAxisGizmoTransform():toQuatF())
   local deltaRot = rot * state.axisGizmo.startRot:inversed()
 
+  local prevBaseTranslationGlobal = propObj:getBaseTranslationGlobal()
+
+  if prop.baseTranslationGlobalRigidWithNodeOffsetMove then
+    prop.baseTranslationGlobalRigidWithNodeOffsetMove:set(prevBaseTranslationGlobal)
+  elseif prop.baseTranslationGlobalElasticWithNodeOffsetMove then
+    prop.baseTranslationGlobalElasticWithNodeOffsetMove:set(prevBaseTranslationGlobal)
+  else
+    prop.baseTranslationGlobalWithNodeOffsetMove:set(prevBaseTranslationGlobal)
+  end
+
   if state.propertyEditing == "baseTranslationGlobal" then
     propObj:setBaseTranslationGlobal(deltaPos + state.lastPropBaseTranslationGlobal)
 
@@ -123,6 +189,8 @@ local function gizmoDragging()
     local newRot = state.lastPropBaseRotationGlobal * deltaRot
     propObj:setBaseRotationGlobalQuat(QuatF(newRot.x, newRot.y, newRot.z, newRot.w))
   end
+
+  setBaseTranslationGlobalWithoutOffset(prop, propObj:getBaseTranslationGlobal())
 end
 
 local function gizmoEndDrag()
@@ -234,8 +302,13 @@ local function pickProp(transforming)
         local propObj = vEditor.vehicle:getProp(prop.pid)
 
         state.pickedProp = prop
+
         state.lastPropBaseTranslationGlobal:set(propObj:getBaseTranslationGlobal())
         state.lastPropBaseRotationGlobal:set(propObj:getBaseRotationGlobalQuat())
+
+        if not (prop.baseTranslationGlobalRigid or prop.baseTranslationGlobalElastic or prop.baseTranslationGlobal) then
+          setBaseTranslationGlobalWithoutOffset(prop, state.lastPropBaseTranslationGlobal)
+        end
 
         inputBaseTranslationGlobal[0] = im.Float(0)
         inputBaseTranslationGlobal[1] = im.Float(0)
@@ -433,6 +506,7 @@ local function onEditorGui(dt)
 
         local baseTranslation = propObj:getBaseTranslation()
         local baseTranslationGlobal = propObj:getBaseTranslationGlobal()
+        local baseTranslationGlobalNoOffset = prop.baseTranslationGlobalRigid or prop.baseTranslationGlobalElastic or prop.baseTranslationGlobal or vec3()
         local baseRotation = propObj:getBaseRotation()
         local baseRotationGlobal = propObj:getBaseRotationGlobal()
 
@@ -465,6 +539,13 @@ local function onEditorGui(dt)
         if im.InputFloat3("baseRotationGlobal", inputBaseRotationGlobal, "%0.3f", im.InputTextFlags_EnterReturnsTrue) then
           local rot = vec3(inputBaseRotationGlobal[0] * math.pi / 180.0, inputBaseRotationGlobal[1] * math.pi / 180.0, inputBaseRotationGlobal[2] * math.pi / 180.0)
           propObj:setBaseRotationGlobal(rot)
+        end
+
+        im.Text(string.format("(%0.3f, %0.3f, %0.3f) baseTranslationGlobal W/O nodeOffset/Move", baseTranslationGlobalNoOffset.x, baseTranslationGlobalNoOffset.y, baseTranslationGlobalNoOffset.z))
+        im.SameLine()
+        if im.Button("Copy to Clipboard") then
+          local copyText = string.format('"x":%0.3f, "y":%0.3f, "z":%0.3f', baseTranslationGlobalNoOffset.x, baseTranslationGlobalNoOffset.y, baseTranslationGlobalNoOffset.z)
+          im.SetClipboardText(copyText)
         end
 
         if im.Button("Set baseTranslationGlobal w/ Gizmo") then

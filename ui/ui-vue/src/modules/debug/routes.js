@@ -7,8 +7,7 @@ import UITestViewPavel from '@/modules/debug/views/UITestViewPavel.vue'
 import UITestViewDestiny from '@/modules/debug/views/UITestViewDestiny.vue'
 import ControllerUITest from '@/modules/debug/views/ControllerUITest.vue'
 import ActiviityStart from '@/modules/activitystart/views/ActivityStart.vue'
-import MissionDetails from '@/modules/missions/views/MissionDetails.vue'
-
+import MilestoneMain from '@/modules/milestones/views/MilestoneMain.vue'
 
 export default [
   {
@@ -53,8 +52,8 @@ export default [
     component: ActiviityStart,
   },
   {
-    path: '/mission-details',
-    name: 'MissionDetails',
-    component: MissionDetails
-  }
+    path: '/milestones_',
+    name: 'milestones_',
+    component: MilestoneMain,
+  },
 ]

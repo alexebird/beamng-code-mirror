@@ -1011,7 +1011,7 @@ local function createVehicleData()
     shader.DXPixelShaderFile  = "shaders/common/vehicle/propselection.hlsl"
     shader.pixVersion = 5.0;
     shader:registerObject("PropSelectionShader")
-    
+
     local stateBlock = createObject("GFXStateBlockData")
     stateBlock.blendDefined = true
     stateBlock.blendEnable = true
@@ -1028,7 +1028,7 @@ local function createVehicleData()
       stateBlock.zSlopeBias = -5
     end
     stateBlock:registerObject("ProSelectionStateBlock")
-    
+
     local waterBasicMat = createObject("CustomMaterial")
     waterBasicMat:setField("shader", 0, "PropSelectionShader")
     waterBasicMat:setField("stateBlock", 0, "ProSelectionStateBlock")
@@ -1064,8 +1064,6 @@ M.initializeCore = function()
 end
 
 M.reloadCore = function()
-  log("I", "core", "reloadCore called.....")
-
   -- Use our prefs to configure our Canvas/Window
   local canvas_module = require("client/canvas") -- Very basic functions used by everyone.
 

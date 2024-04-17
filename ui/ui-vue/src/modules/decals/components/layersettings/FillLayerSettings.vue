@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed, onBeforeMount, onMounted } from "vue"
+import { ref, reactive, watch, computed, onBeforeMount } from "vue"
 import { BngInput, BngColorPicker, BngDropdown } from "@/common/components/base"
 import LayerTile from "../LayerTile.vue"
 import Paint from "@/utils/paint"
@@ -32,7 +32,7 @@ const props = defineProps({
   },
 })
 
-const emits = defineEmits(["valueChanged"])
+const emit = defineEmits(["valueChanged"])
 
 const paint = reactive(new Paint())
 const colorPalette = computed(() => (props.model.colorPaletteMapId >= 0 ? props.model.colorPalettes[props.model.colorPaletteMapId] : {}))
@@ -47,7 +47,7 @@ const data = ref(props.model)
 watch(
   () => data,
   () => {
-    emits("valueChanged", data.value)
+    emit("valueChanged", data.value)
   },
   { deep: true }
 )

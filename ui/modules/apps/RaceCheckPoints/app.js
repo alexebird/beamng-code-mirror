@@ -8,29 +8,27 @@ angular.module('beamng.apps')
 .directive('raceCheckpoints', function () {
   return {
     template:
-      '<div ng-class="{\'bngApp\': txt}" style="width: 100%; height: 100%; font-size: 1.4em;" ' +
+      '<div ng-class="{\'bngApp\': data}" style="width: 100%; height: 100%; font-size: 1.4em;" ' +
                   'layout="column" layout-align="center center">' +
-        '{{ txt }}' +
+        '<span ng-if="data">{{ data.label | translate }} {{ data.current }} / {{ data.count }}</span>' +
       '</div>',
     replace: true,
     link: function (scope, element, attrs) {
-      scope.txt = null
-      scope.$on('WayPoint', function (event, data) {
+      scope.data = null
+      scope.$on('WayPointChange', function (event, data) {
+        if(data === null) return
         scope.$applyAsync(function () {
-          scope.txt = data
+          if (!data.label) data.label = "missions.missions.general.checkpoint"
+          scope.data = data
         })
       })
-      scope.$on('WayPointCustom', function (event, data) {
-        scope.$applyAsync(function () {
-          scope.txt = data
-        })
-      })
+
       scope.$on('WayPointReset', function () {
-        scope.txt = null
+        scope.data = null
       })
 
       scope.$on('ScenarioNotRunning', function () {
-        scope.txt = null
+        scope.data = null
       })
     }
   }

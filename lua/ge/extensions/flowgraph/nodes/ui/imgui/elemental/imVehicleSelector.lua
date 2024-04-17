@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Makes a Separator in Imgui."
 C.category = 'repeat_instant'
 
-C.todo = ""
 C.pinSchema = {
   {dir = 'out', type = 'string', name = 'model', description= 'The model of the selected vehicle.'},
   {dir = 'out', type = 'string', name = 'config', description= 'The config of the selected vehicle.'},

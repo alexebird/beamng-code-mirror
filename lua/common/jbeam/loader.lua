@@ -30,6 +30,8 @@ local jbeamMirrors = require('jbeam/sections/mirror')
 local jbeamPartColors =  require_optional('jbeam/sections/partColors') or { process=nop }
 local jbeamCondition = require_optional('jbeam/sections/condition') or { process=nop }
 local jbeamMaterials = require('jbeam/materials')
+local jbeamWriter = require('jbeamWriter')
+
 
 local M = {}
 
@@ -46,7 +48,7 @@ M.materials, M.materialsMap = particles.getMaterialsParticlesTable()
 --local cache = {}
 
 -- load all the jbeam and construct the thing in memory
-local function loadJbeam(objID, loadingProgress, vehicleDirectories, vehicleConfig)
+local function loadJbeam(objID, loadingProgress, vehicleDirectories, vehicleConfig, debugMgrContext)
   if loadingProgress then loadingProgress:update(0.1, 'Reading files...') end
   local ioCtx = jbeamIO.startLoading(vehicleDirectories)
 
@@ -81,6 +83,10 @@ local function loadJbeam(objID, loadingProgress, vehicleDirectories, vehicleConf
 
   jbeamVariables.processUnifiedVehicle(vehicle, allVariables)
 
+  if debugMgrContext and debugMgrContext.dumpDebug[0] then
+    table.insert(debugMgrContext.debugTexts, 'vehicleDebug_preTable.json')
+    jbeamWriter.writeFile('vehicleDebug_preTable.json', vehicle)
+  end
   --dump({'chosenParts = ', chosenParts})
   --jsonWriteFile('chosenParts.json', chosenParts, true)
   --jsonWriteFile('vehicle.json', vehicle, true)
@@ -230,9 +236,13 @@ local function loadBundle(objID, vehicleBundle, loadingProgress)
 end
 
 -- be aware this code runs on vehicle and ge lua
-local function loadVehicleStage1(objID, vehicleDir, vehicleConfig)
+local function loadVehicleStage1(objID, vehicleDir, vehicleConfig, debugMgrContext)
   profilerPushEvent('loadVehicleStage1')
   local loadingProgress
+
+  if vehicleBundle and debugMgrContext and debugMgrContext.dumpDebug[0] then
+    debugMgrContext.debugTexts = {'Creating debug output:'}
+  end
 
   if vmType == 'game' then
     loadingProgress = LoadingManager:push('beamng')
@@ -256,14 +266,26 @@ local function loadVehicleStage1(objID, vehicleDir, vehicleConfig)
   local vehicleBundle = nil -- cache[spawnHash]
 
   if not vehicleBundle then
-    vehicleBundle = loadJbeam(objID, loadingProgress, vehicleDirectories, vehicleConfig)
+    vehicleBundle = loadJbeam(objID, loadingProgress, vehicleDirectories, vehicleConfig, debugMgrContext)
     --if spawnHash then cache[spawnHash] = vehicleBundle end
   end
 
   --log('D', 'loader', 'jbeam LOADING TOOK: ' .. tostring(t:stopAndReset()) .. ' ms')
 
   --- for debug purposes:
-  --jsonWriteFile(vehicleDir .. '/' .. 'vehiclebundle.json', vehicleBundle, true)
+  if vehicleBundle and debugMgrContext and debugMgrContext.dumpDebug[0] then
+    local activeParts = vehicleBundle.vdata.activeParts
+    vehicleBundle.vdata.activeParts = nil
+    jsonWriteFile('vehicleDebug_data.json', vehicleBundle.vdata, true)
+    table.insert(debugMgrContext.debugTexts, 'vehicleDebug_data.json')
+    jsonWriteFile('vehicleDebug_activeParts.json', activeParts, true)
+    vehicleBundle.vdata.activeParts = activeParts
+    table.insert(debugMgrContext.debugTexts, 'vehicleDebug_activeParts.json')
+    jsonWriteFile('vehicleDebug_config.json', vehicleBundle.config, true)
+    table.insert(debugMgrContext.debugTexts, 'vehicleDebug_config.json')
+    jsonWriteFile('vehicleDebug_chosenParts.json', vehicleBundle.chosenParts, true)
+    table.insert(debugMgrContext.debugTexts, 'vehicleDebug_chosenParts.json')
+  end
 
   loadBundle(objID, vehicleBundle, loadingProgress)
 

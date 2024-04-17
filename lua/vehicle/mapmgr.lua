@@ -5,6 +5,7 @@
 local graphpath = require('graphpath')
 local pointBBox = require('quadtree').pointBBox
 local kdTreeBox2D = require('kdtreebox2d')
+local buffer = require("string.buffer")
 
 local stringFind, stringSub, stringFormat, max, min = string.find, string.sub, string.format, math.max, math.min
 local vecUp = vec3(0, 0, 1)
@@ -15,7 +16,6 @@ local M = {}
 M.objects = {}
 M.objectCollisionIds = {}
 
-local serTmp = {}
 local mapData, mapBuildSerial, edgeKdTree, maxRadius
 local lastSimTime = -1
 
@@ -67,7 +67,7 @@ local function setMap(newbuildSerial)
 end
 
 local function requestMap()
-  obj:queueGameEngineLua(string.format('map.request(%q, %q)', tostring(objectId), tostring(mapBuildSerial)))
+  obj:queueGameEngineLua(string.format('map.request(%s,%s)', objectId, mapBuildSerial))
 end
 
 local function setCustomMap(map)
@@ -76,38 +76,69 @@ local function setCustomMap(map)
 end
 
 local function setSignals(data)
-  M.signalsData = deserialize(data)
+  M.signalsData = data
 end
 
-local function updateSignal(node, idx, action)
-  if not M.signalsData or not node or not idx or not M.signalsData.nodes[node] then return end
-  M.signalsData.nodes[node][idx].action = tonumber(action) or 1
+local function updateSignals(data)
+  if M.signalsData then
+    for i = 1, #data, 4 do
+      M.signalsData[data[i]] = M.signalsData[data[i]] or {}
+      M.signalsData[data[i]][data[i + 1]] = M.signalsData[data[i]][data[i + 1]] or {}
+      M.signalsData[data[i]][data[i + 1]][data[i + 2]] = M.signalsData[data[i]][data[i + 1]][data[i + 2]] or {action = 0}
+      M.signalsData[data[i]][data[i + 1]][data[i + 2]].action = tonumber(data[i + 3]) or 0
+    end
+  end
 end
 
+local buf = buffer.new() -- https://luajit.org/ext_buffer.html
 local states = {}
-M.sendTracking = nop
+local currentMailboxVersion = nil
 local function sendTracking()
+  if M.signalsData then
+    local lastMailboxVersion = obj:getLastMailboxVersion("trafficSignalUpdates")
+    if currentMailboxVersion ~= lastMailboxVersion then
+      currentMailboxVersion = lastMailboxVersion
+      updateSignals(lpack.decode(obj:getLastMailbox("trafficSignalUpdates")))
+    end
+  end
+
   local objCols = M.objectCollisionIds
   table.clear(objCols)
   obj:getObjectCollisionIds(objCols)
 
-  local anyPlayerSeated = tostring(playerInfo.anyPlayerSeated)
-  local objColsCount = #objCols
-
   if electrics.values.horn ~= 0 then states.horn = electrics.values.horn end
   if electrics.values.lightbar ~= 0 then states.lightbar = electrics.values.lightbar end
-  if objColsCount > 0 then
-    for i = 1, objColsCount do
-      serTmp[i] = stringFormat('[%s]=1', objCols[i])
+  if electrics.values.hazard_enabled ~= 0 then states.hazard_enabled = electrics.values.hazard_enabled end
+  if electrics.values.ignitionLevel == 0 or electrics.values.ignitionLevel == 1 then states.ignitionLevel = electrics.values.ignitionLevel end
+
+  buf:reset():putf('map.objectData(%s,%s,%s,', objectId, playerInfo.anyPlayerSeated, math.floor(beamstate.damage))
+
+  -- add states to the buffer if they exist
+  if next(states) then
+    buf:put('{')
+    for k, v in pairs(states) do
+      buf:putf('[%q]=%s,', k, v)
     end
-    obj:queueGameEngineLua(stringFormat('map.objectData(%s,%s,%s,%s,{%s})', objectId, anyPlayerSeated, math.floor(beamstate.damage), next(states) and serialize(states) or 'nil', table.concat(serTmp, ',')))
-    table.clear(serTmp)
+    buf:put('}')
   else
-    obj:queueGameEngineLua(stringFormat('map.objectData(%s,%s,%s,%s)', objectId, anyPlayerSeated, math.floor(beamstate.damage), next(states) and serialize(states) or 'nil'))
+    buf:put('nil')
   end
+
+  -- add object collisions to the buffer if they exist
+  if objCols[1] then
+    buf:put(',{')
+    for i = 1, #objCols do buf:putf('[%s]=1,', objCols[i]) end
+    buf:put('}')
+  end
+
+  buf:put(')')
+
+  obj:queueGameEngineLua(buf)
+
   table.clear(states)
 end
 
+M.sendTracking = nop
 local function enableTracking(name)
   obj:queueGameEngineLua(stringFormat('map.setNameForId(%s, %s)', name and '"'..name..'"' or objectId, objectId))
   M.sendTracking = sendTracking
@@ -276,6 +307,8 @@ local function startPosLinks(position, wZ)
   local tmpVec = vec3()
   local edgeVec = vec3()
 
+  local sortComparator = function(n1, n2) return costs[n1] > costs[n2] end
+
   return function ()
     repeat
       if j > 0 then
@@ -303,7 +336,7 @@ local function startPosLinks(position, wZ)
               key = n2id
             else
               key = {n1id, n2id}
-              xnorms[key] = xnorm -- we only need to store the xnorm if 1 < xnorm < 0
+              xnorms[key] = xnorm -- we only need to store the xnorm if 0 < xnorm < 1
             end
             if not costs[key] then
               edgeVec:setScaled(xnorm)
@@ -316,7 +349,7 @@ local function startPosLinks(position, wZ)
           end
         end
 
-        table.sort(names, function(n1, n2) return costs[n1] > costs[n2] end)
+        table.sort(names, sortComparator)
 
         searchRadius = searchRadius * 2
       end
@@ -347,7 +380,7 @@ M.reset = reset
 M.requestMap = requestMap
 M.setMap = setMap
 M.setSignals = setSignals
-M.updateSignal = updateSignal
+M.updateSignals = updateSignals
 M.enableTracking = enableTracking
 M.disableTracking = disableTracking
 M.getObjects = getObjects

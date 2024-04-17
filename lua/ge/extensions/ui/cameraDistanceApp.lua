@@ -10,7 +10,7 @@ local textBackgroundColor = ColorI(0, 0, 0, 128)
 
 local function onUpdate(dtReal, dtSim, dtRaw)
   -- TODO: convert into stream
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then
     guihooks.trigger('cameraDistance', -1, "no vehicle")
     return

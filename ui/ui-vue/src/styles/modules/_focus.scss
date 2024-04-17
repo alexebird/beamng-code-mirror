@@ -1,6 +1,8 @@
 /* Global focus styles - overrides/specifics for individual components focusing should probably be done in the component's Vue file */
+@import "@/styles/modules/variables/z-index";
+
 :deep() {
-	
+
 *:focus { /* should be global */
   outline: none;
   &::before {
@@ -14,7 +16,7 @@
     border-radius: 6px;
     border: 2px solid var(--bng-orange-b400);
     pointer-events: none;
-    z-index: var(--zorder_main_menu_navigation_focus);
+    z-index: $focus !important;
   }
 }
 /* TODO: following should be limited to .menu-navigation */

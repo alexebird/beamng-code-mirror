@@ -10,7 +10,7 @@ local currentLap = 1
 local function initialise(scenario)
   lastWaypointTimes = {}
 
-  guihooks.trigger('WayPoint', nil)
+  guihooks.trigger('WayPointChange', nil)
   guihooks.trigger('RaceLapChange', nil)
 end
 
@@ -19,7 +19,7 @@ local function onRaceStart()
   if not scenario then return end
 
   if scenario.initialLapConfig and #scenario.initialLapConfig > 1 then
-    guihooks.trigger('WayPoint', 'Checkpoint 0 / '..tostring(#scenario.initialLapConfig) )
+    guihooks.trigger('WayPointChange', {current = 0, count = #scenario.initialLapConfig})
   end
 
   if scenario.lapCount > 1 then
@@ -30,7 +30,7 @@ end
 local function onScenarioChange(scenario)
   --log( 'D', 'raceUI', 'onScenarioChange' )
   if not scenario or scenario.state == 'pre-start' then
-    guihooks.trigger('WayPoint', nil)
+    guihooks.trigger('WayPointChange', nil)
     return
   end
 end
@@ -61,9 +61,9 @@ local function onRaceWaypointReached( data )
 
     guihooks.trigger('RaceTimeComparison', {timeOut = 5000, time = lasttimeDiff} )
   end
-  local numberWaypoints = #data.currentLapConfig
-  if numberWaypoints >= 1 then
-    guihooks.trigger('WayPoint', 'Checkpoint ' .. tostring(data.cur)..' / '..tostring(numberWaypoints) )
+  local lapConfigCount = #data.currentLapConfig
+  if lapConfigCount >= 1 then
+    guihooks.trigger('WayPointChange', {current = data.cur, count = lapConfigCount})
   end
 end
 
@@ -76,13 +76,14 @@ local function onRaceLap( data )
 
   if scenario.lapCount > 1 then
     currentLap = ( math.min(data.lap + 1, scenario.lapCount ) )
-    guihooks.trigger('RaceLapChange', {current = currentLap, count = scenario.lapCount } )
+    guihooks.trigger('RaceLapChange', {current = currentLap, count = scenario.lapCount})
   elseif scenario.lapCount == 0 then
     currentLap = data.lap + 1
     guihooks.trigger('RaceLapChange', nil )
   end
-  if #scenario.lapConfig > 1 then
-    guihooks.trigger('WayPoint', 'Checkpoint ' .. tostring(#scenario.lapConfig)..' / '..tostring(#scenario.lapConfig) )
+  local lapConfigCount = #scenario.lapConfig
+  if lapConfigCount > 1 then
+    guihooks.trigger('WayPointChange', {current = lapConfigCount, count = lapConfigCount})
   end
 
   local curTime = string.format("%.3f", data.time) .. 's'

@@ -459,7 +459,7 @@ local function editGroup() -- displays options and modifies the currently select
     end
 
     var = im.BoolPtr(generator.allConfigs)
-    if im.Checkbox("Use Configs##editGroup", var) then
+    if im.Checkbox("Use All Configs##editGroup", var) then
       generator.allConfigs = var[0]
     end
 
@@ -470,6 +470,16 @@ local function editGroup() -- displays options and modifies the currently select
         options.showAdvanced = true
       end
     else
+      if not generator.minPop then generator.minPop = 0 end
+
+      im.PushItemWidth(100)
+      var = im.IntPtr(generator.minPop)
+      if im.InputInt("Minimum Population##editGroup", var, 1) then
+        generator.minPop = math.max(0, var[0])
+      end
+      im.PopItemWidth()
+      im.tooltip("Minimum population required for model / config to be usable (useful for filtering out super rare configs).")
+
       if not generator.modelPopPower then generator.modelPopPower = 0 end
 
       im.PushItemWidth(100)
@@ -489,6 +499,16 @@ local function editGroup() -- displays options and modifies the currently select
       end
       im.PopItemWidth()
       im.tooltip("Exponent to apply to population; lower values mean that the config will be less biased to be selected by its base population value.")
+
+      if not generator.popDecreaseFactor then generator.popDecreaseFactor = 0.05 end
+
+      im.PushItemWidth(100)
+      var = im.FloatPtr(generator.popDecreaseFactor)
+      if im.InputFloat("Population Decrease Factor##editGroup", var, 0.01, nil, "%.2f") then
+        generator.popDecreaseFactor = math.max(0, var[0])
+      end
+      im.PopItemWidth()
+      im.tooltip("Population multiplier after vehicle insertion; use low values to prevent repeat models / configs.")
 
       local edited = im.BoolPtr(false)
       im.PushItemWidth(comboItemWidth)
@@ -510,10 +530,28 @@ local function editGroup() -- displays options and modifies the currently select
     -- group generator modal window
     if editor.beginModalWindow(generatorWindowName, "Generator Tester") then
       if im.Button("Generate Group##testGenerator") then
+        core_multiSpawn.useFullData = true
         options.generatedGroup = core_multiSpawn.createGroup(currGroup.generator.amount, currGroup.generator)
       end
       im.SameLine()
+
+      if im.Button("Copy Group") then
+        if options.generatedGroup[1] then
+          local tempData = deepcopy(currGroup)
+          tempData.name = tempData.name.." - Copy"
+          tempData.type = "custom"
+          tempData.data = deepcopy(options.generatedGroup)
+          createGroup(tempData)
+
+          core_multiSpawn.useFullData = false
+          table.clear(options.generatedGroup)
+          editor.closeModalWindow(generatorWindowName)
+        end
+      end
+      im.SameLine()
+
       if im.Button("Close##testGenerator") then
+        core_multiSpawn.useFullData = false
         table.clear(options.generatedGroup)
         editor.closeModalWindow(generatorWindowName)
       end
@@ -521,7 +559,7 @@ local function editGroup() -- displays options and modifies the currently select
       im.Dummy(im.ImVec2(0, 5))
       im.Separator()
 
-      im.BeginChild1("Generated Group##editGroup", im.ImVec2(im.GetContentRegionAvailWidth(), 400 * im.uiscale[0]), im.WindowFlags_ChildWindow)
+      im.BeginChild1("Generated Group##editGroup", im.ImVec2(im.GetContentRegionAvailWidth(), 470 * im.uiscale[0]), im.WindowFlags_ChildWindow)
       local width = im.GetContentRegionAvailWidth() - 100
 
       im.Columns(3, "list", false)
@@ -557,7 +595,7 @@ local function editGroup() -- displays options and modifies the currently select
         configName = config and config.Configuration or ""
         im.TextUnformatted(modelName.." "..configName)
         im.NextColumn()
-        im.TextUnformatted(tostring(v.pop))
+        im.TextUnformatted(tostring(v.configPop))
         im.NextColumn()
       end
       im.Columns(1)
@@ -909,7 +947,7 @@ end
 
 local function onEditorInitialized()
   editor.registerWindow(toolModeName, im.ImVec2(500, 540))
-  editor.registerModalWindow(generatorWindowName, im.ImVec2(440, 440), nil, true)
+  editor.registerModalWindow(generatorWindowName, im.ImVec2(440, 500), nil, true)
   editor.registerModalWindow(overwriteGroupWindowName, im.ImVec2(240, 100), nil, true)
   editor.addWindowMenuItem(toolName, onWindowMenuItem, {groupMenuName = "Gameplay"})
 end

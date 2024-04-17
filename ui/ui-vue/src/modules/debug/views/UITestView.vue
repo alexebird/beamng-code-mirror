@@ -2,44 +2,44 @@
 <template>
 	<div v-bng-blur="true" style="height: 100%; width: 100%">Blur Test</div>
 	<div class="test-page" v-bng-blur="true">
-    <bng-select :options="[1,2,3]" /><br />
+    <BngSelect :options="[1,2,3]" /><br />
     <div tabindex="0">test focusable div</div>
-    Button with bngSoundClass: <bng-button @click="buttonClickHandler" v-bng-sound-class:bng_click_hover_bigmap>Hover/Click Me</bng-button>
+    Button with bngSoundClass: <BngButton @click="buttonClickHandler" v-bng-sound-class:bng_click_hover_bigmap>Hover/Click Me</BngButton>
     <div style="margin-top: 1em;">
       Default Switch
-      <bng-switch></bng-switch>
+      <BngSwitch></BngSwitch>
     </div>
     <div style="margin-top: 1em;">
       Disabled Switch
-      <bng-switch :disabled="true"></bng-switch>
+      <BngSwitch :disabled="true"></BngSwitch>
     </div>
     <div style="margin-top: 1em;">
       Labeled switch <br />
-      <bng-switch>Labeled-text</bng-switch>
+      <BngSwitch>Labeled-text</BngSwitch>
     </div>
     <div style="margin-top: 1em;">
       Disabled Labeled switch <br />
-      <bng-switch :disabled="true">Labeled-text</bng-switch>
+      <BngSwitch :disabled="true">Labeled-text</BngSwitch>
     </div>
     <div style="margin-top: 1em;">
       Default Slider
-      <bng-slider :min="0" :max="100" name="default-slider"
+      <BngSlider :min="0" :max="100" name="default-slider"
         @valueChanged="onDefaultSliderValueChanged"/>
       {{defaultSliderValue}}
     </div>
     <div style="margin-top: 1em;">
       Step Slider
-      <bng-slider :min="0" :max="100" :step="10" name="step-slider"
+      <BngSlider :min="0" :max="100" :step="10" name="step-slider"
                   @valueChanged="onStepSliderValueChanged"/>
       {{stepSliderValue}}
     </div>
     <div style="margin-top: 1em; width: 90%;">
       Pill
-      <bng-pill :options="bngPillOptions" @valueChanged="onPillValueChanged" />
+      <BngPill :options="bngPillOptions" @valueChanged="onPillValueChanged" />
     </div>
-	<bng-button :whenClicked="buttonClickHandler">
+	<BngButton :whenClicked="buttonClickHandler">
 		bng button baby! passing a function prop
-	</bng-button>
+	</BngButton>
   </div>
 </template>
 

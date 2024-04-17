@@ -50,7 +50,7 @@ function C:work()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     veh = be:getObjectByID(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
 
   if self.pinIn.risk.value ~= nil then

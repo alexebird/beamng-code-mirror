@@ -49,8 +49,14 @@ local serTmp = {}
 local bufTmp = buffer.new()
 local bufDec = buffer.new()
 local ludNull = bufTmp:set("\03"):decode()
-
 local s
+
+local daEnc = {
+  [true] = 1,
+  [false] = 0,
+  number = function(x) return x end
+}
+daEnc['boolean'] = function(x) return daEnc[x] end
 
 local function encodeDoubleArray(tbl)
   local startIdx = tbl[0] == nil and 1 or 0
@@ -58,11 +64,13 @@ local function encodeDoubleArray(tbl)
   local da = ffi.new('double[?]', tsize)
   if startIdx == 1 then
     for i = 1, tsize do
-      da[i - 1] = tbl[i]
+      local v = tbl[i]
+      da[i - 1] = daEnc[type(v)](v)
     end
   else
     for i = 0, tsize - 1 do
-      da[i] = tbl[i]
+      local v = tbl[i]
+      da[i] = daEnc[type(v)](v)
     end
   end
 
@@ -107,6 +115,13 @@ local function encodeBin(v)
   return bufTmp:get()
 end
 
+local function encodeBinWorkBuffer(v)
+  if v == nil then return '' end
+  bufTmp:reset():put('b')
+  peekEncBin[type(v)](bufTmp, v)
+  return bufTmp
+end
+
 local function encodeNumber(v, seridx)
   local seridx1 = seridx + 1
   if v * 0 ~= 0 then -- inf,nan
@@ -128,8 +143,7 @@ local function decodeNumber(seridx)
   local i, r = seridx + 1, 0
   local c = byte(s, i)
   while c >= 48 and c <= 57 do -- \d
-    i = i + 1
-    r = (c - 48) + r * 10
+    i, r = i + 1, (c - 48) + r * 10
     c = byte(s, i)
   end
   if c == 46 then -- .
@@ -138,8 +152,7 @@ local function decodeNumber(seridx)
     local f = 0
     local scale = 0.1
     while c >= 48 and c <= 57 do -- \d
-      i = i + 1
-      f = f + (c - 48) * scale
+      i, f = i + 1, f + (c - 48) * scale
       c = byte(s, i)
       scale = scale * 0.1
     end
@@ -484,7 +497,6 @@ do
       seridx = seridx + 1
       return '?', byte(s, seridx), seridx
     end
-    ,
   }
 end
 
@@ -494,6 +506,7 @@ M.decode = decode
 M.encodeLua = encodeLua
 M.decodeLua = decodeLua
 M.encodeBin = encodeBin
+M.encodeBinWorkBuffer = encodeBinWorkBuffer
 M.encodeDoubleArray = encodeDoubleArray
 M.decodeDoubleArray = decodeDoubleArray
 return M

@@ -16,12 +16,8 @@ local active
 local startPosRot
 local id
 
-local paySoundId
-local hasAbandonned
-
 local testDriveInfo
 local offZoneTimeLimit = 20
-local abandonDistance = 25 -- meters
 local currOffZoneTimer
 local routeNodes = {} -- if player has to follow a route, this list will contains the positions
 local warnings = {
@@ -31,24 +27,13 @@ local warnings = {
 }
 local currWarnings = 0
 
-local function activateSound(soundId)
-  local sound = scenetree.findObjectById(soundId)
-  if sound then
-    sound:play(-1)
-  end
-end
-
-local function setupSounds()
-  paySoundId = paySoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Buy_01')
-end
-
 local function rtMessageJob(job)
   local message = job.args[1] or ""
   local delay = job.args[2] or 0
 
   job.sleep(delay)
   guihooks.trigger('ScenarioRealtimeDisplay', {msg = message})
-  activateSound(paySoundId)
+  Engine.Audio.playOnce('AudioGui','event:>UI>Career>Buy_01')
   job.sleep(3.5)
   guihooks.trigger('ScenarioRealtimeDisplay', {msg = ""})
 end
@@ -75,7 +60,6 @@ end
 
 local function resetData()
   setActive(false)
-  hasAbandonned = false
 end
 
 local function checkTimeLeft(dtSim)
@@ -181,11 +165,10 @@ local function start(_vehicleId, testDriveInfo)
   core_vehicleBridge.executeAction(vehObj, 'setPartConditionResetSnapshotKey', "beforeTestDrive")
 
   setActive(true)
-  setupSounds()
-  hasAbandonned = false
   core_vehicleBridge.executeAction(vehObj, 'setFreeze', false)
   extensions.hook('onTestDriveStarted')
   gameplay_rawPois.clear()
+  career_career.setAutosaveEnabled(false)
 end
 
 local function tpTestDriveVehBackToDealership(vehicle)
@@ -199,110 +182,104 @@ local function resetDataAfterTestDriveDone()
   currWarnings = 0
   gameplay_markerInteraction.clearCache()
   id = -1
+  vehicleId = nil
 end
 
 local function endTestDriveJob(job)
-  local tp = job.args[0] or true
+  -- if tp is set, the vehicle should be teleported back to the dealership.
+  -- if not set, it should be despawned
+  local tp = job.args[1]
+  if job.args[1] == nil then tp = true end
+
   simTimeAuthority.set(0.5)
   setActive(false)
-  --fade out to black
-  ui_fadeScreen.start(1)
+
+  if tp then
+    ui_fadeScreen.start(1)
+  end
   job.sleep(1.5)
 
   --execute actions with the test drive vehicle
   local vehicle = be:getObjectByID(vehicleId)
   if vehicle then
     if tp then
-      tpTestDriveVehBackToDealership()
+      tpTestDriveVehBackToDealership(vehicle)
+
+      job.sleep(0.1)-- setWalkingMode needs to wait a little bit after the vehicle is tp, or the player is set to walking mode where the veh was before the tp
+
+      if gameplay_walk.isWalking() then
+        gameplay_walk.getInVehicle(vehicle) -- hack
+      end
+
+      core_vehicleBridge.executeAction(vehicle,'setIgnitionLevel', 0)
+      core_vehicleBridge.executeAction(vehicle, 'setFreeze', true)
+
+      local vehicleData = map.objects[vehicleId]
+      if not vehicleData then return end
+
+      local veh = scenetree.findObjectById(vehicleId)
+      local oobb = veh:getSpawnWorldOOBB()
+
+      local vehPos = vehicleData.pos - vec3(0,0,1.8)
+      local dir = (oobb:getPoint(0) - vehPos)
+      dir:normalize()
+
+      local finalPos = oobb:getPoint(0) + (dir * 1.3)
+      gameplay_walk.setWalkingMode(true, finalPos, quatFromDir(-dir, vec3(0,0,1)))
+    else
+      --career_modules_inspectVehicle.showVehicle(nil)
     end
-
-    job.sleep(0.1)-- setWalkingMode needs to wait a little bit after the vehicle is tp, or the player is set to walking mode where the veh was before the tp
-
-    if gameplay_walk.isWalking() then
-      gameplay_walk.getInVehicle(vehicle)
-    end
-
-    core_vehicleBridge.executeAction(vehicle,'setIgnitionLevel', 0)
-    core_vehicleBridge.executeAction(vehicle, 'setFreeze', true)
   end
-
-  local vehicleData = map.objects[vehicle:getId()]
-  if not vehicleData then return end
-
-  local veh = scenetree.findObjectById(vehicle:getId())
-  local oobb = veh:getSpawnWorldOOBB()
-
-  local vehPos = vehicleData.pos - vec3(0,0,1.8)
-  local dir = (oobb:getPoint(0) - vehPos)
-  dir:normalize()
-
-  local finalPos = oobb:getPoint(0) + (dir * 1.3)
-  gameplay_walk.setWalkingMode(true, finalPos, quatFromDir(-dir, vec3(0,0,1)))
 
   --reset stuff
   resetDataAfterTestDriveDone()
 
   simTimeAuthority.set(1)
-  --fade out from black
-  ui_fadeScreen.stop(1)
+  if tp then
+    ui_fadeScreen.stop(1)
+    -- fade screen changes the ui state, so we need to change it back here
+    extensions.hook('onTestDriveEndedAfterFade')
+  end
   job.sleep(1.5)
 
-  -- fade screen changes the ui state, so we need to change it back here
-  extensions.hook('onTestDriveEndedAfterFade')
 end
 
 local function onVehicleRepairedByInsurance(amount)
   rtMessage("Repaired test drive vehicle: -" .. amount, 1.8)
 end
 
-local function stop(tp)
+local function stop()
   if not active then return end
 
-  core_jobsystem.create(endTestDriveJob, tp)
+  core_jobsystem.create(endTestDriveJob, 1, tp)
+  career_career.setAutosaveEnabled(true)
 end
 
-local function applyAbandonFees()
-  local amount = testDriveInfo.abandonFees
-  if amount > 0 then
-    local baseLabel = "Fees for transporting back the test drive vehicle"
-    showMessage(string.format("You have abandon the test drive. -%i for transporting back the vehicle.", amount))
-    local label = string.format("%s : %i", baseLabel, amount)
-    career_modules_payment.pay({money = {amount = amount, canBeNegative = true}}, {label=baseLabel})
-  end
-end
+local function abandonTestDrive()
+  if not active then return end
 
-local function abandonTestDriveJob(job)
-  setActive(false)
-  hasAbandonned = true
-  gameplay_walk.addVehicleToBlacklist(vehicleId)
-  tpTestDriveVehBackToDealership()
-  job.sleep(0.25)
-  applyAbandonFees()
-  career_modules_insurance.genericVehNeedsRepair(vehicleId, function() career_modules_insurance.makeTestDriveDamageClaim() end)
-  resetDataAfterTestDriveDone()
-end
+  core_jobsystem.create(function(job)
+    setActive(false)
+    job.sleep(0.2) -- job is needed to display the ui message
+    if testDriveInfo.abandonFees > 0 then --private sales don't have abandon fees
+      local logBookLabel = "Didn't return the test drive vehicle."
+      local label = string.format("Fee for not returning the test drive vehicle : -%i$", testDriveInfo.abandonFees)
+      ui_message(label, 5, 'test1')
+      career_modules_payment.pay({money = { amount = testDriveInfo.abandonFees, canBeNegative = true}}, {label = logBookLabel})
+    end
+    ui_message("You have abandoned the sale.", 5, 'test')
+    resetDataAfterTestDriveDone()
+  end, 1)
 
-local function abandonedTestDrive()
-  core_jobsystem.create(abandonTestDriveJob)
-end
-
-local function checkAbandonTestDrive()
-  local plObj = map.objects[be:getPlayerVehicleID(0)]
-  if not plObj then return end
-
-  if plObj.pos:distance(be:getObjectByID(vehicleId):getPosition()) > abandonDistance then
-    abandonedTestDrive()
-  end
 end
 
 local function onUpdate(dtReal, dtSim, dtRaw)
   if not vehicleId then return end
   if active then
     if not checkTestDriveInfo(dtSim) then -- will stop the test drive if the player doesn't comply with the test drive rules
-      stop(true)
+      stop()
     end
     checkCreateEndParkingSpot()
-    checkAbandonTestDrive()
   end
 end
 
@@ -322,7 +299,7 @@ local function onRecalculatedRoute()
     if node[1] == currWarnings then
       showMessage(node[2])
       if i == #warnings then
-        stop(true)
+        stop()
       end
     end
   end
@@ -367,11 +344,7 @@ end
 
 local function onCareerModulesActivated(alreadyInLevel)
   resetData()
-  if alreadyInLevel then
-    setupSounds()
-  end
 end
-
 
 
 M.onGetRawPoiListForLevel = onGetRawPoiListForLevel
@@ -379,10 +352,10 @@ M.onPoiDetailPromptOpening = onPoiDetailPromptOpening
 M.onRecalculatedRoute = onRecalculatedRoute
 M.getTimeLeft = getTimeLeft
 M.stop = stop
+M.abandonTestDrive = abandonTestDrive
 M.start = start
 M.isActive = isActive
 M.formatTestDriveToRawPoi = formatTestDriveToRawPoi
-M.hasAbandonned = function() return hasAbandonned end
 M.resetData = resetData
 
 M.onUpdate = onUpdate

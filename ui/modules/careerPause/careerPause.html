@@ -2,94 +2,66 @@
 <link rel="stylesheet" type="text/css" href="/ui/modules/career/career.css" />
 <link rel="stylesheet" type="text/css" href="/ui/modules/careerPause/careerPause.css" />
 
-<div bng-blur="true" class="career-pause career-pause-size" ng-if="isSlotLoaded && isVehicleNameLoaded && isLogbookLoaded">
-  <div class="career-pause-container">
+<div bng-blur="true" class="career-pause" ng-if="isSlotLoaded && isVehicleNameLoaded && isLogbookLoaded">
+  <div class="career-pause-size">
     <!-- Header -->
-    <div class="headingContainer">
-      <div>
+    <div class="headingContainer career-pause-heading">
+      <!-- <div>
         <h4>{{:: "ui.playmodes.career" | translate}}</h4>
       </div>
       <h2>
         {{:: "ui.career.recentEntries" | translate}}
+      </h2> -->
+      <h2>
+        {{:: "ui.playmodes.careerModePause" | translate}}
+        <!-- Career Mode translation added -->
       </h2>
     </div>
     <!-- entry TODO-->
-    <div ng-if="!tutorialActive" class="entry-card-container">
-        <bng-career-entry-card bng-nav-item focus-on-hover ng-repeat="entry in recentLogbookEntries" data="entry" ng-if="!entry.read" bng-sound-class="bng_click_hover_generic" ng-click="goToLogbook(entry.entryId)">
+    <!-- <div ng-if="!tutorialActive" class="entry-card-container career-pause-cards">
+        <bng-career-entry-card ng-if="!tutorialActive" bng-nav-item focus-on-hover ng-repeat="entry in recentLogbookEntries" data="entry" ng-if="!entry.read" bng-sound-class="bng_click_hover_generic" ng-click="goToLogbook(entry.entryId)"> -->
             <!--<span ng-if="entry.type === 'spawnentryntUnlocked'">{{:: "ui.career.pause.spawnentryntUnlocked" | translate}}</span>
             <span ng-if="entry.type === 'missionUnlocked'">{{:: "ui.career.pause.missionUnlocked" | translate}}</span>-->
-        </bng-career-entry-card>
+        <!-- </bng-career-entry-card> -->
         <!-- placeholders -->
         <!-- <bng-career-entry-card ng-repeat="i in [1,2,3]">
         </bng-career-entry-card> -->
-    </div>
-    <div ng-if="tutorialActive" class="entry-card-container">
-        <bng-career-entry-card ng-repeat="entry in recentLogbookEntries" data="entry" ng-if="!entry.read">
+    <!-- </div> -->
+    <!-- <div ng-if="tutorialActive" class="entry-card-container career-pause-cards"> -->
+        <!-- <bng-career-entry-card ng-if="tutorialActive" ng-repeat="entry in recentLogbookEntries" data="entry" ng-if="!entry.read"> -->
             <!--<span ng-if="entry.type === 'spawnentryntUnlocked'">{{:: "ui.career.pause.spawnentryntUnlocked" | translate}}</span>
             <span ng-if="entry.type === 'missionUnlocked'">{{:: "ui.career.pause.missionUnlocked" | translate}}</span>-->
-        </bng-career-entry-card>
+        <!-- </bng-career-entry-card> -->
         <!-- placeholders -->
         <!-- <bng-career-entry-card ng-repeat="i in [1,2,3]">
         </bng-career-entry-card> -->
-    </div>
-  </div>
-
-  <div class="info-container">
-    <!-- current profile -->
-    <div
-      class="career-cardholder career-pause-profile-card"
-    >
-      <div></div>
-      <!-- title -->
-      <div class="career-pause-card-title">
-        <img
-          class="dashBrdSvgIcon"
-          ng-src="/ui/modules/menu/icon-gamemodes.svg"
-          src="/ui/modules/menu/icon-gamemodes.svg"
-        />
-        <span>{{::saveName}}</span>
-      </div>
-      <!-- save file info -->
-      <bng-career-status
-        class="career-content"
-        profile="slot"
-        expanded="true"
-        style="padding: 1em 1em 1em; margin: 0 0 0.5em 0"
-      ></bng-career-status>
-
-      <!-- vehicle -->
-      <div class="career-pause-card-vehicle">
-        <!-- <img class="dashBrdSvgIcon" ng-src="/ui/modules/menu/icon-gamemodes.svg" src="/ui/modules/menu/icon-gamemodes.svg"> -->
-        <span>{{vehicleName}}</span>
-      </div>
-    </div>
-
+    <!-- </div> -->
     <!-- buttons container -->
-    <div class="career-pause-manage-bg">
-      <div ng-if="!exitingCareer" class="career-pause-manage career-pause-buttons">
-        <button class="bng-button-main" ng-click="resume()" bng-sound-class="bng_back_hover_generic">
+    <div class="career-pause-manage">
+      <div ng-if="!exitingCareer" class="career-pause-manage-contents career-pause-buttons">
+        <button class="manage-button bng-button-main" ng-click="resume()" bng-sound-class="bng_back_hover_generic">
           {{:: "ui.common.action.resume" | translate}}
         </button>
-        <button ng-repeat="btn in additionalButtons" class="bng-button-outline" ng-click="additionalButtonClicked(btn)" ng-hide="tutorialActive" bng-sound-class="bng_back_hover_generic">
+        <button ng-repeat="btn in additionalButtons" class="manage-button bng-button-outline" ng-click="additionalButtonClicked(btn)" ng-hide="tutorialActive" bng-sound-class="bng_back_hover_generic">
           {{btn.label}}
         </button>
-        <button class="bng-button-outline" ng-click="goToLogbook()" ng-hide="tutorialActive" bng-sound-class="bng_back_hover_generic">
+        <button class="manage-button bng-button-outline" ng-click="goToLogbook()" ng-hide="tutorialActive" bng-sound-class="bng_back_hover_generic">
           Logbook
         </button>
 
-        <div class="career-pause-buttons career-pause-manage-two-buttons">
-          <button class="bng-button-outline" ng-click="save()" ng-disabled="tutorialActive" bng-sound-class="bng_click_hover_generic">
+        <!-- <div class="career-pause-buttons career-pause-manage-two-buttons"> -->
+          <button class="manage-button-narrow bng-button-outline" ng-click="save()" ng-disabled="tutorialActive" bng-sound-class="bng_click_hover_generic">
             {{:: "ui.common.save" | translate}}
           </button>
-          <button class="bng-button-outline" ng-click="load()" bng-sound-class="bng_click_hover_generic">
-            {{:: "ui.common.load" | translate}}
+          <button class="manage-button-narrow bng-button-outline" ng-click="load()" bng-sound-class="bng_click_hover_generic">
+            {{:: "ui.common.load" | translate}} / {{:: "ui.common.new" | translate}}
           </button>
-        </div>
-        <button class="bng-button-outline" ng-click="exitingCareerSwitch()" bng-sound-class="bng_click_hover_generic">
-          {{:: "Exit Career" | translate}}
+        <!-- </div> -->
+        <button class="manage-button bng-button-outline" ng-click="exitingCareerSwitch()" bng-sound-class="bng_click_hover_generic">
+          {{:: "Main Menu" | translate}}
         </button>
       </div>
-      <div ng-if="exitingCareer" class="career-pause-manage career-pause-buttons">
+      <div ng-if="exitingCareer" class="career-pause-manage-contents career-pause-buttons">
         <button class="bng-button-outline" ng-click="exit()" bng-sound-class="bng_click_hover_generic">
           {{:: "ui.career.exitToMenu" | translate}}
         </button>
@@ -104,7 +76,35 @@
         </button>
       </div>
     </div>
+    <div class="career-pause-info">
+      <!-- current profile -->
+      <div
+        class="career-cardholder career-pause-profile-card"
+      >
+        <!-- title -->
+        <div class="career-pause-card-title">
+          <img
+            class="dashBrdSvgIcon"
+            ng-src="/ui/modules/menu/icon-gamemodes.svg"
+            src="/ui/modules/menu/icon-gamemodes.svg"
+          />
+          <span>{{::saveName}}</span>
+        </div>
+        <!-- save file info -->
+        <bng-career-status
+          class="career-content"
+          profile="slot"
+          expanded="true"
+          style="padding: 1em 1em 1em; margin: 0 0 0.5em 0"
+        ></bng-career-status>
 
+        <!-- vehicle -->
+        <div class="career-pause-card-vehicle">
+          <!-- <img class="dashBrdSvgIcon" ng-src="/ui/modules/menu/icon-gamemodes.svg" src="/ui/modules/menu/icon-gamemodes.svg"> -->
+          <span>{{vehicleName}}</span>
+        </div>
+      </div>
+    </div>
   </div>
   <!-- current profile -->
 

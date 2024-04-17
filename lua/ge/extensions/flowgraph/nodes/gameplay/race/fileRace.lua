@@ -17,13 +17,18 @@ C.pinSchema = {
   { dir = 'in', type = 'number', name = 'lapCount', default = 1, hardcoded = true, hidden = true, description = 'Number of laps (min 1).' },
   { dir = 'in', type = 'table', name = 'pathData', tableType = 'pathData', description = 'Path data' },
   { dir = 'in', type = 'bool', name = 'rolling', description = 'If the path should be with a rolling start, if possible.'},
+  { dir = 'in', type = 'bool', name = 'hasSecVeh', description = 'If the player have a secondary vehicle'},
+  { dir = 'in', type = 'bool', name = 'changeVeh', hidden = true, description = 'Primary ID for the player vehicle' },
+  { dir = 'in', type = 'number', name = 'primVehId', hidden = true, description = 'primary ID for the player vehicle' },
+  { dir = 'in', type = 'number', name = 'secVehId', hidden = true, description = 'secondary ID for the player vehicle' },
 
   { dir = 'out', type = 'flow', name = 'flow', description = 'Outflow from this node.' },
   { dir = 'out', type = 'table', name = 'raceData', tableType = 'raceData',  description = 'Data from the race for other nodes to process.' },
   { dir = 'out', type = 'table', name = 'aiPath', tableType = 'navgraphPath',  description = 'AI navgraph path; can be used with the Follow Waypoints node.' },
   { dir = 'out', type = 'flow', name = 'active', description = 'Outflow when race is active.' },
   { dir = 'out', type = 'flow', name = 'complete', description = 'Outflow when race is complete.' },
-  { dir = 'out', type = 'number', name = 'time', description = 'Total time when completed.' }
+  { dir = 'out', type = 'number', name = 'time', description = 'Total time when completed.' },
+  { dir = 'out', type = 'flow', name = 'vehicleChanged', description = ''},
 }
 
 C.tags = {'scenario'}
@@ -38,6 +43,7 @@ C.legacyPins = {
 
 function C:init(mgr, ...)
   self.started = false
+  self.vehicleHasChanged = false
   self.race = nil
   self.count = 1
   self.data.useHotlappingApp = true
@@ -96,6 +102,7 @@ end
 function C:_executionStarted()
   self.race = nil
   self.started = false
+  self.pinOut.vehicleChanged.value = false
 end
 
 function C:_executionStopped()
@@ -114,6 +121,8 @@ function C:work(args)
     self.started = false
     self.pinOut.flow.value = false
     self.pinOut.complete.value = false
+    self.pinOut.vehicleChanged.value = false
+    self.vehicleHasChanged = false
   end
   if self.pinIn.flow.value then
     if not self.started then
@@ -140,6 +149,11 @@ function C:work(args)
     end
     if not self.race then return end
     if not self.pinIn.idle.value then
+      if self.pinIn.hasSecVeh.value and not self.vehicleHasChanged and self.pinIn.changeVeh.value then
+        self.race:changeRaceVehicle(self.pinIn.primVehId.value, self.pinIn.secVehId.value)
+        self.vehicleHasChanged = true
+        self.pinOut.vehicleChanged.value = true
+      end
       self.race:onUpdate(self.mgr.dtSim)
     end
     self.pinOut.raceData.value = self.race

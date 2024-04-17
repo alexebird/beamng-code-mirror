@@ -1,5 +1,3 @@
-
-
 -- This Source Code Form is subject to the terms of the bCDDL, v. 1.1.
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
@@ -11,11 +9,9 @@ local C = {}
 C.name = 'Wait'
 C.icon = "timer"
 C.behaviour = {duration = true, once = true}
-C.description = [[Once flow reaches this node, it waits the assigned time before passing on the flow signal.
-Requires constant flow to work.]]
+C.description = "Once flow reaches this node, it waits the assigned time before passing on the flow signal. Requires constant flow to work."
 C.category = 'logic'
 
-C.todo = "Sometimes bugs out, reason unknown. TimedTrigger node can be used instead"
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'flow', description = 'Inflow for this node. Need continious flow.' },
   { dir = 'in', type = 'flow', name = 'reset', description = 'Resets this node.', impulse = true },

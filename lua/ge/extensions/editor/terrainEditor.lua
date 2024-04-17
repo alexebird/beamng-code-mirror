@@ -250,7 +250,7 @@ local function addTextureMap(path)
     matId = matId - 1
   end
   table.insert(terrainImpExp.textureMaps, {path=path, selected=false, material=matName or "", materialId = im.IntPtr(matId or 0), channel="R", channelId=im.IntPtr(0)})
-  updatePaintMaterialProxies()
+  editor_terrainEditor.updatePaintMaterialProxies()
 end
 
 local function removeTextureMap()
@@ -440,7 +440,7 @@ local function selectPreset(data)
       terrainImpExp.transformPos.z[0] = preset.pos.z
     end
   end
-  updatePaintMaterialProxies()
+  editor_terrainEditor.updatePaintMaterialProxies()
 end
 
 local function copyMaterialProxyWithInputs(mtlProxy)
@@ -1267,8 +1267,7 @@ local function importTerrainDialog()
     im.SameLine()
     im.Checkbox("##FlipYAxis", terrainImpExp.flipYAxis)
 
-    im.SameLine()
-    im.SetCursorPosX((im.GetCursorPosX() + im.GetContentRegionAvailWidth()) - (im.CalcTextSize("Import").x + im.CalcTextSize("Cancel").x + 4*var.style.FramePadding.x +var.style.ItemSpacing.x ))
+    im.Separator()
     if im.Button("Import##ImportTerrainAccept", im.ImVec2(0, var.inputWidgetHeight)) then
       terrainImporter_Accept()
     end

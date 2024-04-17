@@ -60,6 +60,10 @@ function C:init(id, role)
   self:applyModelConfigData()
   self:setRole(role or self.autoRole)
 
+  if core_trailerRespawn and core_trailerRespawn.getTrailerData()[id] then -- assumes that this vehicle will always respawn with a trailer attached
+    self.hasTrailer = true
+  end
+
   self.debugLine = true
   self.debugText = true
 
@@ -135,15 +139,14 @@ function C:resetPursuit()
 end
 
 function C:resetTracking()
-  self.tracking = {isOnRoad = true, isPublicRoad = true, side = 1, lastSide = 1, driveScore = 1, intersectionScore = 1, directionScore = 1, speedScore = 1, speedLimit = 20, collisions = 0, delay = -1}
+  self.tracking = {isOnRoad = true, isPublicRoad = true, side = 1, lastSide = 1, driveScore = 1, directionScore = 1, speedScore = 1, speedLimit = 20, collisions = 0, delay = -1}
 end
 
 function C:resetValues()
   self.pos = self.pos or be:getObjectByID(self.id):getPosition()
   self.respawn = {
-    pos = vec3(self.pos),
     sightDirValue = baseSightDirValue, -- smoothed sight direction value, from -200 (behind you) to 200 (ahead of you)
-    sightStrength = clamp(200 + self.pos:distance(core_camera.getPosition()), baseSightStrength, baseSightStrength * 5), -- camera distance comparator
+    sightStrength = clamp(self.pos:distance(core_camera.getPosition()), baseSightStrength, baseSightStrength * 5), -- based on camera distance
     spawnDirBias = self.vars.spawnDirBias, -- probability of direction of next respawn, from -1 (towards you) to 1 (away from you)
     spawnRandomization = 1, -- spawn point search randomization (from 0 to 1; 0 = straight ahead, 1 = branching and scattering)
     spawnValue = self.vars.spawnValue, -- respawnability coefficient, from 0 (slow) to 3 (rapid); exactly 0 disables respawning
@@ -363,7 +366,6 @@ end
 function C:trackDriving(dt, fullTracking) -- basic tracking for how a vehicle drives on the road
   -- full tracking is heavier but tracks more driving data on the road
   -- this kind of functionality could be used in its own module
-  -- TODO: review and rewrite this method, improvements are possible
   local mapNodes = map.getMap().nodes
   local mapRules = map.getRoadRules()
 
@@ -406,6 +408,7 @@ function C:trackDriving(dt, fullTracking) -- basic tracking for how a vehicle dr
         end
 
         -- reduces score if player is driving at speed on wrong side of the road (no logic for overtaking yet)
+        -- TODO: in the future, track wrong side and wrong way separately
         if self.tracking.side < 0 then
           local speedCoef = (self.speed / self.tracking.speedLimit) * 0.08
           self.tracking.directionScore = max(0, self.tracking.directionScore + self.tracking.side * dt * speedCoef) -- decreases faster if wrong way on oneWay
@@ -424,40 +427,65 @@ function C:trackDriving(dt, fullTracking) -- basic tracking for how a vehicle dr
       end
 
       if core_trafficSignals then
-        local signalsDict = core_trafficSignals.getSignalsDict()
-        if not self.tracking.intersection and signalsDict and signalsDict.nodes and signalsDict.nodes[n2] then
-          for _, v in ipairs(signalsDict.nodes[n2]) do
-            local nPos = p1:squaredDistance(v.pos) > square(self.speed * 0.25) and v.pos or p2 -- ensure that intersection node doesn't get skipped due to tick
-            if (self.pos - nPos):normalized():dot(v.dir) < 0 and self.driveVec:dot(v.dir) >= 0.7 then
-              self.tracking.intersection = v
-              break
+        if self.tracking.signalFault then
+          self.tracking.signalFault = nil -- resets after one frame
+        end
+
+        local mapNodeSignals = core_trafficSignals.getMapNodeSignals()
+        if not self.tracking.signal and mapNodeSignals[n1] and mapNodeSignals[n1][n2] then
+          for _, signal in ipairs(mapNodeSignals[n1][n2]) do -- get best signal from current road segment
+            local bestDist = 400
+            if signal.target then
+              local dist = self.pos:squaredDistance(signal.pos)
+              if dist < bestDist then
+                bestDist = dist
+                self.tracking.signal = signal
+                self.tracking.signalAction = nil
+                self.tracking.signalFault = nil
+              end
             end
           end
         end
 
-        local sData = self.tracking.intersection
-        if sData then
-          local aheadPos = sData.pos + sData.dir * 5
-          if (self.pos - aheadPos):dot(sData.dir) >= 0 then
-            if sData.action == 0.5 then
-              self.tracking.intersectionFlag = true -- yellow light, ignore check
-            end
-            if not self.tracking.intersectionFlag and sData.action == 0 and self.speed >= lowSpeed then
-              self.tracking.intersectionScore = max(0, self.tracking.intersectionScore - self.speed * max(0.25, self.driveVec:dot(sData.dir)) * dt * 0.05)
-            end
-          end
+        local signal = self.tracking.signal
+        if signal then
+          local instance = core_trafficSignals.getSignalByName(signal.instance)
+          if instance and instance.targetPos then
+            if (self.pos - instance.pos):dot(instance.dir) > 0 then
+              if not self.tracking.signalAction then
+                self.tracking.signalAction = signal.action
 
-          if (mapRules.turnOnRed and sData.dir:cross(vecUp):normalized():dot(self.driveVec) >= 0.5 * legalSide) or self.pos:squaredDistance(aheadPos) >= 900 then
-            self.tracking.intersection = nil
-          end
+                if signal.action == 3 and self.speed > 5 then -- if speed is high enough at this moment, then the vehicle ignored the stop sign
+                  self.tracking.signalFault = 1
+                end
+              end
+            end
+            if not instance:isVehAfterSignal(self.id) then -- vehicle exited signal bounds
+              if self.tracking.signalAction == 2 then
+                if self.speed > 14 then -- if speed is high enough, always trigger the red light violation
+                  self.tracking.signalFault = 1
+                else -- otherwise, check if the vehicle made a turn
+                  local testDir = instance.dir:cross(vecUp)
+                  testDir:setScaled(-legalSide)
+                  testDir:setAdd(instance.dir)
+                  testDir:normalize()
+                  if self.driveVec:dot(testDir) > 0 then
+                    self.tracking.signalFault = 1
+                  end
+                end
+              end
 
-          if not self.tracking.intersection then
-            self.tracking.intersectionScore = 1
+              if self.tracking.signalAction or self.driveVec:dot(instance.dir) < 0 then -- invalidates current signal tracking
+                self.tracking.signal = nil
+              end
+            end
           end
         end
       end
     else
-      self.tracking.driveScore, self.tracking.directionScore, self.tracking.intersectionScore = 1, 1, 1
+      self.tracking.driveScore = 1
+      self.tracking.directionScore = 1
+      self.tracking.signalFault = nil
     end
   end
   self.tracking.lastSide = self.tracking.side
@@ -505,16 +533,17 @@ function C:checkOffenses() -- tests for vechicle offenses for police
   if self.tracking.driveScore <= minScore and not pursuit.offenses.reckless then
     self:triggerOffense({key = 'reckless', value = self.tracking.driveScore, minLimit = minScore, score = 250})
   end
-  if self.tracking.intersectionScore <= minScore and not pursuit.offenses.intersection then
-    self:triggerOffense({key = 'intersection', value = self.tracking.intersectionScore, minLimit = minScore, score = 200})
-  end
   if self.tracking.directionScore <= minScore and not pursuit.offenses.wrongWay then
     self:triggerOffense({key = 'wrongWay', value = self.tracking.directionScore, minLimit = minScore, score = 150})
+  end
+  if self.tracking.signalFault and not pursuit.offenses.intersection then
+    self:triggerOffense({key = 'intersection', value = 1, minLimit = 1, score = 200})
   end
 
   for id, coll in pairs(self.collisions) do
     local veh = gameplay_traffic.getTrafficData()[id]
     local validCollision = coll.dot >= 0.2 -- simple comparison to check if current vehicle is at fault for collision
+    if veh.role.targetId ~= nil and veh.role.targetId ~= self.id then validCollision = false end -- ignore collision if other vehicle is targeting a different vehicle
     if self.isPerson then
       local center = be:getObjectByID(id):getSpawnWorldOOBB():getCenter()
       validCollision = self.pos:z0():squaredDistance(center:z0()) < square(veh.width * 0.6) or coll.count >= 3 -- jumping on car, or multiple hits
@@ -569,7 +598,7 @@ function C:onRespawn() -- triggers after vehicle respawns in traffic
     if self.model.definedPaints then
       paint = self.model.definedPaints[random(#self.model.definedPaints)]
     else
-      paint = gameplay_traffic.getRandomPaint(self.id, self.model.paintMode == 1 and 0.75 or 0)
+      paint = getRandomPaint(self.id, self.model.paintMode == 1 and 0.75 or 0)
     end
     core_vehicle_manager.setVehiclePaintsNames(self.id, {paint, self.model.paintPaired and paint})
   end
@@ -588,6 +617,8 @@ function C:onRefresh() -- triggers whenever vehicle data needs to be refreshed
     self.vars = gameplay_traffic.getTrafficVars()
     self.policeVars = gameplay_police.getPoliceVars()
     self:resetAll()
+
+    self:modifyRespawnValues(math.random(400)) -- randomly keeps some vehicles active for longer
 
     if self.vars.aiDebug == 'traffic' then
       obj:queueLuaCommand('ai.setVehicleDebugMode({debugMode = "off"})')
@@ -653,8 +684,9 @@ function C:onTrafficTick(tickTime)
   if self.isAi then
     local isDaytime = self:checkTimeOfDay()
     local terrainHeight = core_terrain.getTerrain() and core_terrain.getTerrainHeight(self.pos) or 0
+    local terrainHeightDefault = core_terrain.getTerrain() and core_terrain.getTerrain():getPosition().z or 0
     local isTunnel = self.pos.z < terrainHeight
-    if terrainHeight == 0 then
+    if terrainHeight == terrainHeightDefault then -- no terrain, or out of terrain bounds
       local raisedPos = self.pos + vecUp * 10
       local sideVec = map.objects[self.id].dirVec:cross(map.objects[self.id].dirVecUp) * 5
       isTunnel = not self:checkRayCast(nil, raisedPos) and not self:checkRayCast(nil, raisedPos - sideVec) and not self:checkRayCast(nil, raisedPos + sideVec)
@@ -725,29 +757,33 @@ function C:onUpdate(dt, dtSim)
     self.damage = map.objects[self.id].damage
     self.camVisible = self:checkRayCast(self.playerData.camPos)
 
-    self.respawn.finalSpawnValue = clamp(self.respawn.spawnValue * self.respawn.spawnCoef, 0, 3)
-    self.respawn.finalRadius = self.respawn.extraRadius + 20 + 60 / (self.respawn.finalSpawnValue + 1e-12)
-    if self.respawn.sightStrength > 0 then
-      self.respawn.sightStrength = max(0, self.respawn.sightStrength - dtSim * self.respawn.finalSpawnValue * 40) -- linear reduce base sight strength (reduces rapid respawning if out of range)
-    end
+    if self.isAi then
+      if self.state == 'fadeOut' or self.state == 'fadeIn' then
+        if self.state == 'fadeIn' then
+          if self.respawnSpeed then
+            -- obj:queueLuaCommand('thrusters.applyVelocity(obj:getDirectionVector() * '..(self.respawnSpeed * self.alpha)..')') -- makes vehicle start at speed
+          end
+          if self.damage >= 1000 and self.respawnActive then
+            --local str = string.format('(%.1f, %.1f, %.1f)', self.pos.x, self.pos.y, self.pos.z)
+            --log('W', logTag, 'Traffic vehicle with id ['..self.id..'] respawned with big damage! '..str)
+            self:fade(1)
+          end
+        end
+        self:fade(dtSim * 5, self.state == 'fadeOut')
+      end
 
-    if self.isAi and self.state == 'fadeOut' or self.state == 'fadeIn' then
-      if self.state == 'fadeIn' then
-        --obj:queueLuaCommand('thrusters.applyVelocity(obj:getDirectionVector() * '..(self.alpha * 3.333)..')') -- thrust vehicle to about 12 km/h after respawning
-        -- temporarily disabled
-        -- this should consider speed limit, slope, and road type
+      if self.state == 'active' then
+        if self.respawnActive then
+          self.respawnActive = nil
+          self.respawnSpeed = nil
+        end
 
-        if self.damage >= 1000 and self.respawnActive then
-          --local str = string.format('(%.1f, %.1f, %.1f)', self.pos.x, self.pos.y, self.pos.z)
-          --log('W', logTag, 'Traffic vehicle with id ['..self.id..'] respawned with big damage! '..str)
-          self:fade(1)
+        self.respawn.finalSpawnValue = clamp(self.respawn.spawnValue * self.respawn.spawnCoef, 0, 3)
+        self.respawn.finalRadius = self.respawn.extraRadius + 20 + 60 / (self.respawn.finalSpawnValue + 1e-12)
+        if self.respawn.sightStrength > 0 then
+          self.respawn.sightStrength = max(0, self.respawn.sightStrength - dtSim * self.respawn.finalSpawnValue * 40) -- linear reduce base sight strength
         end
       end
-      self:fade(dtSim * 5, self.state == 'fadeOut')
-    end
-
-    if self.state == 'active' and self.respawnActive then
-      self.respawnActive = nil
     end
 
     if self.vars.aiMode ~= 'traffic' then return end -- if main AI mode is not traffic, ignore everything below meant for traffic

@@ -60,7 +60,7 @@ local function overwriteOptionGui()
     end
   end
   if not options.models[1] then
-    options.models = {be:getPlayerVehicle(0).JBeam}
+    options.models = {getPlayerVehicle(0).JBeam}
   end
 end
 
@@ -323,7 +323,7 @@ local function startWork()
       -- Replace the vehicle
       log('I', '', string.format("Spawning vehicle %05d / %05d", counter, configCount) .. ' : ' .. ' name: ' .. tostring(v.model_key) .. ', config: ' .. tostring(v.key))
       yieldSec(coroutine.yield, 0.1)
-      local playerVehicle = be:getPlayerVehicle(0)
+      local playerVehicle = getPlayerVehicle(0)
       local oldVehicle = playerVehicle
 
       oldVehicle:setDynDataFieldbyName("licenseText", 0, "BeamNG")
@@ -334,7 +334,7 @@ local function startWork()
       local newVehicle = oldVehicle
       while newVehicle == oldVehicle do
         yieldSec(coroutine.yield, 0.1)
-        newVehicle = be:getPlayerVehicle(0)
+        newVehicle = getPlayerVehicle(0)
       end
 
       newVehicle:queueLuaCommand("input.event('parkingbrake', 1, 1)")
@@ -662,7 +662,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
       end
       if im.BeginTabItem('Vehicle') then
         if im.SmallButton("Player Vehicle") then
-          local playerVehicle = be:getPlayerVehicle(0)
+          local playerVehicle = getPlayerVehicle(0)
           if playerVehicle then
             for _,v in ipairs(vehList) do
               v[2][0] = v[1] == playerVehicle.JBeam

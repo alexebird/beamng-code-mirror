@@ -28,6 +28,7 @@ local applyMultipleDecal = true
 local resetDecalSettingsOnApply = false
 local isApplyingDecal = false
 local isRunning = false
+local exportSkinName = nil
 
 local function getFilename(file)
   local _, fn, e = path.split(file)
@@ -35,7 +36,7 @@ local function getFilename(file)
 end
 
 local function getCategorizedTextures()
-  local textureFiles = FS:findFiles(texturesDirectoryPath, '*', -1, false, false)
+  local textureFiles = FS:findFiles(texturesDirectoryPath, '*.png', -1, false, false)
   local groupedTextures = {}
 
   for k, file in ipairs(textureFiles) do
@@ -118,7 +119,7 @@ end
 
 local function getFillSettings()
   local colorPaletteMap = api.propertiesMap["fill_colorPaletteMapId"]
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
 
   local values = {}
   local colorPaletteMapColor = api.getFillLayerColor()
@@ -193,7 +194,7 @@ local function convertLayerToUiData(layer)
     if layer.colorPaletteMapId == 0 then
       uiLayer.color = layer.color:toTable()
     else
-      local vehicleObj = be:getPlayerVehicle(0)
+      local vehicleObj = getPlayerVehicle(0)
 
       if layer.colorPaletteMapId == 1 then
         uiLayer.color = vehicleObj.color:toTable()
@@ -287,6 +288,14 @@ M.toggleActionMap = function(enable)
   if o then o:setEnabled(enable) end
 end
 
+M.toggleStampActionMap = function(enable)
+  if enable then
+    pushActionMap("DynamicDecalsStampUI")
+  else
+    popActionMap("DynamicDecalsStampUI")
+  end
+end
+
 M.initialize = function()
   cachedUiLayerAncestorsMap = nil
   cachedUiLayerStack = nil
@@ -346,7 +355,7 @@ M.createSaveFile = function()
   -- M.setupEditor()
 
   -- local thePlayer = scenetree.findObject("thePlayer")
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
 
   api.clearLayerStack()
   api.setFillLayerColorPaletteMapId(1)
@@ -659,12 +668,16 @@ end
 M.exportSkin = function(skinName)
   local playerVehicle = extensions.core_vehicles.getCurrentVehicleDetails()
   api.exportSkin(playerVehicle.current.key, skinName)
+  exportSkinName = skinName
 end
 
 M.exit = function()
   popActionMap("DynamicDecalsUI")
   toggleVehicleControls(true)
-  core_vehicle_partmgmt.setSkin(nil)
+
+  core_vehicle_partmgmt.setSkin(exportSkinName)
+  exportSkinName = nil
+
   isRunning = false
 end
 

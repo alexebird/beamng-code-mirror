@@ -35,10 +35,12 @@ local function process(objID, vehicleObj, vehicle)
           mirror.normal = v.normal
         end
         if v.offsetRotationGlobal then
+          log("E","proc","offsetRotationGlobal is depracted, fix mesh normals "..dumps(v.mesh))
           local q = quatFromEuler(mrad(v.offsetRotationGlobal.x),mrad(v.offsetRotationGlobal.y),mrad(v.offsetRotationGlobal.z))
           mirror.offsetNormal = vec3(0,1,0):rotated(q)
           -- log("I","proc","Migrated "..dumps(v.mesh) .." offsetRotationGlobal="..dumps(mirror.offsetNormal) )
         elseif v.offsetNormal then
+          log("E","proc","offsetNormal is depracted, fix mesh normals "..dumps(v.mesh))
           local q = vec3(0,1,0):getRotationTo(vec3(v.offsetNormal))
           local r = q:toEulerYXZ()
           log("E","proc","Migrate "..dumps(v.mesh) .." offsetRotationGlobal="..dumps(math.deg(r.y)).."|"..dumps(math.deg(r.z)).."|"..dumps(math.deg(r.x)) )

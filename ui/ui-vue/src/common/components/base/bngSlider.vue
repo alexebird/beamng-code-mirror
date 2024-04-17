@@ -4,18 +4,33 @@
     class="bng-slider"
     ref="slider"
     type="range"
-    :value="value"
+    v-model.number="value"
     :min="+min"
     :max="+max"
     :step="+step"
     :tabindex="tabIndex"
     :disabled="disabled"
-    @input="onValueChanged"
-  />
+    @input="notify"
+    v-bng-on-ui-nav-focus.repeat="
+      !uiNavFocus
+        ? false
+        : {
+            callback: (dir, val) => {
+              value = val
+              notify()
+            },
+            value: () => value,
+            min: +min,
+            max: +max,
+            step: +step,
+            ...uiNavFocus,
+          }
+    " />
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, computed, watch } from "vue"
+import { onMounted, ref, computed, watch } from "vue"
+import { vBngOnUiNavFocus } from "@/common/directives"
 import { useDirty } from "@/services/dirty"
 
 const props = defineProps({
@@ -33,15 +48,24 @@ const props = defineProps({
     default: 0,
   },
   disabled: Boolean,
+  uiNavFocus: {
+    type: [Boolean, Object],
+    default: {},
+    validator: val => (typeof val === "boolean" && !val) || typeof val === "object",
+  },
 })
-const emits = defineEmits(["valueChanged", "update:modelValue"])
+const emit = defineEmits(["change", "valueChanged", "update:modelValue"])
 const slider = ref(null)
-const value = computed(() => +props.modelValue)
 const tabIndex = computed(() => (props.disabled ? -1 : 0))
 
-const stopValueWatcher = watch(
+const value = ref(props.modelValue)
+
+watch(
   () => props.modelValue,
-  () => updateSliderBackground()
+  val => {
+    value.value = Number(val)
+    updateSliderBackground()
+  }
 )
 
 const dirty = useDirty(value, null, updateSliderBackground)
@@ -51,29 +75,23 @@ onMounted(() => {
   updateSliderBackground()
 })
 
-onUnmounted(() => stopValueWatcher())
-
-function onValueChanged($event) {
-  const val = Number($event.target.value)
-  emits("update:modelValue", val)
-  emits("valueChanged", val)
+function notify() {
+  emit("update:modelValue", value.value)
+  emit("valueChanged", value.value)
+  emit("change", value.value)
   updateSliderBackground()
 }
 
 function updateSliderBackground() {
-  const current = (value.value - props.min) / (props.max - props.min) * 100
-  let init = [-100, -100];
+  const current = ((value.value - props.min) / (props.max - props.min)) * 100
+  let init = [-100, -100]
   if (typeof dirty.currentCleanValue.value === "number" && !isNaN(dirty.currentCleanValue.value)) {
     // if we have a mark to show, switch between 0 (foreground) and 1 (background)
     // depending on value, for a better visual representation
-    const initpos = (dirty.currentCleanValue.value - props.min) / (props.max - props.min) * 100
+    const initpos = ((dirty.currentCleanValue.value - props.min) / (props.max - props.min)) * 100
     init[current < initpos ? 0 : 1] = initpos
   }
-  slider.value.style.backgroundPosition = `
-    ${init[0]}% 50%,
-    ${100 - current}% 50%,
-    ${init[1]}% 50%
-  `;
+  slider.value.style.backgroundPosition = `${init[0]}% 50%, ${100 - current}% 50%, ${init[1]}% 50%`
 }
 </script>
 
@@ -112,13 +130,15 @@ $knob-shadow-color: rgba(#000, 0.5);
   position: relative;
   background-repeat: no-repeat;
   // background mark shows up when value is over initial, and vice versa
-  background-image:
-    linear-gradient(90deg, #555 0% 100%), // foreground mark
-    linear-gradient(105deg, #fff 0% 50%, #333 50% 100%), // track
+  background-image: linear-gradient(90deg, #555 0% 100%),
+    // foreground mark
+    linear-gradient(105deg, #fff 0% 50%, #333 50% 100%),
+    // track
     linear-gradient(90deg, #777 0% 100%); // background mark
-  background-size:
-    0.3em 0.65em, // foreground mark
-    200% 0.15em, // track (must be 200% size)
+  background-size: 0.3em 0.65em,
+    // foreground mark
+    200% 0.15em,
+    // track (must be 200% size)
     0.3em 0.65em; // background mark
 
   // if you need to disable resizing with font-size,
@@ -140,9 +160,7 @@ $knob-shadow-color: rgba(#000, 0.5);
   &:focus {
     &::-webkit-slider-thumb {
       background-color: $knob-highlight-color;
-      box-shadow:
-        0 0 0 0.25rem rgba(255, 102, 0, 0.5),
-        0 0 0.5rem 0.125rem $knob-shadow-color;
+      box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.5), 0 0 0.5rem 0.125rem $knob-shadow-color;
     }
   }
 

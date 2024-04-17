@@ -3,13 +3,14 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
 -- settings
+require("jit")
 local physicsFPS = 2000
 local defaultVehicleCount = 40
 local testVehicles = {'pickup'}
 
 -- do not change below
-local physicsSteps = 100 -- max physics steps do *NOT* increase beyond this point
-local gfxSteps = 100
+local physicsSteps = 100 -- max physics steps do *NOT* increase beyond 100
+local gfxSteps = 200
 local currentObjects = 0
 local version = '0.5'
 local BeamEngine = initBeamEngine(physicsFPS)
@@ -20,8 +21,10 @@ local function loadVehicle(vehicleDir)
   return lpack.encode({vdata  = vehicleBundle.vdata, config = vehicleBundle.config})
 end
 
-function myBenchStep(testVehicle, vehLPackData, n)
+function myBenchStep(testVehicle, vehLPackData, n, steps)
+  steps = steps or gfxSteps
   local hp = HighPerfTimer()
+  local hpSR = hp.stopAndReset
   -- spawn n vehicles
   for i=currentObjects + 1, n do
     BeamEngine:spawnObject2(i, testVehicle, vehLPackData, Vector3(300 * i, 300 * i, 1)) -- spawn 1m up
@@ -34,19 +37,21 @@ function myBenchStep(testVehicle, vehLPackData, n)
   local dt = (physicsSteps + 0.1) / physicsFPS
   local mint = math.huge
   local min = math.min
-
+  local bupdate = BeamEngine.update
   collectgarbage("stop")
-  hp = HighPerfTimer()
-  for i=1, gfxSteps do
-    BeamEngine:update(dt, dt)
-    mint = min(hp:stopAndReset(), mint)
+  jit.off()
+  for i=1, steps do
+    hpSR(hp)
+    bupdate(BeamEngine, dt, dt)
+    mint = min(mint, hpSR(hp))
   end
+  jit.on()
   collectgarbage("restart")
 
   if BeamEngine:instabilityDetected() then
     log('E', "bananabench", ' *** INSTABILITY ***')
   end
-  return spawntime, mint * gfxSteps
+  return spawntime, mint * steps
 end
 
 local logcache = {}
@@ -140,7 +145,8 @@ function benchPhysics(vehicles, vehicleMin, vehicleMax)
         BeamEngine:setDynamicCollisionEnabled(1)
 
         -- do a warmup round
-        myBenchStep(testVehicle, vehLPackData, n)
+        collectgarbage("collect")
+        myBenchStep(testVehicle, vehLPackData, n, 5)
 
         local totalSpawnTime = 0
 

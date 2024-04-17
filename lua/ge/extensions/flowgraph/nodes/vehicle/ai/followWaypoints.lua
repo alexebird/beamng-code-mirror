@@ -57,7 +57,7 @@ function C:workOnce()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
 
   self.lapCount = math.max(1, self.pinIn.lapCount.value or 1)
@@ -86,7 +86,7 @@ function C:work()
     if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
       veh = scenetree.findObjectById(self.pinIn.vehId.value)
     else
-      veh = be:getPlayerVehicle(0)
+      veh = getPlayerVehicle(0)
     end
 
     local vehPos = veh:getPosition()

@@ -43,7 +43,7 @@ local function openMenu(computerFacility)
   local computerPos = freeroam_facilities.getAverageDoorPositionForFacility(computerFacility)
   tether = career_modules_tether.startSphereTether(computerPos, computerTetherRange, M.closeMenu)
 
-  guihooks.trigger('ChangeState', {state = 'menu.computer'})
+  guihooks.trigger('ChangeState', {state = 'computer'})
   extensions.hook("onComputerMenuOpened")
 end
 

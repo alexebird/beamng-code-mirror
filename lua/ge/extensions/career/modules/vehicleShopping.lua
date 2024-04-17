@@ -4,7 +4,7 @@
 
 local M = {}
 
-M.dependencies = {'career_career', 'career_modules_inspectVehicle'}
+M.dependencies = {'career_career', 'career_modules_inspectVehicle', 'util_configListGenerator'}
 
 local jbeamIO = require('jbeam/io')
 local routePlanner = require('gameplay/route/route')()
@@ -14,8 +14,8 @@ local vehicleDeliveryDelay = 60
 local shopGenerationDelay = 15 * 60
 local salesTax = 0.07
 
-local starterVehicleMileages = {coupe = 210746239, etki = 285817342, covet = 80174611}
-local starterVehicleYears = {coupe = 1990, etki = 1989, covet = 1989}
+local starterVehicleMileages = {bx = 165746239, etki = 285817342, covet = 80174611}
+local starterVehicleYears = {bx = 1990, etki = 1989, covet = 1989}
 
 local lastGenerationTime = 0
 
@@ -27,33 +27,6 @@ local paySoundId
 
 local tether
 local tetherRange = 4 --meter
-
-local function activateSound(soundId)
-  local sound = scenetree.findObjectById(soundId)
-  if sound then
-    sound:play(-1)
-  end
-end
-
-local function setupSounds()
-  paySoundId = paySoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Buy_01')
-end
-
-local function onCareerModulesActivated(alreadyInLevel)
-  if alreadyInLevel then
-    setupSounds()
-  end
-end
-
-local function listFiltered(list, filterFunction)
-  local filtered = {}
-  for _, element in ipairs(list) do
-    if filterFunction(element) then
-      table.insert(filtered, element)
-    end
-  end
-  return filtered
-end
 
 local function convertKeysToStrings(t)
   local newTable = {}
@@ -88,164 +61,8 @@ local function getShoppingData()
   return data
 end
 
-local function doesVehiclePassFiltersList(vehicleInfo, filters)
-  for filterName, parameters in pairs(filters) do
-    if filterName == "Years" then
-      -- years, which have a min and max
-      local vehicleYears = vehicleInfo.Years or vehicleInfo.aggregates.Years
-      if not vehicleYears then return false end
-      if parameters.min and (vehicleYears.min < parameters.min) or parameters.max and (vehicleYears.min > parameters.max) then
-        return false
-      end
-    elseif filterName ~= "Mileage" then
-      if parameters.min or parameters.max then
-        -- generic number attribute
-        local value = vehicleInfo[filterName] or (vehicleInfo.aggregates[filterName] and vehicleInfo.aggregates[filterName].min)
-        if not value or type(value) ~= "number" then return false end
-        if parameters.min and (value < parameters.min) or parameters.max and (value > parameters.max) then
-          return false
-        end
-      else
-        -- any other attribute that has a single value
-        local passed = false
-        for _, value in ipairs(parameters) do
-          if vehicleInfo[filterName] == value or (vehicleInfo.aggregates[filterName] and vehicleInfo.aggregates[filterName][value]) then
-            passed = true
-          end
-        end
-        if not passed then return false end
-      end
-    end
-  end
-  return true
-end
-
-local function doesVehiclePassFilter(vehicleInfo, filter)
-  if filter.whiteList and not doesVehiclePassFiltersList(vehicleInfo, filter.whiteList) then
-    return false
-  end
-  if filter.blackList and doesVehiclePassFiltersList(vehicleInfo, filter.blackList) then
-    return false
-  end
-  return true
-end
-
-local function chooseFromListBasedOnValue(list, popKey)
-  -- Add all pops together
-  local totalPop = 0
-  for _, element in ipairs(list) do
-    totalPop = totalPop + (element[popKey] or 1)
-  end
-
-  if totalPop <= 0 then
-    return list[math.random(#list)]
-  end
-
-  -- Choose one pop at random and count up until you reach it
-  local chosenPop = math.random(totalPop)
-  local popCounter = 0
-  for _, element in ipairs(list) do
-    popCounter = popCounter + (element[popKey] or 1)
-    if popCounter >= chosenPop then
-      return element
-    end
-  end
-end
-
-local function chooseRandomModel(configs)
-  local modelPops = {}
-  for index, config in ipairs(configs) do
-    if not modelPops[config.model_key] then
-      modelPops[config.model_key] = (config.Population or 1)
-    else
-      modelPops[config.model_key] = math.max(modelPops[config.model_key], (config.Population or 1))
-    end
-  end
-
-  -- turn into sorted list
-  local popList = {}
-  for model_key, pop in pairs(modelPops) do
-    table.insert(popList, {model_key = model_key, pop = pop})
-  end
-  table.sort(popList, function(a,b) return a.model_key < b.model_key end)
-
-  local modelData = chooseFromListBasedOnValue(popList, "pop")
-  if modelData then
-    return modelData.model_key
-  end
-  return configs[1].model_key
-end
-
-local function chooseFilter(filters)
-  -- Add index to each filter
-  for index, filter in ipairs(filters) do
-    filter.index = index
-  end
-  return chooseFromListBasedOnValue(filters, "probability")
-end
-
-local function chooseRandomConfig(configs, filter)
-
-  -- Use the filter to filter the config list
-  local filteredConfigList = listFiltered(configs,
-  function(vehInfo)
-    return doesVehiclePassFilter(vehInfo, filter)
-  end)
-  if tableIsEmpty(filteredConfigList) then return end
-
-  -- Add index to each config
-  for index, config in ipairs(configs) do
-    config.index = index
-  end
-
-  local model_key = chooseRandomModel(filteredConfigList)
-  local configsForModel = listFiltered(filteredConfigList,
-  function(vehInfo)
-    return vehInfo.model_key == model_key
-  end)
-
-  local config = chooseFromListBasedOnValue(configsForModel, "Population")
-  if config then
-    return config.index
-  end
-  return math.random(tableSize(filteredConfigList))
-end
-
-local function createAggregatedFilters(seller)
-  local result = {}
-
-  if seller.subFilters and not tableIsEmpty(seller.subFilters) then
-    for _, subFilter in ipairs(seller.subFilters) do
-      local aggregateFilter = deepcopy(seller.filter)
-      tableMergeRecursive(aggregateFilter, subFilter)
-      table.insert(result, aggregateFilter)
-    end
-  else
-    table.insert(result, seller.filter)
-  end
-
-  return result
-end
-
 local function generateVehicleList()
-  local configData = deepcopy(core_vehicles.getConfigList())
-
-  local eligibleVehicles = {}
-  -- TODO this should filter by career tag in the future
-  for _, vehicleInfo in pairs(configData.configs) do
-    if vehicleInfo.aggregates.Type
-    and not vehicleInfo.aggregates.Type.Prop
-    and not vehicleInfo.aggregates.Type.Utility
-    and not vehicleInfo.aggregates.Type.PropParked
-    and not vehicleInfo.aggregates.Type.PropTraffic
-    and not vehicleInfo.hasLoad
-    and vehicleInfo.Value then
-      vehicleInfo.Brand = vehicleInfo.aggregates.Brand and next(vehicleInfo.aggregates.Brand) or ""
-      table.insert(eligibleVehicles, vehicleInfo)
-    end
-  end
-  table.sort(eligibleVehicles, function(a,b) return a.model_key .. a.key < b.model_key .. b.key end)
-
+  local eligibleVehicles = util_configListGenerator.getEligibleVehicles(not career_career.hasBoughtStarterVehicle())
   local sellers = {}
 
   -- get the dealerships from the level
@@ -253,8 +70,6 @@ local function generateVehicleList()
   for _, dealership in ipairs(facilities.dealerships) do
     if career_career.hasBoughtStarterVehicle() then
       dealership.filter = dealership.filter or {}
-      dealership.filter.blackList = dealership.filter.blackList or {}
-      dealership.filter.blackList.careerStarterVehicle = {true}
       table.insert(sellers, dealership)
     else
       if dealership.containsStarterVehicles then
@@ -274,27 +89,12 @@ local function generateVehicleList()
 
   vehiclesInShop = {}
   for _, seller in ipairs(sellers) do
-    local sellerVehicleCount = 0
+    local randomVehicleInfos = util_configListGenerator.getRandomVehicleInfos(seller, 10, eligibleVehicles)
 
-    local configs = deepcopy(eligibleVehicles)
-    local filters = createAggregatedFilters(seller)
-
-    while sellerVehicleCount < 10 and not tableIsEmpty(configs) do
-      -- Choose one of the filters
-      local filter = chooseFilter(filters)
-      local index = chooseRandomConfig(configs, filter)
-      if not index then
-        -- remove the filter that doesnt have any eligible vehicles
-        table.remove(filters, filter.index)
-        -- if there are no filters left, continue to the next seller
-        if tableIsEmpty(filters) then
-          break
-        end
-        goto continue
-      end
-      local randomVehicleInfo = deepcopy(configs[index])
+    for _, randomVehicleInfo in ipairs(randomVehicleInfos) do
       randomVehicleInfo.sellerId = seller.id
       randomVehicleInfo.sellerName = seller.name
+      local filter = randomVehicleInfo.filter
       local years = randomVehicleInfo.Years or randomVehicleInfo.aggregates.Years
 
       if career_career.hasBoughtStarterVehicle() then
@@ -321,6 +121,7 @@ local function generateVehicleList()
         local parkingSpotNames = tableKeys(parkingSpots)
 
         -- get a random parking spot on the map
+        -- TODO needs some error handling when there are no parking spots
         local parkingSpotName, parkingSpot
         repeat
           parkingSpotName = parkingSpotNames[math.random(tableSize(parkingSpotNames))]
@@ -334,15 +135,11 @@ local function generateVehicleList()
         randomVehicleInfo.pos = freeroam_facilities.getAverageDoorPositionForFacility(dealership)
       end
 
-      sellerVehicleCount = sellerVehicleCount + 1
-
       local requiredInsurance = career_modules_insurance.getMinApplicablePolicyFromVehicleShoppingData(randomVehicleInfo)
       if requiredInsurance then
         randomVehicleInfo.requiredInsurance = requiredInsurance
       end
       vehiclesInShop[randomVehicleInfo.shopId] = randomVehicleInfo
-      table.remove(configs, index)
-      ::continue::
     end
   end
 end
@@ -359,6 +156,25 @@ local function getDeliveryDelay(distance)
   return vehicleDeliveryDelay
 end
 
+local function getVisualValueFromMileage(mileage)
+  mileage = clamp(mileage, 0, 2000000000)
+  if mileage <= 10000000 then
+    return 1
+  elseif mileage <= 50000000 then
+    return rescale(mileage, 10000000, 50000000, 1, 0.95)
+  elseif mileage <= 100000000 then
+    return rescale(mileage, 50000000, 100000000, 0.95, 0.925)
+  elseif mileage <= 200000000 then
+    return rescale(mileage, 100000000, 200000000, 0.925, 0.88)
+  elseif mileage <= 500000000 then
+    return rescale(mileage, 200000000, 500000000, 0.88, 0.825)
+  elseif mileage <= 1000000000 then
+    return rescale(mileage, 500000000, 1000000000, 0.825, 0.8)
+  else
+    return rescale(mileage, 1000000000, 2000000000, 0.8, 0.75)
+  end
+end
+
 local function spawnVehicle(vehicleInfo, dealershipToMoveTo, followUpAction)
   local spawnOptions = {}
   spawnOptions.config = vehicleInfo.key
@@ -370,8 +186,7 @@ local function spawnVehicle(vehicleInfo, dealershipToMoveTo, followUpAction)
   local closestGarage = career_modules_inventory.getClosestGarage()
   local garagePos, _ = freeroam_facilities.getGaragePosRot(closestGarage)
   local delay = getDeliveryDelay(vehicleInfo.pos:distance(garagePos))
-
-  newVeh:queueLuaCommand(string.format("partCondition.initConditions(nil, %d) obj:queueGameEngineLua('career_modules_vehicleShopping.onVehicleSpawnFinished(%d, %d, %d)')", vehicleInfo.Mileage, newVeh:getID(), followUpAction or -1, delay))
+  newVeh:queueLuaCommand(string.format("partCondition.initConditions(nil, %d, nil, %f) obj:queueGameEngineLua('career_modules_vehicleShopping.onVehicleSpawnFinished(%d, %d, %d)')", vehicleInfo.Mileage, getVisualValueFromMileage(vehicleInfo.Mileage), newVeh:getID(), followUpAction or -1, delay))
   return newVeh
 end
 
@@ -384,13 +199,17 @@ local function onVehicleSpawnFinished(vehId, followUpAction, delay)
 end
 
 local function payForVehicle()
-  career_modules_playerAttributes.addAttribute("money", -purchaseData.prices.finalPrice, {label=string.format("Bought a vehicle: %s", purchaseData.vehicleInfo.niceName)})
-  activateSound(paySoundId)
+  local label = string.format("Bought a vehicle: %s", purchaseData.vehicleInfo.niceName)
+  if purchaseData.tradeInVehicleInfo then
+    label = label .. string.format(" and traded in vehicle id %d: %s", purchaseData.tradeInVehicleInfo.id, purchaseData.tradeInVehicleInfo.niceName)
+  end
+  career_modules_playerAttributes.addAttributes({money=-purchaseData.prices.finalPrice}, {tags={"vehicleBought","buying"},label=label})
+  Engine.Audio.playOnce('AudioGui','event:>UI>Career>Buy_01')
 end
 
 local deleteAddedVehicle
 local function buyVehicleAndSendToGarage()
-  if career_modules_playerAttributes.getAttribute("money").value < purchaseData.prices.finalPrice
+  if career_modules_playerAttributes.getAttributeValue("money") < purchaseData.prices.finalPrice
   or not career_modules_inventory.hasFreeSlot() then
     return
   end
@@ -400,14 +219,14 @@ local function buyVehicleAndSendToGarage()
 end
 
 local function buyVehicleAndSpawnInParkingSpot()
-  if career_modules_playerAttributes.getAttribute("money").value < purchaseData.prices.finalPrice
+  if career_modules_playerAttributes.getAttributeValue("money") < purchaseData.prices.finalPrice
   or not career_modules_inventory.hasFreeSlot() then
     return
   end
   payForVehicle()
   local newVehObj = spawnVehicle(purchaseData.vehicleInfo, purchaseData.vehicleInfo.sellerId)
   if gameplay_walk.isWalking() then
-    gameplay_walk.setRot(newVehObj:getPosition() - be:getPlayerVehicle(0):getPosition())
+    gameplay_walk.setRot(newVehObj:getPosition() - getPlayerVehicle(0):getPosition())
   end
 end
 
@@ -418,7 +237,7 @@ local function navigateToPos(pos)
 end
 
 local function getDistanceToPoint(pos)
-  routePlanner:setupPath(be:getPlayerVehicle(0):getPosition(), pos)
+  routePlanner:setupPath(getPlayerVehicle(0):getPosition(), pos)
   return routePlanner.path[1].distToTarget
 end
 
@@ -458,7 +277,7 @@ local function openShop(seller, _originComputerId)
 
   tether = career_modules_tether.startSphereTether(tetherPos, tetherRange, M.endShopping)
 
-  guihooks.trigger('ChangeState', {state = 'menu.vehicleShopping', params = {}})
+  guihooks.trigger('ChangeState', {state = 'vehicleShopping', params = {}})
   extensions.hook("onVehicleShoppingMenuOpened", {seller = currentSeller})
 end
 
@@ -494,7 +313,7 @@ local function removeUnusedPlayerVehicles()
 end
 
 local function buySpawnedVehicle()
-  if career_modules_playerAttributes.getAttribute("money").value >= purchaseData.prices.finalPrice
+  if career_modules_playerAttributes.getAttributeValue("money") >= purchaseData.prices.finalPrice
   and career_modules_inventory.hasFreeSlot() then
     local vehObj = be:getObjectByID(purchaseData.vehId)
     local plateText = core_vehicles.regenerateVehicleLicenseText(vehObj)
@@ -524,7 +343,7 @@ local function sendPurchaseDataToUi()
 
   local data = {
     vehicleInfo = purchaseData.vehicleInfo,
-    playerMoney = career_modules_playerAttributes.getAttribute("money").value,
+    playerMoney = career_modules_playerAttributes.getAttributeValue("money"),
     inventoryHasFreeSlot = career_modules_inventory.hasFreeSlot(),
     purchaseType = purchaseData.purchaseType,
     forceTradeIn = not career_modules_linearTutorial.getTutorialFlag("purchasedFirstCar") or nil,
@@ -559,7 +378,6 @@ local function sendPurchaseDataToUi()
 end
 
 local function onClientStartMission()
-  setupSounds()
   vehiclesInShop = nil
 end
 
@@ -614,7 +432,7 @@ local function onAddedVehiclePartsToInventory(inventoryId, newParts)
   end
 
   endShopping()
-  career_modules_inspectVehicle.endInspecting()
+  career_modules_inspectVehicle.setInspectScreen(false)
 
   extensions.hook("onVehicleAddedToInventory", {inventoryId = inventoryId, vehicleInfo = purchaseData and purchaseData.vehicleInfo})
 
@@ -630,10 +448,10 @@ local function onEnterVehicleFinished()
   end
 end
 
-local function showDealershipVehicleWorkitem(job, vehicleInfo, teleportToVehicle)
+local function startInspectionWorkitem(job, vehicleInfo, teleportToVehicle)
   ui_fadeScreen.start(0.5)
   job.sleep(1.0)
-  career_modules_inspectVehicle.showDealershipVehicle(vehicleInfo, teleportToVehicle)
+  career_modules_inspectVehicle.startInspection(vehicleInfo, teleportToVehicle)
   job.sleep(0.5)
   ui_fadeScreen.stop(0.5)
   job.sleep(1.0)
@@ -644,16 +462,16 @@ end
 
 local function showVehicle(shopId)
   local vehicleInfo = getVehiclesInShop()[shopId]
-  core_jobsystem.create(showDealershipVehicleWorkitem, nil, vehicleInfo)
+  core_jobsystem.create(startInspectionWorkitem, nil, vehicleInfo)
 end
 
 local function quickTravelToVehicle(shopId)
   local vehicleInfo = vehiclesInShop[shopId]
-  core_jobsystem.create(showDealershipVehicleWorkitem, nil, vehicleInfo, true)
+  core_jobsystem.create(startInspectionWorkitem, nil, vehicleInfo, true)
 end
 
 local function openPurchaseMenu(purchaseType, shopId)
-  guihooks.trigger('ChangeState', {state = 'menu.vehiclePurchase', params = {}})
+  guihooks.trigger('ChangeState', {state = 'vehiclePurchase', params = {}})
   purchaseData = {shopId = shopId, purchaseType = purchaseType}
   extensions.hook("onVehicleShoppingPurchaseMenuOpened", {purchaseType = purchaseType, shopId = shopId})
 end
@@ -703,7 +521,7 @@ local function openInventoryMenuForTradeIn()
       local vehicle = career_modules_inventory.getVehicles()[inventoryId]
       if vehicle then
         purchaseData.tradeInVehicleInfo = {id = inventoryId, niceName = vehicle.niceName, Value = career_modules_valueCalculator.getInventoryVehicleValue(inventoryId)}
-        guihooks.trigger('ChangeState', {state = 'menu.vehiclePurchase', params = {}})
+        guihooks.trigger('ChangeState', {state = 'vehiclePurchase', params = {}})
       end
     end, buttonText = "Trade-In", repairRequired = true}}, "Trade-In",
     {
@@ -713,7 +531,7 @@ local function openInventoryMenuForTradeIn()
       storingEnabled = false
     },
     function()
-      guihooks.trigger('ChangeState', {state = 'menu.vehiclePurchase', params = {}})
+      guihooks.trigger('ChangeState', {state = 'vehiclePurchase', params = {}})
     end
   )
 end
@@ -736,7 +554,7 @@ end
 local function onSaveCurrentSaveSlot(currentSavePath, oldSaveDate, forceSyncSave)
   local data = {}
   data.lastGenerationTime = os.date("*t", lastGenerationTime)
-  jsonWriteFile(currentSavePath .. "/career/vehicleShop.json", data, true)
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/vehicleShop.json", data, true)
 end
 
 local function getCurrentSellerId()
@@ -763,6 +581,7 @@ M.generateVehicleList = generateVehicleList
 M.getShoppingData = getShoppingData
 M.sendPurchaseDataToUi = sendPurchaseDataToUi
 M.getCurrentSellerId = getCurrentSellerId
+M.getVisualValueFromMileage = getVisualValueFromMileage
 
 M.openPurchaseMenu = openPurchaseMenu
 M.buyFromPurchaseMenu = buyFromPurchaseMenu
@@ -781,7 +600,6 @@ M.onAddedVehiclePartsToInventory = onAddedVehiclePartsToInventory
 M.onEnterVehicleFinished = onEnterVehicleFinished
 M.onExtensionLoaded = onExtensionLoaded
 M.onSaveCurrentSaveSlot = onSaveCurrentSaveSlot
-M.onCareerModulesActivated = onCareerModulesActivated
 M.onShoppingMenuClosed = onShoppingMenuClosed
 M.onComputerAddFunctions = onComputerAddFunctions
 

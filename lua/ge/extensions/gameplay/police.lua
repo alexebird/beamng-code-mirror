@@ -12,6 +12,7 @@ local policePropIds = {}
 local vars
 local suspectActive = false
 local suspectTimer = math.huge
+local suspectTimerDelay = 60
 
 -- common functions --
 local min = math.min
@@ -191,7 +192,8 @@ local function setPursuitMode(mode, targetId, policeId) -- sets pursuit mode; -1
     end
   elseif mode == 0 then -- reset pursuit data
     if targetVeh.role.name == 'suspect' then
-      targetVeh.role:setAction('postArrest')
+      targetVeh.role:setAction('clear')
+      suspectActive = false
     end
     pursuit.mode = 0
     targetVeh.role:resetAction()
@@ -199,7 +201,6 @@ local function setPursuitMode(mode, targetId, policeId) -- sets pursuit mode; -1
 
     if targetVeh.role.name == 'suspect' then
       targetVeh:setRole(targetVeh.autoRole)
-      suspectActive = false
     end
     if lastMode == -1 then
       targetVeh.role.driver.behavioral.askInsurance = false
@@ -215,6 +216,9 @@ local function setPursuitMode(mode, targetId, policeId) -- sets pursuit mode; -1
     end
 
     if targetVeh.role.state ~= 'flee' then
+      suspectTimer = math.huge
+      suspectActive = true
+
       if targetVeh.role.state == 'wanted' then -- "wanted" vehicles will always try to flee
         local policePlayer = be:getPlayerVehicleID(0) == policeId and policeVehs[policeId]
         if gameplay_traffic.showMessages and policePlayer and not policePlayer.role.flags.busy then
@@ -227,7 +231,8 @@ local function setPursuitMode(mode, targetId, policeId) -- sets pursuit mode; -1
         targetVeh.role:setAction('fleePolice')
       else
         if targetVeh.isAi then
-          if random() <= 0.75 then targetVeh.role:setAction('fleePolice') end -- if is AI, car can flee or pull over
+          targetVeh.role.keepActionOnRefresh = false
+          targetVeh.role:setAction('fleePolice')
         else
           targetVeh.role:setAction('fleePolice')
           if gameplay_traffic.showMessages and be:getPlayerVehicleID(0) == targetId then
@@ -268,7 +273,7 @@ local function setPursuitMode(mode, targetId, policeId) -- sets pursuit mode; -1
   extensions.hook('onPursuitModeUpdate', targetId, {mode = mode})
 end
 
-local function setSuspect(id)
+local function setSuspect(id) -- changes a traffic vehicle's role to 'suspect'
   local veh = gameplay_traffic.getTrafficData()[id or 0]
   if veh then
     --veh.tempRole = 'suspect'
@@ -276,6 +281,11 @@ local function setSuspect(id)
     veh.role:setAction('watchPolice')
     veh.role.keepActionOnRefresh = true
   end
+end
+
+local function setSuspectTimer(time) -- sets the time until the next suspect will be queued
+  local coef = policeVehs[be:getPlayerVehicleID(0)] and 1 or 2 -- longer timer if player is not police
+  suspectTimer = time or (lerp(suspectTimerDelay, 0, vars.suspectFrequency) + random(15)) * coef -- time until next suspect gets queued
 end
 
 local function arrestVehicle(id, showMessages) -- instantly sets a vehicle as arrested
@@ -299,10 +309,12 @@ local function arrestVehicle(id, showMessages) -- instantly sets a vehicle as ar
         ui_message(str, 5, 'trafficInfractions', 'traffic')
       end
     elseif be:getPlayerVehicleID(0) == veh.role.targetId or policeVehs[be:getPlayerVehicleID(0)] then
-      suspectActive = false
       ui_message('ui.traffic.suspectArrest', 5, 'traffic', 'traffic')
     end
   end
+
+  suspectActive = false
+  suspectTimerDelay = 60
 
   local tempData = deepcopy(veh.pursuit)
   tempData.type = 'arrest'
@@ -318,9 +330,13 @@ local function evadeVehicle(id, showMessages) -- instantly sets a vehicle as eva
     if be:getPlayerVehicleID(0) == id then
       ui_message('ui.traffic.policeEvade', 5, 'traffic', 'traffic')
     elseif be:getPlayerVehicleID(0) == veh.role.targetId or policeVehs[be:getPlayerVehicleID(0)] then
-      suspectActive = false
       ui_message('ui.traffic.suspectEvade', 5, 'traffic', 'traffic')
     end
+  end
+
+  suspectActive = false
+  if veh.isAi then
+    suspectTimerDelay = suspectTimerDelay + 60
   end
 
   local tempData = deepcopy(veh.pursuit)
@@ -433,14 +449,12 @@ local function onVehicleResetted(id)
   if traffic[id] and traffic[id].isAi then
     if not suspectActive and suspectTimer <= 0 and traffic[id].role.name == 'standard' then
       setSuspect(id)
+      suspectTimer = math.huge
       suspectActive = true
-      suspectTimer = 60 - vars.suspectFrequency * 60 + random(15) -- time until next suspect gets queued
-      if not policeVehs[be:getPlayerVehicleID(0)] then -- longer timer if player is not police
-        suspectTimer = suspectTimer * 2
-      end
     elseif suspectActive and traffic[id].role.name == 'suspect' and traffic[id].role.state ~= 'wanted' then
       traffic[id]:setRole('standard')
       traffic[id].role.keepActionOnRefresh = false
+      suspectActive = false
     end
   end
 end
@@ -455,7 +469,12 @@ local function onUpdate(dt, dtSim)
   if gameplay_traffic.getState() ~= 'on' or not next(policeVehs) then
     suspectActive = false
     suspectTimer = math.huge
+    suspectTimerDelay = 60
     return
+  else
+    if suspectTimer == math.huge and not suspectActive then
+      setSuspectTimer()
+    end
   end
 
   for id, veh in pairs(gameplay_traffic.getTrafficData()) do
@@ -484,8 +503,7 @@ local function onUpdate(dt, dtSim)
       end
       pursuit.score = max(0, pursuit.score + addScore)
     else
-      local speed = veh.isPlayer and 3 or 6
-      if veh.speed >= speed then -- enable pursuits again
+      if veh.speed >= 6 then -- enable pursuits again
         pursuit.cooldown = false
       end
     end
@@ -611,9 +629,9 @@ local function onUpdate(dt, dtSim)
                     angle = random(-5, 5)
                   end
 
-                  placeRoadblock(newVehIds, spawnData.pos, quatFromDir(spawnData.rot, spawnData.normal), {angle = angle, centerAngle = 0, width = rbWidth})
+                  placeRoadblock(newVehIds, spawnData.pos, quatFromDir(spawnData.dir, spawnData.normal), {angle = angle, centerAngle = 0, width = rbWidth})
                   if newPropIds then
-                    placeRoadblock(policePropIds, spawnData.pos - spawnData.rot * (maxPropLength * 0.5 + 2), quatFromDir(spawnData.rot, spawnData.normal), {angle = -90, width = rbWidth})
+                    placeRoadblock(policePropIds, spawnData.pos - spawnData.dir * (maxPropLength * 0.5 + 2), quatFromDir(spawnData.dir, spawnData.normal), {angle = -90, width = rbWidth})
                   end
                 end
               end
@@ -665,7 +683,6 @@ local function onUpdate(dt, dtSim)
 
   -- TODO: change this into a background activity
   if gameplay_traffic.getTrafficVars().enableRandomEvents and vars.suspectFrequency > 0 then
-    if suspectTimer == math.huge then suspectTimer = 0 end -- enables suspect timer
     if not suspectActive then
       suspectTimer = max(0, suspectTimer - dtSim)
     end
@@ -696,6 +713,7 @@ M.setPursuitMode = setPursuitMode
 M.setPursuitVars = setPursuitVars
 M.setPoliceVars = setPursuitVars
 M.setSuspect = setSuspect
+M.setSuspectTimer = setSuspectTimer
 M.arrestVehicle = arrestVehicle
 M.evadeVehicle = evadeVehicle
 M.releaseVehicle = releaseVehicle

@@ -25,7 +25,7 @@ end
 local function startActual(_originComputerId)
   originComputerId = _originComputerId
   if originComputerId then
-    guihooks.trigger('ChangeState', {state = 'menu.tuning', params = {}})
+    guihooks.trigger('ChangeState', {state = 'tuning', params = {}})
     extensions.hook("onCareerTuningStarted")
   end
 end

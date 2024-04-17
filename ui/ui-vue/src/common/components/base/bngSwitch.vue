@@ -6,8 +6,7 @@
     :class="{ 'switch-on': toggleValue }"
     v-bng-disabled="disabled"
     @click="onValueChanged"
-    @keyup.space="onValueChanged"
-  >
+    @keyup.space="onValueChanged">
     <div class="bng-switch-wrapper">
       <div class="bng-switch"></div>
     </div>
@@ -15,14 +14,7 @@
       <slot></slot>
     </div>
   </div>
-  <div
-    v-else
-    class="bng-switch-wrapper"
-    :class="{ 'switch-on': toggleValue }"
-    v-bng-disabled="disabled"
-    @click="onValueChanged"
-    @keyup.space="onValueChanged"
-  >
+  <div v-else class="bng-switch-wrapper" :class="{ 'switch-on': toggleValue }" v-bng-disabled="disabled" @click="onValueChanged" @keyup.space="onValueChanged">
     <div class="bng-switch"></div>
   </div>
 </template>
@@ -45,7 +37,7 @@ watch(() => props.modelValue, init)
 watch(() => props.checked, init)
 watch(() => props.disabled, init)
 function init() {
-  toggleValue.value = props.disabled ? false : (props.checked || props.modelValue)
+  toggleValue.value = props.disabled ? false : props.checked || props.modelValue
 }
 
 function onValueChanged() {

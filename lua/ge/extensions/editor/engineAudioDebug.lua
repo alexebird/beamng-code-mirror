@@ -63,7 +63,7 @@ end
 
 local function updateVehicleData()
   if not editor_engineAudioDebug then return end
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if veh then
     editor_engineAudioDebug.engine = {}
     veh:queueLuaCommand([[
@@ -76,7 +76,7 @@ end
 
 local changed = true
 local function onEditorGui(dt)
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then return end
   if not editor_engineAudioDebug.engine or not editor_engineAudioDebug.engine.engineSoundData then
     updateVehicleData()
@@ -284,7 +284,7 @@ local function onVehicleSwitched(oldVehicle, newVehicle, player)
 end
 
 local function onEditorDeactivated()
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if veh and selectedEngineData then
     veh:showEngineDirection(selectedEngineData.data.soundID, false)
   end

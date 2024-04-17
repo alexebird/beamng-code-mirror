@@ -63,7 +63,7 @@ end
 
 --- Sets the player position at the current editor camera position.
 local function placePlayerAtCamera()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     local pos = core_camera.getPosition()
     playerVehicle:setPosition(pos)
@@ -113,7 +113,7 @@ local function fitViewToSelectionSmooth()
   if viewRadius > maxViewRadius then
     viewRadius = maxViewRadius
   end
-  
+
   local camVars = {}
   camVars.camStartPos = core_camera.getPosition()
   local rot = core_camera.getQuat()

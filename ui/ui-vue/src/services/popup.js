@@ -2,12 +2,15 @@
 // See the list of available popup commands at the bottom
 
 import { reactive, computed, markRaw } from "vue"
+import { reportPopupState } from "@/services/stateReporter.js"
 
 import { popupContainer, popupPosition, getPopupWrapperDefaults, getActivityWrapperDefaults } from "@/modules/popup/options"
 export { popupContainer, popupPosition } // for convenience
 
 // get available popup base components
-import components from "./popup-components"
+import * as components from "./popup-components"
+
+import { $translate } from "@/services/translation"
 
 // popups amount that will be presented at the same time
 // this affects performance when too many are shown and we don't know how complex they can be
@@ -20,20 +23,25 @@ let count = -1
 /**
  * @typedef PopupItem
  * @type {object}
- * @prop {number} id Internal id
- * @prop {boolean} active If this popup is currently active
- * @prop {PopupType} type Type of the popup
- * @prop {*} component Base component
- * @prop {object} props Component props
- * @prop {Array<string>} position Popup position
- * @prop {object} wrapper Wrapper properties
- * @prop {boolean} wrapper.fade If all other elements on the screen should fade away to a semi-transparency
- * @prop {boolean} wrapper.blur If screen should be blurred
- * @prop {Array<string>} wrapper.style Array of style names
- * @prop {function} return Return function with optional result argument that will call `resolve`. If result is not specified, `reject` will be called instead.
- * @prop {Promise} promise Promise that will return the result value. Promise has `close([result])` method to force close the popup externally.
- * @prop {function} _resolve Promise `resolve()`
- * @prop {function} _reject Promise `reject()`
+ * @prop {number}          id              Internal id
+ * @prop {boolean}         active          If this popup is currently active
+ * @prop {PopupType}       type            Type of the popup
+ * @prop {string}          typeName        Resolved type name
+ * @prop {*}               component       Base component
+ * @prop {string}          componentName   Resolved name of the base component
+ * @prop {object}          props           Component props
+ * @prop {Array<string>}   position        Popup position
+ * @prop {boolean}         animated        Animate popup in/out
+ * @prop {object}          wrapper         Wrapper properties
+ * @prop {boolean}         wrapper.fade    If all other elements on the screen should fade away to a semi-transparency
+ * @prop {boolean}         wrapper.blur    If screen should be blurred
+ * @prop {Array<string>}   wrapper.style   Array of style names
+ * @prop {function}        return          Return function with optional result argument that will call `resolve`.
+ *                                         If result is not specified, `reject` will be called instead.
+ * @prop {Promise}         promise         Promise that will return the result value.
+ *                                         Promise has `close([result])` method to force close the popup externally.
+ * @prop {function}        _resolve        Promise `resolve()`
+ * @prop {function}        _reject         Promise `reject()`
  */
 
 /**
@@ -52,6 +60,20 @@ export const PopupTypes = Object.freeze({
   /** Always on top */
   priority: 1000,
 })
+
+const PopupTypesBack = Object.freeze(Object.keys(PopupTypes).reduce((res, key) => ({ ...res, [String(PopupTypes[key])]: key }), {}))
+const PopupTypesPairs = Object.freeze(Object.keys(PopupTypes).map(key => [PopupTypes[key], key ]).sort((a, b) => a[0] - b[0]))
+
+function getPopupTypeName(type = PopupTypes.normal) {
+  const strType = String(type)
+  if (strType in PopupTypesBack)
+    return PopupTypesBack[strType]
+  for (const [ptype, pname] of PopupTypesPairs) {
+    if (type < ptype)
+      return pname
+  }
+  return PopupTypesPairs[PopupTypesPairs.length - 1][1]
+}
 
 /**
  * All queued popups
@@ -105,7 +127,7 @@ function accumulateWrapper(popups, wrapper) {
  * @param {PopupType} [type=PopupType.normal] Popup type
  * @returns {PopupItem} New popup data
  */
-function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
+export function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
   const component = typeof componentOrName === "string" ? components[componentOrName] : componentOrName
   if (!component) {
     throw new Error(
@@ -122,9 +144,12 @@ function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
     id: ++count,
     active: false,
     type,
+    typeName: getPopupTypeName(type),
     component: markRaw({ ref: component }), // FIXME: there should be a better way
+    componentName: component.__name,
     props,
     position: [popupPosition.default],
+    animated: true,
     wrapper: type >= PopupTypes.normal ? getPopupWrapperDefaults() : getActivityWrapperDefaults(),
   }
 
@@ -132,6 +157,9 @@ function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
     popup.position = Array.isArray(component.position)
       ? component.position
       : [component.position]
+  }
+  if (typeof component.animated === "boolean") {
+    popup.animated = component.animated
   }
   if ("wrapper" in component) {
     if (typeof component.wrapper.fade === "boolean")
@@ -160,6 +188,7 @@ function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
         popupsAll.splice(i, 1)
         if (popupsAll.length > 0)
           popupsAll[popupsAll.length - 1].active = true
+        reportPopupState(popup, false)
         break
       }
     }
@@ -179,6 +208,7 @@ function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
       // put a new less prioritised popup before the first one with a higher priority
       // note: there's no need to change active flag in this case
       popupsAll.splice(i, 0, popup)
+      reportPopupState(popup, true)
       return popup
     }
   }
@@ -189,6 +219,7 @@ function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
   popup.active = true
   // append
   popupsAll.push(popup)
+  reportPopupState(popup, true)
 
   return popup
 }
@@ -200,7 +231,7 @@ export function registerListener() {
 
 
 // expose basic functionality for easy access
-// and to deal with a possible base popup modifications
+// and to cover possible base popup component modifications
 
 /**
  * Open a simple confirmation popup dialog with OK button only
@@ -209,17 +240,22 @@ export function registerListener() {
  * @returns {Promise} Result from button's value
  */
 export const openMessage = (title, message) =>
-  addPopup("Confirmation", { title, message, buttons: [{ label: "ui.common.okay", value: true }] }).promise
+  addPopup("Confirmation", { title, message, buttons: [{ label: $translate.instant("ui.common.okay"), value: true }] }).promise
 
 /**
  * Open a simple confirmation popup dialog
- * @param {string} [title] Text message title
- * @param {string} message Text/HTML message
- * @param {array} [buttons] Buttons, with default "OK" and "Cancel" buttons if not specified
- * @returns {Promise} Result from button's value
+ *
+ * @param      {string}   title            Text message title
+ * @param      {string}   message          Text/HTML message
+ * @param      {array}    buttons          Buttons, with default "OK" and "Cancel" buttons if not specified
+ * @param      {string}   [appearance='']  The appearance
+ * @return     {Promise}  Result from button's value
  */
-export const openConfirmation = (title, message, buttons) =>
-  addPopup("Confirmation", { title, message, buttons }).promise
+export const openConfirmation = (title, message, buttons = [
+      { label: $translate.instant("ui.common.okay"), value: true },
+      { label: $translate.instant("ui.common.cancel"), value: false },
+    ], appearance = '') =>
+  addPopup("Confirmation", { title, message, buttons, appearance }).promise
 
 /**
  * Open a simple confirmation popup dialog with OK button only
@@ -229,8 +265,8 @@ export const openConfirmation = (title, message, buttons) =>
  * @returns {Promise} Result from button's value
  */
 export const openExperimental = (title, message, buttons = [
-  { label: "ui.common.no", value: false },
-  { label: "ui.common.yes", value: true },
+  { label: $translate.instant("ui.common.yes"), value: true },
+  { label: $translate.instant("ui.common.no"), value: false },
 ]) =>
   addPopup("Confirmation", { title, message, buttons, appearance: "experimental" }).promise
 
@@ -238,14 +274,18 @@ export const openExperimental = (title, message, buttons = [
 /**
  * Open a full screen overlay view
  * @param {Object} [component] Component view to display
- * @returns 
+ * @returns
  */
 export const openScreenOverlay = (component) =>
   addPopup("ScreenOverlay", { view: markRaw(component) }, PopupTypes.activity).promise
 
 /**
- * Recovery popup
- * @returns {Promise}
+ * Open a popup configured for forms
+ * @param {Object} [component] Component view to display
+ * @param {Object} [formModel] Object model to pass to form component
+ * @param {string} [title] Text message title
+ * @param {string} [description] Text message description
+ * @returns {Promise} Object with success and update model value
  */
-export const openRecovery = () =>
-  addPopup("Recovery").promise
+export const openFormDialog = (component, formModel, formValidator, title, description) =>
+  addPopup("FormDialog", { view: markRaw(component), formModel, formValidator, title, description }, PopupTypes.normal).promise

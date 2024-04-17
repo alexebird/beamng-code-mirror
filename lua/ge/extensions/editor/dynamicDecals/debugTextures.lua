@@ -16,7 +16,6 @@ local api = nil
 local textureSet = nil
 
 local function sectionGui(guiId)
-  im.Indent()
   local maxImageWidgetWidth = editor.getPreference("dynamicDecalsTool.debugTextures.maxImageWidgetWidth")
 
   if not textureSet then textureSet = api.getTextureSet() end
@@ -40,7 +39,6 @@ local function sectionGui(guiId)
   if im.CollapsingHeader1("Mask Textures") then
     api.drawMaskTextures(maxImageWidgetWidth)
   end
-  im.Unindent()
 end
 
 local function registerEditorPreferences(prefsRegistry)

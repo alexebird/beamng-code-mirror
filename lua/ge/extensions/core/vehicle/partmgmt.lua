@@ -13,7 +13,7 @@ local vehsPartsData = {}
 local attachedCouplers = {}
 
 local function getVehData(vehID)
-  local vehObj = vehID and be:getObjectByID(vehID) or be:getPlayerVehicle(0)
+  local vehObj = vehID and be:getObjectByID(vehID) or getPlayerVehicle(0)
   if not vehObj then return end
   vehID = vehObj:getID()
 
@@ -27,44 +27,48 @@ local function getVehData(vehID)
   return vehObj, vehData, vehID, vehsPartsData[vehID]
 end
 
-local function getDefaultConfigFileFromDir(vehicleDir, configDataIn)
+local function getDefaultConfigFileFromDir(vehicleDir, configData)
   local vehicleInfo = jsonReadFile(vehicleDir .. '/info.json')
-  if not vehicleInfo then
-    return ""
-  elseif not vehicleInfo.default_pc then
-    return ""
-  end
-
-  log('W', 'main', "Supplied config file: " .. tostring(configDataIn) .. " not found. Using default config instead.")
+  if not vehicleInfo then return end
+  if not vehicleInfo.default_pc then return end
+  log('W', 'main', "Supplied config file: " .. tostring(configData) .. " not found. Using default config instead.")
   return vehicleDir .. vehicleInfo.default_pc .. ".pc"
 end
 
-local function buildConfigFromString(vehicleDir, configDataIn)
-  local res = {}
-  local dataType = type(configDataIn)
-  if dataType == 'string' and configDataIn:sub(1, 1) == '{' then
-    local fileData = deserialize(configDataIn)
-    tableMerge(res, fileData)
-  elseif dataType == 'table' then
-    return configDataIn
-  else
-    local fileData = configDataIn ~= nil and configDataIn ~= '' and jsonReadFile(configDataIn)
+local function buildConfigFromString(vehicleDir, configData)
+  local dataType = type(configData)
+  if dataType == 'table' then
+    return configData
+  end
 
-    -- Default to default config if config not found
+  if dataType == 'string' and configData:sub(1, 1) == '{' then
+    return deserialize(configData)
+  end
+
+  local fileData
+  if configData ~= nil and configData ~= "" then
+    fileData = jsonReadFile(configData)
     if not fileData then
-      configDataIn = getDefaultConfigFileFromDir(vehicleDir, configDataIn)
-      if configDataIn ~= "" then
-        fileData = jsonReadFile(configDataIn)
-      end
+      log("W", "", "Unable to read json contents for configData file path: "..dumps(configData))
     end
+  end
 
-    res.partConfigFilename = configDataIn
-    if fileData and fileData.format == 2 then
-      fileData.format = nil
-      tableMerge(res, fileData)
-    else
-      res.parts = fileData or {}
+  -- Default to default config if config not found
+  if not fileData then
+    log("W", "", "Problems reading requested configuration: "..dumps(configData))
+    configData = getDefaultConfigFileFromDir(vehicleDir, configData)
+    if configData then
+      fileData = jsonReadFile(configData)
     end
+  end
+
+  local res = {}
+  res.partConfigFilename = configData
+  if fileData and fileData.format == 2 then
+    fileData.format = nil
+    tableMerge(res, fileData)
+  else
+    res.parts = fileData or {}
   end
 
   return res
@@ -99,9 +103,10 @@ local function findNodeByCid(vehicleData, nodeCid)
 end
 
 local function saveVehicle(collection, vehId, idMap)
+  local vehicle = be:getObjectByID(vehId)
   local vehicleData = vehManager.getVehicleData(vehId)
-  if not vehicleData then
-    log('E', 'partmgmt', 'data for vehicle ' .. tostring(vehId) .. ' not found')
+  if not vehicle or not vehicleData then
+    log('E', 'partmgmt', 'vehicle ' .. tostring(vehId) .. ' not found')
     return
   end
 
@@ -111,10 +116,10 @@ local function saveVehicle(collection, vehId, idMap)
   data.partsCondition = partsCondition
   if not data.paints or data.colors then
     data.paints = {}
-    local colorTable = playerVehicle:getColorFTable()
+    local colorTable = vehicle:getColorFTable()
     local colorTableSize = tableSize(colorTable)
     for i = 1, colorTableSize do
-      local metallicPaintData = stringToTable(playerVehicle:getField('metallicPaintData', i - 1))
+      local metallicPaintData = stringToTable(vehicle:getField('metallicPaintData', i - 1))
       local paint = createVehiclePaint({x = colorTable[i].r, y = colorTable[i].g, z = colorTable[i].b, w = colorTable[i].a}, metallicPaintData)
       validateVehiclePaint(paint)
       table.insert(data.paints, paint)
@@ -148,7 +153,7 @@ local function saveVehicle(collection, vehId, idMap)
 end
 
 local function savePartConfigFileStage2_Format3(partsCondition, filename)
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then
     log('E', 'partmgmt', 'no active vehicle')
     return
@@ -178,14 +183,14 @@ local function savePartConfigFileStage2_Format3(partsCondition, filename)
   if writeRes then
     guihooks.trigger("VehicleconfigSaved", {})
   else
-    log('W', "vehicles.save", "unable to save config: "..fn)
+    log('W', "vehicles.save", "unable to save config: "..filename)
   end
   guihooks.trigger('Message', {ttl = 15, msg = 'Configuration saved', icon = 'directions_car'})
 end
 
 
 local function savePartConfigFileStage2_Format2(partsCondition, filename)
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   local playerVehicleData = vehManager.getPlayerVehicleData()
   if not playerVehicle or not playerVehicleData then
     log('E', 'partmgmt', 'no active vehicle')
@@ -221,7 +226,7 @@ local function savePartConfigFileStage2_Format2(partsCondition, filename)
     guihooks.trigger("VehicleconfigSaved", {})
   else
     data.partConfigFilename = prevPCFilename
-    log('W', "vehicles.save", "unable to save config: "..fn)
+    log('W', "vehicles.save", "unable to save config: "..filename)
   end
   guihooks.trigger('Message', {ttl = 15, msg = 'Configuration saved', icon = 'directions_car'})
 end
@@ -229,7 +234,7 @@ end
 local function savePartConfigFile(filename)
   local savePartsCondition = false
   if savePartsCondition then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle then
       queueCallbackInVehicle(playerVehicle, "extensions.core_vehicle_partmgmt.savePartConfigFileStage2", "partCondition.getConditions("..serialize(filename)..")")
     end
@@ -276,7 +281,7 @@ end
 
 local function sendDataToUI()
   local vehObj, vehData, vehID, partsData
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     vehObj, vehData, vehID, partsData = getVehData(playerVehicle:getID())
   end
@@ -337,7 +342,7 @@ local function hasAvailablePart(partName)
 end
 
 local function setSkin(skin)
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local playerVehicleData = core_vehicle_manager.getPlayerVehicleData()
 
   if not vehicle or not playerVehicleData then return end
@@ -364,7 +369,7 @@ end
 
 local function mergeConfig(inData, respawn)
   --dump{"mergeConfig> ", inData, respawn}
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   local playerVehicle = vehManager.getPlayerVehicleData()
   if not veh or not playerVehicle then
     log('E', 'partmgmt', 'no active vehicle')
@@ -414,7 +419,7 @@ local function getConfig()
 end
 
 local function loadLocal(filename, respawn)
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then
     log('E', 'partmgmt', 'no active vehicle')
     return
@@ -830,5 +835,4 @@ M.onCouplerAttached = onCouplerAttached
 M.onCouplerDetached = onCouplerDetached
 
 M.buildConfigFromString = buildConfigFromString
-M.onPlayerChangeMeshVis = onPlayerChangeMeshVis
 return M

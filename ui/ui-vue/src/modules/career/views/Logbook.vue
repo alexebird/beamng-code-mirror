@@ -1,19 +1,23 @@
 <!-- Logbook -->
 <template>
   <LayoutSingle class="layout-content-full flex-column layout-paddings" v-bng-blur>
-    <BngScreenHeading :preheadings="[$t('ui.career.logbook.subHeading')]">{{ $t("ui.career.logbook.mainHeading") }}</BngScreenHeading>
-    <div bng-ui-scope="logbook" class="career-logbook-wrapper" v-bng-on-ui-nav:back,menu="exit">
+    <BngScreenHeading>{{ $t("ui.career.logbook.subHeading") }}</BngScreenHeading>
+    <div
+      bng-ui-scope="logbook"
+      class="career-logbook-wrapper"
+      v-bng-on-ui-nav:back,menu="exit"
+      v-bng-on-ui-nav:tab_l="sectionTabs && sectionTabs.goPrev"
+      v-bng-on-ui-nav:tab_r="sectionTabs && sectionTabs.goNext">
       <div class="career-logbook-container">
         <div class="career-logbook-list">
-          <Tabs @change="tabChange" class="bng-tabs" :make-tab-header-classes="tabDetails => ({ flagged: tabDetails.data.hasNew })">
-            <Tab v-for="tabDetail in logbookTabs" :heading="$t(tabDetail.name)" :active="tabDetail.isPreselected" :data="tabDetail">
+          <Tabs ref="sectionTabs" @change="tabChange" class="bng-tabs" :make-tab-header-classes="tabDetails => ({ flagged: tabDetails.data.hasNew })">
+            <Tab v-for="tabDetail in logbookTabs" :heading="$t(tabDetail.name)" :active="tabDetail.isPreselected" :data="tabDetail" bng-nav-scroll-force>
               <div
                 bng-nav-item
                 class="career-logbook-item"
                 :class="{ selected: selectedEntry !== undefined && selectedEntry.entryId == entry.entryId }"
                 v-for="entry in tabDetail.entries"
-                @click="toggleExpand(entry)"
-              >
+                @click="toggleExpand(entry)">
                 <div class="career-logbook-item-content">
                   <div class="career-logbook-meta">
                     <div>{{ $ctx_t(entry.cardTypeLabel) }}</div>
@@ -30,12 +34,15 @@
 
         <div class="career-logbook-details">
           <BngCard class="career-logbook-content-card" v-show="selectedEntry !== undefined">
-            <BngCardHeading class="career-logbook-heading" type="ribbon">{{ selectedEntry && $ctx_t(selectedEntry.title) }}</BngCardHeading>
+            <BngCardHeading class="logbook-entry-heading" type="ribbon"
+              >{{ selectedEntry && $ctx_t(selectedEntry.title) }}
+              <div class="career-logbook-title-newmark" v-show="selectedEntry.isNew"></div>
+              <BngButton class="exitButton" @click="exit" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
+            </BngCardHeading>
             <div class="career-logbook-meta">
               <div>{{ $ctx_t(selectedEntry.cardTypeLabel) }}</div>
               <BngDivider class="vertical-divider"></BngDivider>
               <div v-bng-relative-time="selectedEntry.time"></div>
-              <div class="career-logbook-newmark" v-show="selectedEntry.isNew"></div>
             </div>
             <div :class="{ 'card-body': true, 'with-rewards': selectedEntry.type === 'quest' && selectedEntry.rewards.length }">
               <!-- TODO - Future fix, bring these images inside the Vue code area? -->
@@ -50,12 +57,16 @@
                 <table v-for="(table, keyT) in selectedEntry.tables" :key="keyT">
                   <tr>
                     <th v-for="(header, keyH) in table.headers" :key="keyH">
-                      {{header}}
+                      {{ header }}
                     </th>
                   </tr>
                   <tr v-for="(row, keyR) in table.rows" :key="keyR">
                     <td v-for="(data, keyD) in row" :key="keyD">
-                      <DynamicComponent :template="$ctx_t(data)" />
+                      <RewardsPills
+                        v-if="typeof data === 'object' && data !== null && data.hasOwnProperty('type') && data.type === 'rewards'"
+                        :rewards="data.rewards"
+                        :hideNumbers="false" />
+                      <DynamicComponent v-else :template="$ctx_t(data)" />
                     </td>
                   </tr>
                 </table>
@@ -71,8 +82,7 @@
                       <BngLottie
                         icon="check"
                         :value="prog.failed ? 'x' : prog.done ? 'v' : ''"
-                        :class="{ 'lottie-check': true, fail: prog.failed, success: prog.done }"
-                      />
+                        :class="{ 'lottie-check': true, fail: prog.failed, success: prog.done }" />
                       <div class="progress-label">{{ $ctx_t(prog.label) }}</div>
                       <!-- <span ng-if="prog.type === 'progressBar'" class="progressbar-value" ng-init="logValue($scope)">
                         {{ // prog.currValue | number:2 }} / {{ // prog.maxValue }}
@@ -81,8 +91,7 @@
                     <div v-if="prog.type === 'progressBar'" class="progressbar-background">
                       <div
                         class="progressbar-fill"
-                        :style="{ width: (prog.currValue > 0 ? (prog.currValue / (prog.maxValue - prog.minValue)) * 100 : 0) + '%' }"
-                      ></div>
+                        :style="{ width: (prog.currValue > 0 ? (prog.currValue / (prog.maxValue - prog.minValue)) * 100 : 0) + '%' }"></div>
                     </div>
                   </div>
                 </div>
@@ -93,16 +102,14 @@
                 <div class="label">{{ $t("ui.career.logbook.rewards") }}:</div>
                 <div class="rewards-section flex-row">
                   <div class="flex-row" v-for="reward in selectedEntry.rewards">
-                    <BngIcon span class="reward-icon" :type="iconTypes.general[reward.attributeKey]" />
-                    <span>{{ reward.rewardAmount }}</span>
+                    <BngUnit class="reward-icon" v-bind="{ [rewardUnitTypes[reward.attributeKey]]: reward.rewardAmount }" :options="{ formatter: x => ~~x }" />
                   </div>
                 </div>
                 <BngButton
                   v-show="!selectedEntry.claimed"
                   v-bng-sound-class="'bng_click_generic'"
                   @click="claimRewards(selectedEntry)"
-                  :disabled="!selectedEntry.claimable"
-                >
+                  :disabled="!selectedEntry.claimable">
                   {{ $t("ui.career.logbook.claimRewards") }}
                 </BngButton>
                 <BngButton v-show="selectedEntry.claimed" :disabled="true">
@@ -117,26 +124,29 @@
   </LayoutSingle>
 </template>
 
-<script>
-import { icons as iconTypes } from "@/assets/icons"
-</script>
-
 <script setup>
 import { LayoutSingle } from "@/common/layouts"
-import { BngButton, BngScreenHeading, BngDivider, BngCard, BngCardHeading, BngLottie, BngIcon } from "@/common/components/base"
+import { BngButton, BngScreenHeading, BngDivider, BngCard, BngCardHeading, BngLottie, BngUnit, BngBinding } from "@/common/components/base"
 import { Tabs, Tab, DynamicComponent } from "@/common/components/utility"
 import { vBngRelativeTime, vBngBlur, vBngSoundClass, vBngOnUiNav } from "@/common/directives"
 import { $content, $translate } from "@/services"
 
 import { lua } from "@/bridge"
-import { ref, computed } from "vue"
-
+import { ref, computed, onMounted } from "vue"
+import RewardsPills from "../components/branches/RewardsPills.vue"
 import { useUINavScope } from "@/services/uiNav"
 useUINavScope("logbook") // UI Nav events to fire from (or from focused element inside) element with attribute: bng-ui-scope="logbook"
+
+const rewardUnitTypes = {
+  money: "beambucks",
+  beamXP: "xp",
+}
 
 const props = defineProps({
   id: String,
 })
+
+const sectionTabs = ref()
 
 const entryId = computed(() => (props.id !== undefined ? ("" + props.id).replace(/\%/g, "/") : undefined))
 
@@ -146,13 +156,13 @@ const logbookTabs = ref([
     entries: [],
     filter: i => i.type === "info",
   },
+  // {
+  //   name: "Milestones",
+  //   entries: [],
+  //   filter: i => i.type === "quest",
+  // },
   {
-    name: "Milestones",
-    entries: [],
-    filter: i => i.type === "quest",
-  },
-  {
-    name: "Progress",
+    name: "History",
     entries: [],
     filter: i => i.type === "progress",
   },
@@ -176,7 +186,7 @@ function setup(data) {
   if (entryId.value) {
     for (let tab of logbookTabs.value) {
       for (let entry of tab.entries) {
-        if (entry.entryId === entryId.value) {
+        if ("" + entry.entryId === entryId.value) {
           toggleExpand(entry)
           tab.isPreselected = true
           return
@@ -221,12 +231,29 @@ const claimRewards = entry => {
   entry.claimed = true
 }
 
-const exit = () => window.bngVue.gotoGameState("play")
+const exit = () => window.bngVue.gotoGameState("menu.careerPause")
+
+const start = () => {
+  lua.career_career.requestPause(true)
+}
+
+onMounted(start)
 </script>
 
 <style lang="scss" scoped>
 $textcolor: #fff;
 $fontsize: 1rem;
+
+.exitButton {
+  position: absolute;
+  right: 0.5em;
+  top: 0;
+}
+
+:deep(.logbook-entry-heading) {
+  padding-bottom: 0.75em;
+  margin-bottom: 0;
+}
 
 .flex-row {
   display: flex;
@@ -260,6 +287,7 @@ hr {
   flex-direction: column;
   justify-content: center;
   flex: 1 1 auto;
+  height: 1px;
 }
 
 // .career-logbook-wrapper > * {
@@ -411,6 +439,18 @@ hr {
   position: absolute;
   top: 0.75em;
   right: 0.75em;
+}
+
+.career-logbook-title-newmark {
+  content: " ";
+  background: var(--bng-ter-yellow-100);
+  box-shadow: 0 0 0.75em var(--bng-ter-yellow-300);
+  animation: new-pulse 2s cubic-bezier(0.2, 0.01, 0.12, 1) 1s infinite alternate-reverse;
+  width: 0.65em;
+  height: 0.65em;
+  border-radius: 999px;
+  display: inline-block;
+  margin-left: 0.25em;
 }
 
 .career-logbook-details {
@@ -751,22 +791,21 @@ hr {
 }
 
 .logbook-table {
-  text-align:left;
-  width:100%;
-  margin-top:1.5em;
+  text-align: left;
+  width: 100%;
+  margin-top: 1.5em;
 }
 .logbook-table table {
-  width:100%;
+  width: 100%;
 }
-.logbook-table tr:nth-child(odd)  {
-  background-color:rgba(0,0,0,0.5);
+.logbook-table tr:nth-child(odd) {
+  background-color: rgba(0, 0, 0, 0.5);
 }
-.logbook-table tr:nth-child(even)  {
-  background-color:rgba(0,0,0,0.2);
+.logbook-table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.2);
 }
 .logbook-table th {
-  background-color:rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   position: sticky;
 }
-
 </style>

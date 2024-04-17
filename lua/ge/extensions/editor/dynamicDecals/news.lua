@@ -13,18 +13,31 @@ local im = ui_imgui
 local tool = nil
 local helper = nil
 
-local windowName = "Dynamic Decals - News"
+local windowName = "Vehicle Livery Creator - News"
 
 local windowBeenClosed = false
 local spacing = 0
 
 local news = {
-  {title = "Initial Version 1.0.0", guiFn = function() im.TextUnformatted("Initial version") end},
+  {title = "Fixes - 1.0.1", guiFn = function()
+    im.BulletText("Fixed projection for path layers in world editor tool")
+    im.BulletText("Fixed projection for brush stroke layers in world editor tool")
+    im.BulletText("Fixed texture fill layer projection when using a scale value of less than 1.0")
+    im.BulletText("Fixed selected material being wrong in some cases (e.g. for the Gavril Roamer - Sheriff variant)")
+    im.BulletText("Fixed error when trying to open world editor in main menu")
+    im.BulletText("Fixed error where the tool was referencing a missing shape")
+    im.BulletText("Fixed the tool writing an empty json file even if no brushes have been created")
+    im.BulletText("Tool: Changed the name of the tool in the 'Windows' dropdown from 'Dynamic Decals' to 'Vehicle Livery Creator'")
+    im.BulletText("Tool: Link in news window now refers to forum thread")
+    im.BulletText("Tool: Also allow JPG decal textures rather than just PNG files")
+    im.BulletText("Tool: Fixed the table of contents sorting in the documentation window")
+  end},
+  {title = "Initial Version 1.0.0", guiFn = function() im.BulletText("Initial version") end},
 }
 
 local function welcomingMessage()
   helper.textUnformattedCentered("Welcome to the world of skin customization in BeamNG.drive!")
-  helper.textUnformattedCentered(string.format("v %d.%d.%d", tool.version[1], tool.version[2], tool.version[2]))
+  helper.textUnformattedCentered(string.format("v %d.%d.%d", tool.version[1], tool.version[2], tool.version[3]))
 
   im.TextUnformatted([[
 
@@ -43,7 +56,7 @@ Our tool offers an array of features, let's dive into what you can expect:
   im.TextUnformatted("We can't wait to see the incredible liveries you create and share with the community!")
 
   im.Dummy(spacing)
-  if im.Button("Dynamic Decals Thread [Link]", im.ImVec2(im.GetContentRegionAvailWidth(), 0)) then openWebBrowser("https://www.beamng.com/threads/experimental-dynamic-decals.95559/") end
+  if im.Button("Vehicle Livery Creator Thread [Link]", im.ImVec2(im.GetContentRegionAvailWidth(), 0)) then openWebBrowser("https://www.beamng.com/threads/experimental-dynamic-decals.95559/") end
   im.Dummy(spacing)
 
   im.TextUnformatted([[
@@ -56,9 +69,9 @@ local function editorGui()
     -- im.SetWindowFontScale(1.1)
     spacing = im.ImVec2(1, im.GetStyle().ItemSpacing.y * 2)
     im.PushFont3("cairo_regular_medium")
-    local titleSize = im.CalcTextSize("Dynamic Decals Tool")
+    local titleSize = im.CalcTextSize("Vehicle Livery Creator")
     im.SetCursorPosX(im.GetCursorPosX() + im.GetContentRegionAvailWidth() / 2 - titleSize.x / 2)
-    im.TextColored(editor.color.beamng.Value, "Dynamic Decals Tool")
+    im.TextColored(editor.color.beamng.Value, "Vehicle Livery Creator")
     im.PopFont()
     local availableSpace = im.GetContentRegionAvail()
     local style = im.GetStyle()

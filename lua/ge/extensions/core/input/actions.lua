@@ -12,9 +12,7 @@ M.dependencies = { "core_input_categories", "core_input_deprecatedActions", "tec
 
 -- mangle the action name, needed to prevent collisions with other vehicles' action names
 local function nameToUniqueName(actionName, vehicleName)
-  local uniqueActionName = actionName
-  if vehicleName then uniqueActionName = vehicleName.."__"..uniqueActionName end
-  return uniqueActionName
+  return vehicleName and (vehicleName.."__"..actionName) or actionName
 end
 
 local function uniqueNameToName(uniqueActionName, vehicleName)
@@ -22,41 +20,46 @@ local function uniqueNameToName(uniqueActionName, vehicleName)
   if vehicleName then
     local prefix = vehicleName.."__"
     if string.startswith(actionName, prefix) then
-       actionName = string.sub(actionName, 1+string.len(prefix))
+      actionName = string.sub(actionName, 1+string.len(prefix))
+    else
+      log("E", "", "Unable to convert uniqueName to name: "..dumps(uniqueActionName))
     end
   end
   return actionName
 end
 
--- read the actions from the specified file
--- vehicle-specific actions have certain defaults, to aid modders get it right easily
-local function readActionsFile(path, vehicleName)
-  local actions = {}
-  local vehiclesActions = jsonReadFile(path)
-  if vehiclesActions == nil then
-    log("E", "input_actions", 'unable to read json file: ' .. tostring(path))
-  end
-  for k,v in pairs(vehiclesActions or {}) do
+-- convert actions to unique action names, and set appropriate default values
+-- e.g. convert a pickup action from "myAction" to "pickup__myAction", then set category, context, etc
+local function actionsToUniqueActions(actions, vehicleName)
+  local result = {}
+  for actionName,v in pairs(actions) do
     if vehicleName and v.namespace ~= "common" then
       v.vehicle = vehicleName
       v.cat = v.cat or "vehicle_specific"
       v.ctx = v.ctx or "vlua"
     end
-    actions[nameToUniqueName(k, vehicleName)] = v
+    result[nameToUniqueName(actionName, vehicleName)] = v
   end
-  return actions
+  return result
 end
 
--- read the actions for the specified vehicle, or global actions otherwise
+-- read the actions for the specified vehicle, or normal actions otherwise
 -- if active is true, only active actions are returned
 -- if active is false, only inactive actions are returned (due to e.g. beamng.tech license)
-local function readVehicleActionsFromDisk(vehicleName, active)
+local function readFromActionsFile(vehicleName, active)
   local directory = vehicleName and ("vehicles/"..vehicleName) or "lua/ge/extensions/core/input/actions/"
   local pattern = vehicleName and "input_actions*.json" or "*.json"
   local result = {}
   for _,path in pairs(FS:findFiles(directory, pattern, 0, false, false)) do
     if active == tech_license.isAllowedActionsPath(path) then
-      tableMerge(result, readActionsFile(path, vehicleName))
+      local vehicleActions = jsonReadFile(path)
+      if vehicleActions == nil then
+        log("E", "input_actions", 'unable to read json file: ' .. tostring(path))
+      end
+      for k,action in pairs(vehicleActions) do
+        action.source = path
+      end
+      tableMerge(result, actionsToUniqueActions(vehicleActions or {}, vehicleName))
     end
   end
   return result
@@ -64,42 +67,33 @@ end
 
 -- actions that are not vehicle-specific
 local function getNormalActions(active)
-  normalActionsCache[active] = normalActionsCache[active] or readVehicleActionsFromDisk(nil, active)
+  normalActionsCache[active] = normalActionsCache[active] or readFromActionsFile(nil, active)
   return normalActionsCache[active]
 end
 
 local function readActionsFromDisk(active)
-  -- re-read all vehicle-specific actions, then merge with the non-vehicle-specific actions
-  local vehiclesActions = {}
-  for _,vehicle in ipairs(getAllVehicles()) do
-    local vehicleName = vehicle:getJBeamFilename()
-    vehiclesActions[vehicleName] = readVehicleActionsFromDisk(vehicleName, active)
-
-    -- interaction support: merge the vdata of the vehicles in here
-    local vdata = extensions.core_vehicle_manager.getVehicleData(vehicle:getID())
-    --dump{"vdata.inputActions", vdata.vdata.inputActions}
-    if vdata and vdata.vdata and vdata.vdata.inputActions then
-      for k,v in pairs(vdata.vdata.inputActions) do
-        if vehicleName and v.namespace ~= "common" then
-          v.vehicle = vehicleName
-          v.cat = v.cat or "vehicle_specific"
-          v.ctx = v.ctx or "vlua"
-        end
-        vehiclesActions[vehicleName][nameToUniqueName(k, vehicleName)] = v
-      end
-    end
-  end
-
-  -- merge all global actions and per-vehicle actions together
   local result = {}
-  for _,a in pairs(vehiclesActions) do
-    for k,v in pairs(a) do
-      result[k] = v
+  -- read all vehicle-specific actions
+  for vid, vehicle in vehiclesIterator() do
+    local vehicleName = vehicle:getJBeamFilename()
+
+    -- add actions from vehicle action files
+    for uniqueActionName,action in pairs(readFromActionsFile(vehicleName, active)) do
+      if result[uniqueActionName] and result[uniqueActionName].source ~= action.source then log("E", "", "Detected duplication of action: "..dumps(uniqueActionName)..", vid: "..dumps(vid)..", source A: "..dumps(result[uniqueActionName].source)..", source B: "..dumps(action.source)) end
+      result[uniqueActionName] = action
+    end
+
+    -- add actions from vehicle jbeam files (interaction support)
+    local vd = extensions.core_vehicle_manager.getVehicleData(vehicle:getID())
+    for uniqueActionName,action in pairs(actionsToUniqueActions(vd and vd.vdata and vd.vdata.inputActions or {}, vehicleName)) do
+      if result[uniqueActionName] and result[uniqueActionName].source ~= action.source then log("E", "", "Detected duplication of action: "..dumps(uniqueActionName)..", vid: "..dumps(vid)..", source A: "..dumps(result[uniqueActionName].source)..", source B: "..dumps(action.source)) end
+      result[uniqueActionName] = action
     end
   end
-  for k,v in pairs(getNormalActions(active)) do
-    if result[k] then log("E", "", "Vehicle specific action '"..k.."' already exists as a normal (active="..dumsp(active)..") action, and will be ignored") end
-    result[k] = v
+  -- add actions from normal action files
+  for uniqueActionName,action in pairs(getNormalActions(active)) do
+      if result[uniqueActionName] and result[uniqueActionName].source ~= action.source then log("E", "", "Detected duplication of action: "..dumps(uniqueActionName)..", vid: "..dumps(vid)..", source A: "..dumps(result[uniqueActionName].source)..", source B: "..dumps(action.source)) end
+    result[uniqueActionName] = action
   end
   return result
 end
@@ -184,7 +178,8 @@ local function actionToCommands(action)
   elseif ctxStr == 'vlua'  then ctx.type = COMMAND_CONTEXT_VLUA
   elseif ctxStr == 'elua'  then ctx.type = COMMAND_CONTEXT_ELUA
   elseif ctxStr == 'tlua'  then ctx.type = COMMAND_CONTEXT_TLUA
-  elseif ctxStr == 'bvlua' then ctx.type = COMMAND_CONTEXT_BVLUA end
+  elseif ctxStr == 'bvlua' then ctx.type = COMMAND_CONTEXT_BVLUA
+  end
 
   if actsOnUp and not actsOnDown then
     log("W", "", "Action "..dumps(action).." uses 'onUp' instead of 'onDown'. This means extra input lag. Are you sure you have a legit reason to define the action like that?")
@@ -215,9 +210,15 @@ local function onFileChanged(filename)
   end
 end
 
+local function triggerDown(actionName)
+  ActionMap.triggerBindingByNameDigital(actionName, true, os.clockhp())
+end
+local function triggerUp(actionName)
+  ActionMap.triggerBindingByNameDigital(actionName, false, os.clockhp())
+end
 local function triggerDownUp(actionName)
-  ActionMap.triggerBindingByNameDigital(actionName, true)
-  --ActionMap.triggerBindingByNameDigital(actionName, false)
+  triggerDown(actionName)
+  triggerUp(actionName)
 end
 
 
@@ -231,6 +232,9 @@ M.actionToCommands = actionToCommands
 M.uniqueNameToName = uniqueNameToName
 M.nameToUniqueName = nameToUniqueName
 
+-- API typically used by command handler (such as 'beamng:' URL protocol)
+M.triggerDown   = triggerDown
+M.triggerUp     = triggerUp
 M.triggerDownUp = triggerDownUp
 
 return M

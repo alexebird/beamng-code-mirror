@@ -692,7 +692,7 @@ local function _findOrCreateTexture(gltfRoot, filepath)
   if not FS:fileExists(filepath) then
     if filepath:sub(1, 1) == '@' then
       local filepathIn = filepath
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       if veh then
         filepath = '/temp/ceftexture_' .. filepath:gsub('@', '') .. '.png'
         -- always overwrite, the file might have been a leftover from another vehicle
@@ -832,7 +832,7 @@ local function _exportMaterial(gltfCurrentMaterial, materialObj)
     gltfCurrentMaterial.translucentBlendOp = materialObj:getField('translucentBlendOp', 0)
     gltfCurrentMaterial.instanceDiffuse = _getMaterialStages(materialObj, "instanceDiffuse", gltfCurrentMaterial.activeLayers)
     if tableContains(gltfCurrentMaterial.instanceDiffuse, true) then
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       gltfCurrentMaterial.instanceColor = {veh.color.x, veh.color.y, veh.color.z, veh.color.w}
       gltfCurrentMaterial.instanceColorPalette0 = {veh.colorPalette0.x, veh.colorPalette0.y, veh.colorPalette0.z, veh.colorPalette0.w}
       gltfCurrentMaterial.instanceColorPalette1 = {veh.colorPalette1.x, veh.colorPalette1.y, veh.colorPalette1.z, veh.colorPalette1.w}
@@ -867,7 +867,7 @@ local function _exportMaterial(gltfCurrentMaterial, materialObj)
     gltfCurrentMaterial.emissiveMap = _getMaterialStages(materialObj, "emissiveMap", gltfCurrentMaterial.activeLayers)
 
     if tableContains(gltfCurrentMaterial.instanceDiffuse, true) or gltfCurrentMaterial.colorPaletteMap then
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       gltfCurrentMaterial.instanceColor = {veh.color.x, veh.color.y, veh.color.z, veh.color.w}
       gltfCurrentMaterial.instanceColorPalette0 = {veh.colorPalette0.x, veh.colorPalette0.y, veh.colorPalette0.z, veh.colorPalette0.w}
       gltfCurrentMaterial.instanceColorPalette1 = {veh.colorPalette1.x, veh.colorPalette1.y, veh.colorPalette1.z, veh.colorPalette1.w}
@@ -973,7 +973,7 @@ local function processExport()
     end
   end
 
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
 
   local partNodeBeams = nil
   if M.exportBeams then
@@ -1279,7 +1279,7 @@ local function updateGFX(dt)
 end
 
 local function suggestFilename()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then
     return ''
   end

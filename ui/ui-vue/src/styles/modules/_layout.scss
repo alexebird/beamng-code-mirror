@@ -1,7 +1,7 @@
 :deep() {
 
 /* Layout */
-@import '@/styles/modules/mixins';
+@import '@/styles/modules/density';
 // content
 .layout-content {
   position: absolute;
@@ -12,7 +12,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-      }
+  }
 
 }
 // alignment

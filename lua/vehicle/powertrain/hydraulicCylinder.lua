@@ -130,7 +130,7 @@ local function initSounds(cylinder, cylinderData)
   cylinder.movementLoopVolumeMinVelocity = cylinderData.movementLoopVolumeMinVelocity or 0.001
   cylinder.movementLoopVolumeMaxVelocity = cylinderData.movementLoopVolumeMaxVelocity or 0.05
 
-  cylinder.showDebugGraphSound = cylinder.showDebugGraphSound or false
+  cylinder.showDebugGraphSound = cylinderData.showDebugGraphSound or false
 end
 
 local function resetSounds(cylinder, cylinderData)

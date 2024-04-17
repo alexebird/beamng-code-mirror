@@ -49,7 +49,7 @@ function getNavigableElements(root = null) {
     let noNav = elem.attributes.getNamedItem(NO_NAV_ATTR)
     return !noNav || noNav.value !== "true"
   })
-  //console.log('getNavigateableElements', res);
+  //console.log('getNavigateableElements', res)
   return res
 }
 
@@ -72,7 +72,7 @@ function uncollectRects() {
 }
 
 
-function collectRects(direction) {
+function collectRects(direction, parent) {
   const links = {}
   if (direction) {
     links[direction] = []
@@ -82,7 +82,7 @@ function collectRects(direction) {
     links.left = []
     links.right = []
   }
-  const ns = getNavigableElements()
+  const ns = getNavigableElements(parent)
   for (let node of ns) {
     // prevent invisible navigation
     if (!isAvailable(node)) {
@@ -104,10 +104,10 @@ function collectRects(direction) {
     if (links.right) links.right.push(lnk)
   }
   if (links.up) links.up.sort((a, b) => a.rect.top - b.rect.top)
-  if (links.down) links.down.sort((a, b) => a.rect.botton - b.rect.bottom)
+  if (links.down) links.down.sort((a, b) => a.rect.bottom - b.rect.bottom)
   if (links.left) links.left.sort((a, b) => a.rect.left - b.rect.left)
   if (links.right) links.right.sort((a, b) => a.rect.right - b.rect.right)
-  //console.log(links);
+  //console.log(links)
   return links
 }
 
@@ -141,15 +141,17 @@ function isTarget(curr, goal, direction) {
 }
 
 
-function navigate(links, direction) {
-  if (links[direction]) navigateNext(links[direction], direction)
+function navigate(links, direction, activeOverride) {
+  if (links[direction]) return navigateNext(links[direction], direction, activeOverride)
+  return false
 }
 
 
-function navigateNext(links, direction) {
-  const active = document.activeElement
+function navigateNext(links, direction, activeOverride = null) {
+  const active = activeOverride || document.activeElement
+
   if (active.nodeName === "BODY") {
-    setTimeout(() => {
+    window.requestAnimationFrame(() => {
       //locate first button (closest to topleft corner), and set its focus
       let firstLink = null
       let firstElementDistance = Number.MAX_SAFE_INTEGER
@@ -163,36 +165,38 @@ function navigateNext(links, direction) {
         console.log("Couldn't locate any button anywhere. Menu navigation won't work")
         return
       }
-      // console.log("Focusing on a first button:", firstLink);
+      // console.log("Focusing on a first button:", firstLink)
       firstLink.dom.focus()
       scrollFix(firstLink, direction)
-    }, 0)
-    return
+    })
+    return true
   }
 
-  //If a list item has arrow elements navigate to those with left and right
+  /// If a list item has arrow elements navigate to those with left and right
   // if (active.nodeName === "MD-LIST-ITEM" && (direction === DIR_LEFT || direction === DIR_RIGHT)) {
-  // for (let i = 0; i < links.length; i += 1) {
-  // if (active.contains( links[i].dom )) {
-  // if (direction === DIR_LEFT && links[i].dom.classList.contains(DIR_LEFT)) {
-  // links[i].dom.focus();
-  // scrollFix(links[i], direction);
-  // return;
-  // } else if (direction === DIR_RIGHT && links[i].dom.classList.contains(DIR_RIGHT)) {
-  // links[i].dom.focus();
-  // scrollFix(links[i], direction);
-  // return;
-  // }
-  // }
-  // }
+  //   for (let i = 0; i < links.length; i += 1) {
+  //     if (active.contains(links[i].dom )) {
+  //       if (direction === DIR_LEFT && links[i].dom.classList.contains(DIR_LEFT)) {
+  //         links[i].dom.focus()
+  //         scrollFix(links[i], direction)
+  //         return
+  //       } else if (direction === DIR_RIGHT && links[i].dom.classList.contains(DIR_RIGHT)) {
+  //         links[i].dom.focus()
+  //         scrollFix(links[i], direction)
+  //         return
+  //       }
+  //     }
+  //   }
   // }
 
   if (
     (active.nodeName === "MD-SLIDER" && (direction === DIR_LEFT || direction === DIR_RIGHT)) ||
     (active.nodeName === "MD-OPTION" && (direction === DIR_UP || direction === DIR_DOWN)) ||
     (active.nodeName === "INPUT" && active.type === "range" && (direction === DIR_LEFT || direction === DIR_RIGHT))
-  )
-    return fireKey(active, direction)
+  ) {
+    fireKey(active, direction)
+    return true
+  }
 
   let activeRect = active.getBoundingClientRect()
   let fixScroll = true
@@ -236,14 +240,14 @@ function navigateNext(links, direction) {
     }
   }
   if (nearestLink) {
-    // console.log("Focussing on a button:", nearestLink);
+    // console.log("Focussing on a button:", nearestLink)
     nearestLink.dom.focus()
     if (fixScroll) scrollFix(nearestLink, direction)
+    return nearestLink.dom
+  } else {
+    return false
   }
 }
-
-// TODO - check if this is needed - does not appear to be in use anywhere?
-const navScrollingController = true // enable/disable right thumbstick catch (see menu.json action map)
 
 const navScrolling = {
   // runtime variables, compatible with crossfire's "link" object
@@ -268,10 +272,10 @@ function drawScrollHint() {
 
 // this function is called on thumbstick event
 function navigateScroll(axis, amount) {
-  // navScrolling[axis].active = Math.abs(amount) > 0.2;
+  // navScrolling[axis].active = Math.abs(amount) > 0.2
   // if (!navScrolling[axis].active) {
-  //   navScrolling[axis].area = null;
-  //   return;
+  //   navScrolling[axis].area = null
+  //   return
   // }
   if (axis === AXIS_V) amount = -amount
   navScrolling[axis].amount = amount * 15
@@ -309,19 +313,19 @@ function navigateScroll(axis, amount) {
       window.requestAnimationFrame(scrl)
     }
   })
-  return true // we initiated some scrolling 
+  return true // we initiated some scrolling
 }
 
 
 function scrollCatch(axis, enable) {
   if (navScrolling.listening[axis] === enable) return
-  // console.log(`want to ${enable ? "enable" : "disable"} ${axis} scroll catch...`);
+  // console.log(`want to ${enable ? "enable" : "disable"} ${axis} scroll catch...`)
   const cur = isScrolling()
   navScrolling.listening[axis] = enable
   if (cur === isScrolling()) return
   // this will hook the events to UI only, preventing the camera from moving
   bngApi.engineLua(`local o = scenetree.findObject("MenuScrollActionMap"); if o then o:${enable ? "push" : "pop"}() end`)
-  // console.log(`scroll catch ${enable ? "enabled" : "disabled"} (called by ${axis} scroll event)`);
+  // console.log(`scroll catch ${enable ? "enabled" : "disabled"} (called by ${axis} scroll event)`)
 }
 
 
@@ -352,11 +356,11 @@ function findScrollable(link, axis, thumbstick) {
       if (noNav && noNav.value === "false") return
     }
     const styles = document.defaultView.getComputedStyle(node, null)
-    // console.log(styles.position, node, node.getBoundingClientRect());
+    // console.log(styles.position, node, node.getBoundingClientRect())
     if (styles[opts.overflow] === "auto" || styles[opts.overflow] === "scroll") {
       fullsize = node[opts.scroll]
       size = node[opts.client]
-      // console.log(fullsize, size, node);
+      // console.log(fullsize, size, node)
       if (fullsize > size) parent = node
     }
   }
@@ -382,33 +386,34 @@ function findScrollable(link, axis, thumbstick) {
   if (!parent) return null
   let start = 0
   const styles = document.defaultView.getComputedStyle(parent, null)
-  if (["relative", "absolute", "static"].includes(styles.position)) start += parent.getBoundingClientRect()[opts.moveby]
+  // autoscrolling misbehaves? check if position style is defined here
+  if (["relative", "absolute", "static", "fixed"].includes(styles.position)) start += parent.getBoundingClientRect()[opts.moveby]
   // calculate the size of view bounds to ensure items visibility
   const pad = Math.max(size / 4, link.rect[opts.size])
   const bounds = [start + pad, start + size - pad]
   /// DEBUG
-  // const id = `xfline_dbg`;
-  // let elem = document.getElementById(id);
+  // const id = `xfline_dbg`
+  // let elem = document.getElementById(id)
   // if (!elem) {
-  //   elem = document.createElement("div");
-  //   elem.setAttribute("id", id);
-  //   elem.style.position = "absolute";
-  //   elem.style.pointerEvents = "none";
-  //   elem.style.zIndex = 1000000;
-  //   document.body.appendChild(elem);
+  //   elem = document.createElement("div")
+  //   elem.setAttribute("id", id)
+  //   elem.style.position = "absolute"
+  //   elem.style.pointerEvents = "none"
+  //   elem.style.zIndex = 1000000
+  //   document.body.appendChild(elem)
   // }
   // if (axis === AXIS_H) {
-  //   elem.style.top = elem.style.bottom = 0;
-  //   elem.style.left = `${parent.style.left + bounds[0]}px`;
-  //   elem.style.width = `${bounds[1] - bounds[0]}px`;
+  //   elem.style.top = elem.style.bottom = 0
+  //   elem.style.left = `${parent.style.left + bounds[0]}px`
+  //   elem.style.width = `${bounds[1] - bounds[0]}px`
   // } else {
-  //   elem.style.left = elem.style.right = 0;
-  //   elem.style.top = `${parent.style.top + bounds[0]}px`;
-  //   elem.style.height = `${bounds[1] - bounds[0]}px`;
+  //   elem.style.left = elem.style.right = 0
+  //   elem.style.top = `${parent.style.top + bounds[0]}px`
+  //   elem.style.height = `${bounds[1] - bounds[0]}px`
   // }
   // elem.style[axis === AXIS_H ? "borderLeft" : "borderTop"] =
   //   elem.style[axis === AXIS_H ? "borderRight" : "borderBottom"] =
-  //   "2px dashed magenta";
+  //   "2px dashed magenta"
   /// /DEBUG
   return {
     parent,
@@ -443,7 +448,7 @@ function scrollFix(link, direction) {
     if (link.rect.left < area.bounds[0]) mov = Math.max(area.parent.scrollLeft - area.bounds[0] + link.rect.left, area.start)
     else if (link.rect.right > area.bounds[1]) mov = Math.min(area.parent.scrollLeft - area.bounds[1] + link.rect.right, area.finish)
   }
-  // console.log(JSON.stringify({direction, /*fullheight, height, top, pad,*/ scrolled: area.parent.scrollTop, area.bounds, l_top: link.rect.top, l_bottom: link.rect.bottom, movy}, null, 2));
+  // console.log(JSON.stringify({direction, /*fullheight, height, top, pad,*/ scrolled: area.parent.scrollTop, area.bounds, l_top: link.rect.top, l_bottom: link.rect.bottom, movy}, null, 2))
   if (mov > -1) area.parent.scrollTo({ [area.moveby]: mov, behavior: "instant" }) // smooth|instant
 }
 
@@ -528,6 +533,5 @@ export {
   uncollectRects,
   isVisibleFast,
   navigate,
-  navScrollingController,
   navigateScroll
 }

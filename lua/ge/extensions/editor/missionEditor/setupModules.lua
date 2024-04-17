@@ -52,7 +52,7 @@ function C:getMissionIssues(m)
   local issues = {}
 
   for k, v in pairs(m.setupModules) do
-    if v.enabled and tableSize(v) <= 1 then
+    if v.enabled == nil or (v.enabled and tableSize(v) <= 1) then
       table.insert(issues, {label = 'Missing or malformed data for setup module: '..k, severity = 'error'})
     end
   end

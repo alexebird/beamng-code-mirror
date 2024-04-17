@@ -277,7 +277,7 @@ end
 
 local function onUpdate()
   cameraPos = core_camera.getPosition()
-  plPos = be:getPlayerVehicle(0):getPosition()
+  plPos = getPlayerVehicle(0):getPosition()
   for i = 1, #dynamicPropsObjs, 1 do
     dynamicPropsObjs[i]:onUpdate()
   end

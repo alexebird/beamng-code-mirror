@@ -244,7 +244,6 @@ end
 
 function C:onUpdate(dt)
   if not self.started then return end
-
   for _, id in ipairs(self.vehIds) do
 
     if self.time > 0 then
@@ -282,7 +281,40 @@ function C:doSuspend(sus)
       guihooks.trigger('HotlappingTimerUnpause')
     end
   end
+end
 
+function C:changeRaceVehicle(lastId, newId)
+  for k, id in ipairs(self.vehIds) do
+    if id == lastId then 
+      self.vehIds[k] = newId 
+    end
+  end
+
+  self.recoveryStates[newId] = self.recoveryStates[lastId]
+  self.recoveryStates[lastId] = nil
+
+  self.states[newId] = self.states[lastId]
+  self.states[lastId] = nil
+
+  local vehicle = be:getObjectByID(newId)
+  self.states[newId].wheelOffsets = {}
+  self.states[newId].currentCorners = {}
+  self.states[newId].previousCorners = {}
+  local wCount = vehicle:getWheelCount()-1
+  if wCount > 0 then
+    local vehiclePos = vehicle:getPosition()
+    local vRot = quatFromDir(vehicle:getDirectionVector(), vehicle:getDirectionVectorUp())
+    local x,y,z = vRot * vec3(1,0,0),vRot * vec3(0,1,0),vRot * vec3(0,0,1)
+    --local oobbz = vec3(vehicle:getSpawnWorldOOBB():getHalfExtents()).z/2
+    for i=0, wCount do
+      local axisNodes = vehicle:getWheelAxisNodes(i)
+      local nodePos = vec3(vehicle:getNodePosition(axisNodes[1]))
+      local pos = vec3(nodePos:dot(x), nodePos:dot(y), nodePos:dot(z))
+      table.insert(self.states[newId].wheelOffsets, pos)
+      table.insert(self.states[newId].currentCorners, vRot*pos + vehiclePos)
+      table.insert(self.states[newId].previousCorners, vRot*pos + vehiclePos)
+    end
+  end
 end
 
 function C:startRace()

@@ -2,15 +2,12 @@
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
---require('/lua/Prefab/controller')
-
 local C = {}
 
 C.name = 'Track Prefab'
 C.color = ui_flowgraph_editor.nodeColors.scene
 C.icon = ui_flowgraph_editor.nodeIcons.svene
 C.description = 'Allow Flowgraph to track the Prefab spawned outside Flowgraph.'
-C.todo = ""
 C.category = 'once_instant'
 
 C.pinSchema = {

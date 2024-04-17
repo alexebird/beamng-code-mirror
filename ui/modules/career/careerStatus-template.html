@@ -13,7 +13,7 @@
     <div class="vertical-divider"></div>
     <div class="career-status-value">
       <div class="icon-mask icon-beambucks"></div>
-      <div>{{ profile.money.value | numShort:1 }}</div>
+      <div>{{ profile.money.value | beamBucks }}</div>
     </div>
   </div>
 
@@ -47,7 +47,7 @@
       <div bng-branch-icon="{{ branch }}"></div>
       <div class="levels-progressbar-wrapper">
         <div class="progressbar-labels">
-          <div>{{:: "ui.career." + branch | translate }}</div>
+          <div>{{:: "ui.career." + branch + ".name" | translate }}</div>
           <span class="progressbar-value" ng-if="profile.showXPNumbers && profile[branch].curLvlProgress != -1">
             {{ profile[branch].curLvlProgress }} / {{ profile[branch].neededForNext }}
           </span>

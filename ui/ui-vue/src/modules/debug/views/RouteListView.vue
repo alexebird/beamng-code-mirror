@@ -3,7 +3,7 @@
 		<h1>Vue Routes List</h1>
 		<p>Click to visit:</p>
 		<ul>
-			<li v-for="route in routes" :key="route.name"><bng-button @click="go(route)" tabindex="1">{{ route.name }}</bng-button></li>
+			<li v-for="route in routes" :key="route.name"><BngButton @click="go(route)" tabindex="1">{{ route.name }}</BngButton></li>
 		</ul>
 	</div>
 </template>
@@ -13,7 +13,7 @@ import { BngButton } from "@/common/components/base"
 import router from "@/router"
 
 
-const routes = router.getRoutes().filter(r=>r.name!=='routelist').sort((a,b)=>a.name>b.name?1:-1)
+const routes = router.getRoutes().filter(r=>r.name!=='routelist').sort((a,b)=>a.name.localeCompare(b.name))
 
 
 function go(route) {

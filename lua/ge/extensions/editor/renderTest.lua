@@ -71,7 +71,7 @@ local function onEditorGui()
     local focusPos
     local focusRot
     if attachToObject[0] then
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       if veh then
         focusPos = veh:getPosition()
         pos = focusPos

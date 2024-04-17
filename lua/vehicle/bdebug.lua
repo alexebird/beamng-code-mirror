@@ -31,6 +31,7 @@ local function initBDebugImpl(bdebugImplSavedState)
     M.isEnabled = bdebugImpl.isEnabled
     M.onPlayersChanged = bdebugImpl.onPlayersChanged
     M.reset = bdebugImpl.reset
+    M.recieveViewportSize = bdebugImpl.recieveViewportSize
 
     M.setNodeDebugText = bdebugImpl.setNodeDebugText
     M.clearNodeDebugText = bdebugImpl.clearNodeDebugText

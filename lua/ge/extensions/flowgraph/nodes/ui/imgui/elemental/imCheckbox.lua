@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Displays a Checkbox in an imgui window."
 C.category = 'repeat_instant'
 
-C.todo = ""
 C.pinSchema = {
   { dir = 'in', type = 'bool', name = 'enabled', hidden = true, hardcoded = true, default = true, description = 'If this checkbox can be used or not.' },
   { dir = 'in', type = 'flow', name = 'setOn', hidden = true, description = 'Check the box.', impulse = true},
@@ -61,6 +60,7 @@ function C:work()
   end
   self.pinOut.on.value = self.state
   self.pinOut.off.value = not self.state
+  self.pinOut.checked.value = self.state
 end
 
 return _flowgraph_createNode(C)

@@ -212,8 +212,6 @@ angular.module('beamng.stuff')
             if (Array.isArray(star.rewards)) {
               for (let reward of star.rewards) {
                 const type = reward.attributeKey;
-                if (type === "motorsportsXP") // FIXME: remove this temp fix once it'll be fixed in game
-                  continue;
                 let node = $scope.selectedMission._totals;
                 if (!node.hasOwnProperty(type)) { // if not in root, create in a branch
                   node = node.branches;
@@ -433,6 +431,6 @@ angular.module('beamng.stuff')
 
     bngApi.engineLua("if freeroam_bigMapPoiProvider then freeroam_bigMapPoiProvider.sendMissionLocationsToMinimap() end");
     bngApi.engineLua("if freeroam_bigMapPoiProvider then freeroam_bigMapPoiProvider.sendCurrentLevelMissionsToBigmap() end");
-    bngApi.engineLua("if freeroam_bigMapMode then freeroam_bigMapMode.enterBigMap(true) end");
+    bngApi.engineLua("if freeroam_bigMapMode then freeroam_bigMapMode.enterBigMap({instant = true}) end");
 
 }]);

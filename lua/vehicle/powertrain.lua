@@ -951,6 +951,19 @@ local function getHydraulicConsumer(consumerName)
   return nil --couldn't find requested consumer
 end
 
+local function getPropulsionDeviceForDevice(device)
+  local currenDevice = device
+  while currenDevice ~= nil do
+    if currenDevice.deviceCategories.engine then
+      return currenDevice
+    else
+      currenDevice = currenDevice.parent
+    end
+  end
+
+  return nil --didn't find anything...
+end
+
 local function setVehiclePath(path)
   vehiclePath = path
 end
@@ -1042,6 +1055,7 @@ M.getDevicesByCategory = getDevicesByCategory
 M.getDevice = getDevice
 M.getChildWheels = getChildWheels
 M.getPropulsionDeviceForWheel = getPropulsionDeviceForWheel
+M.getPropulsionDeviceForDevice = getPropulsionDeviceForDevice
 M.getHydraulicConsumer = getHydraulicConsumer
 
 M.dumpsDeviceData = dumpsDeviceData

@@ -15,7 +15,7 @@ local iconHeightTop = 2.5
 local iconRendererObj
 local iconWorldSize = 20
 local tmpVec = vec3()
-local maxVisibleDistance = 6
+local maxVisibleDistance = 15
 local screenObjTemp = nil
 function C:init()
   self.visible = true
@@ -81,17 +81,13 @@ end
 
 function C:update(data)
   if not self.visible or not data.veh then return end
-  -- TODO: optimize!
-  local corner, vehX, vehY, vehZ = data.bbp0, data.bbp3-data.bbp0, data.bbp1-data.bbp0, data.bbp4-data.bbp0
-  vehX, vehY, vehZ = vehX * 0.5, vehY * 0.5, vehZ * 0.5
-  corner = corner + vehX + vehY + vehZ
-  --elf:drawAxisBox(corner - vehX - vehY - vehZ, vehX*2, vehY*2, vehZ*2, ColorI(64,64,128,64))
+
   local anyOverlap = false
   for idx, area in ipairs(self.doors or {}) do
     --simpleDebugText3d(idx, area.iconPos, 0.25)
     screenObjTemp = scenetree.findObjectById(area.screenObjId) or nil
 
-    local overlap = data.isWalking and (data.cruisingSpeedFactor < 1) and overlapsOBB_OBB(corner, vehX, vehY, vehZ, area.areaPos, area.xVec, area.yVec, area.zVec)
+    local overlap = data.isWalking and (data.cruisingSpeedFactor < 1) and overlapsOBB_OBB(data.bbCenter, data.bbHalfAxis0, data.bbHalfAxis1, data.bbHalfAxis2, area.areaPos, area.xVec, area.yVec, area.zVec)
     anyOverlap = anyOverlap or overlap
     if overlap and not area.overlap then
       if screenObjTemp then
@@ -115,11 +111,12 @@ function C:update(data)
 
     local iconInfo = area.iconInfo
     if iconInfo then
-
+      local iconPos = iconInfo.worldPosition
       tmpVec:set(data.camPos)
-      tmpVec:setSub(iconInfo.worldPosition)
-      local rayLength =  tmpVec:length()
-      local visible = rayLength < area.maxVisibleDistance and castRayStatic(iconInfo.worldPosition, tmpVec, rayLength, nil) >= rayLength
+      tmpVec:setSub(iconPos)
+      local rayLength = tmpVec:length()
+
+      local visible = rayLength < area.maxVisibleDistance and castRayStatic(iconPos, tmpVec, rayLength, nil) >= rayLength
 
       local smootherVal = area.iconPosSmoother:get((not data.bigMapActive and overlap) and 1 or 0, data.dt)
       tmpVec:set(0,0,self.iconOffsetHeight + smootherVal*self.iconLift)
@@ -132,10 +129,8 @@ function C:update(data)
         debugDrawer:drawLine(area.iconPos + vec3(0,0,self.iconOffsetHeight - smootherVal * self.iconOffsetHeight), tmpVec, lineColorF)
       end
     end
-
-    --self:drawAxisBox(area.areaPos - area.xVec - area.yVec - area.zVec, area.xVec*2, area.yVec*2, area.zVec*2)
-
   end
+
   self.anyOverlap = anyOverlap
 
 end

@@ -9,7 +9,7 @@ local C = {}
 C.name = 'Toggle Vehicle Controls'
 C.color = ui_flowgraph_editor.nodeColors.ai
 C.icon = ui_flowgraph_editor.nodeIcons.ai
-C.description = 'Sets wether or not a vehicle should be able to be controlled by the player.'
+C.description = 'Sets whether or not a vehicle should be able to be controlled by the player.'
 C.todo = "PlayerUsable has some bugs and only works the first time."
 C.category = 'repeat_instant'
 

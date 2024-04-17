@@ -3,7 +3,7 @@
     <div class="animated-border"></div>
     <div class="content-wrapper">
       <div class="content">
-        <bng-icon v-if="iconType" span class="input-icon" :type="iconType" />
+        <BngOldIcon v-if="iconType" span class="input-icon" :type="iconType" />
         <span>{{ score.description }}</span>
       </div>
     </div>
@@ -11,29 +11,35 @@
 </template>
 
 <script setup>
-import {computed} from "vue";
-import { BngIcon } from "@/common/components/base";
-import { icons } from "@/common/components/base/bngIcon.vue"
-import { MilestoneType } from "../milestoneTypes";
+import { computed } from "vue"
+import { BngOldIcon } from "@/common/components/base"
+import { icons } from "@/assets/icons"
+import { MilestoneType } from "../milestoneTypes"
 
 const props = defineProps({
   score: {
     type: Object,
     required: true,
     validator(value) {
-      return value.hasOwnProperty("type") && typeof(value.type) === "string" && 
+      return (
+        value.hasOwnProperty("type") &&
+        typeof value.type === "string" &&
         [MilestoneType.Beambuck, MilestoneType.BeamXp].includes(value.type) &&
-        value.hasOwnProperty("description") && typeof(value.description) == "string"
-    }
-  }
+        value.hasOwnProperty("description") &&
+        typeof value.description == "string"
+      )
+    },
+  },
 })
 
 const iconType = computed(() => getIconType(props.score.type))
 
 function getIconType(type) {
   switch (type) {
-    case MilestoneType.Beambuck: return icons.general.beambuck
-    case MilestoneType.BeamXp: return icons.general.offbtn
+    case MilestoneType.Beambuck:
+      return icons.general.beambuck
+    case MilestoneType.BeamXp:
+      return icons.general.offbtn
   }
 }
 </script>
@@ -51,7 +57,7 @@ $color: white;
   -webkit-user-select: none;
 
   > .animated-border {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -72,7 +78,7 @@ $color: white;
       left: -100%;
       right: -100%;
       bottom: -100%;
-      background:  linear-gradient(#E6CF43, #ED3823, #E6CF43, #FF6600, #E6CF43);
+      background: linear-gradient(#e6cf43, #ed3823, #e6cf43, #ff6600, #e6cf43);
       animation: rotate-gradient linear 2s infinite;
     }
   }
@@ -108,6 +114,8 @@ $color: white;
 }
 
 @keyframes rotate-gradient {
-  to { transform: rotate(360deg) }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

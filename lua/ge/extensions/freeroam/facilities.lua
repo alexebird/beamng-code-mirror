@@ -84,7 +84,7 @@ local function getFacilities(levelName)
         parseFacilitiyFile(file, facilitiesByLevel[levelName], levelInfo.misFilePath)
       end
     end
-    log("I","",string.format("Loaded facilities on level %s (%d garages, %d gasStations, %d dealerships)",levelName, #facilitiesByLevel[levelName].garages, #facilitiesByLevel[levelName].gasStations, #facilitiesByLevel[levelName].dealerships))
+    log("D","",string.format("Loaded facilities on level %s (%d garages, %d gasStations, %d dealerships)",levelName, #facilitiesByLevel[levelName].garages, #facilitiesByLevel[levelName].gasStations, #facilitiesByLevel[levelName].dealerships))
   end
   return facilitiesByLevel[levelName]
 end
@@ -188,7 +188,7 @@ local function getZonesForFacility(facility)
 end
 
 local function getGaragePosRot(poi, veh)
-  veh = veh or be:getPlayerVehicle(0)
+  veh = veh or getPlayerVehicle(0)
   local garage = getGarage(poi.id) -- TODO: implement "default garage" property for level
   if not garage then return end
   local parkingSpots = getParkingSpotsForFacility(garage)
@@ -368,10 +368,9 @@ local function onGetRawPoiListForLevel(levelIdentifier, elements)
     for i, computer in ipairs(facilities.computers or {}) do
       M.walkingMarkerFormatFacility(computer, elements)
     end
-  else
-    for i, garage in ipairs(facilities.garages or {}) do
-      M.zoneMarkerFormatFacility(garage, elements, "poi_garage_2")
-    end
+    --for i, garage in ipairs(facilities.garages or {}) do
+      --M.zoneMarkerFormatFacility(garage, elements, "poi_garage_2")
+    --end
   end
 end
 M.onGetRawPoiListForLevel = onGetRawPoiListForLevel
@@ -402,7 +401,7 @@ local function onActivityAcceptGatherData(elemData, activityData)
         data.props = {}
         for _, prop in ipairs(elem.facility.activityAcceptProps or {}) do
           table.insert(data.props,{
-            icon = prop.icon or "icons.general.check",
+            icon = prop.icon or "checkmark",
             keyLabel = prop.keyLabel,
             valueLabel = prop.valueLabel,
           })
@@ -413,7 +412,7 @@ local function onActivityAcceptGatherData(elemData, activityData)
         data.props = {}
         for _, prop in ipairs(elem.facility.activityAcceptProps or {}) do
           table.insert(data.props,{
-            icon = prop.icon or "icons.general.check",
+            icon = prop.icon or "checkmark",
             keyLabel = prop.keyLabel,
             valueLabel = prop.valueLabel,
           })

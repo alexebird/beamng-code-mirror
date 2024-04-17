@@ -1,15 +1,12 @@
 <!-- bngProgressBar - progress bar -->
 <template>
   <div class="bng-progress-bar">
-    <div class="header">
+    <div v-if="headerLeft || headerRight" class="header">
       <span class="header-left">{{ headerLeft }}</span>
       <span class="header-right">{{ headerRight }}</span>
     </div>
     <div class="progress-bar">
-      <div class="info">
-        <span class="value-label" data-testid="value-label">{{ currentValue }}</span>
-        <span>{{ max }}</span>
-      </div>
+      <div v-if="showValueLabel" class="info" v-html="valueHTML" />
       <span class="progress-fill" ref="progressFillRef"></span>
     </div>
   </div>
@@ -33,6 +30,14 @@ const props = defineProps({
   },
   headerLeft: String,
   headerRight: String,
+  showValueLabel: {
+    type: Boolean,
+    default: true,
+  },
+  valueLabelFormat: {
+    type: String,
+    default: '#value#'
+  },
 })
 
 defineExpose({
@@ -43,6 +48,8 @@ defineExpose({
 
 const currentValue = ref(null)
 const progressFillRef = ref(null)
+
+const valueHTML = computed(()=>props.valueLabelFormat.replace('#value#', `<span class="value-label">${currentValue.value}</span><span>${props.max}</span>`))
 
 const progressFillUnits = computed(() => 100 - ((currentValue.value - props.min) / (props.max - props.min)) * 100)
 
@@ -84,6 +91,7 @@ function updateProgressFill(percentage) {
 </script>
 
 <style scoped lang="scss">
+
 $background-color: rgba(255, 255, 255, 0.15);
 
 $font-color: #ffffff;
@@ -122,7 +130,7 @@ $progress-fill-z-index: 1;
       padding: 0.2em 1em 0;
       z-index: $info-z-index;
 
-      .value-label {
+      :deep(.value-label) {
         position: relative;
         padding-right: 1.34em;
 
@@ -150,4 +158,5 @@ $progress-fill-z-index: 1;
     }
   }
 }
+
 </style>

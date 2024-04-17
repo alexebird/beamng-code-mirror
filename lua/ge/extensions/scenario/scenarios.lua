@@ -1004,7 +1004,7 @@ local function onClientStartMission(levelPath)
     local licenseText = scenario.userSelectedVehicle.licenseText
     scenario.userSpawningData = createPlayerSpawningData(model, config, color, licenseText)
     local spawnedVehicle = nil
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle then
       spawnedVehicle = core_vehicles.replaceVehicle(scenario.userSpawningData.model, scenario.userSpawningData.options)
     else
@@ -1329,7 +1329,7 @@ local function endScenario(countDownTime)
 end
 
 local function TransitionToFreeroam()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then
     log('W',logTag, 'there is no player vehicle.')
     return
@@ -1530,7 +1530,7 @@ local function tickPreRunning(dt, dtSim)
   -- Path Camera
   if delayCameraPath then
     delayCameraPath = delayCameraPath - dt
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if (playerVehicle and playerVehicle:isRenderMaterialsReady() and delayCameraPath < 10) or delayCameraPath < 0 then
       delayCameraPath = nil
       setupPathCamera()
@@ -1859,7 +1859,7 @@ local function onVehicleSelected(vehicleData)
   -- log('I', logTag, 'onVehicleSelected called: '..dumps(vehicleData))
   if vehicleData.model and vehicleData.config then
     scenario.userSpawningData = createPlayerSpawningData(vehicleData.model, vehicleData.config, vehicleData.color, vehicleData.licenseText)
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle then
       core_vehicles.replaceVehicle(scenario.userSpawningData.model, scenario.userSpawningData.options)
       scenetree.ScenarioObjectsGroup:addObject(playerVehicle)
@@ -1873,7 +1873,7 @@ end
 
 local function tickRestart(dt, dtSim)
   -- log( 'I', logTag, 'tickRestart called....')
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   local controlVehicle = playerVehicle
   if scenario.restartStage == 0 then
 

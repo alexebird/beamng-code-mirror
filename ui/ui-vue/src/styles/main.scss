@@ -1,7 +1,16 @@
-@use './modules/fonts';
-@use './modules/colors';
-@use './modules/focus';
-@use './modules/corners';
-@use './modules/layout';
-@use './modules/uiApps';
-@use './modules/tooltip';
+@use "./modules/fonts";
+@use "./modules/iconfont";
+@use "./modules/colors";
+@use "./modules/focus";
+@use "./modules/corners";
+@use "./modules/layout";
+@use "./modules/uiApps";
+@use "./modules/tooltip";
+@use "./modules/directives/draggable";
+
+// Globally set box-sizing
+:deep() {
+  * {
+    box-sizing: border-box;
+  }
+}

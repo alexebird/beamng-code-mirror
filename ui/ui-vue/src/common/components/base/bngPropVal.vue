@@ -1,7 +1,7 @@
 <!-- bngPropVal - for displaying a key/value pair, optionally with a leading icon -->
 <template>
   <div :class="itemClass">
-    <BngIcon v-if="iconType" span class="icon" :title="iconType" :type="iconType" :color="iconColor" />
+    <BngIcon v-if="iconType" class="icon" :type="iconType" :color="iconColor" />
     <span v-if="keyLabel" class="key-label">{{ keyLabel }}</span>
     <span class="value-label">{{ value }}</span>
   </div>
@@ -10,27 +10,17 @@
 <script setup>
 import { computed, ref } from "vue"
 import { BngIcon } from "@/common/components/base"
+import { shrinkNum } from "@/utils/format"
 
 const props = defineProps({
-  iconType: {
-    type: String,
-    default: null,
-  },
-  keyLabel: {
-    type: String,
-    required: false,
-  },
+  iconType: [String, Object],
+  keyLabel: String,
   valueLabel: {
     required: true,
   },
-  shrinkNum: {
-    type: Boolean,
-    required: false,
-    default: false,
-  },
+  shrinkNum: Boolean,
   iconColor: {
     type: String,
-    required: false,
     default: "#fff",
   },
 })
@@ -38,63 +28,51 @@ const props = defineProps({
 const itemClass = computed(() => ({
   "info-item": true,
   "with-icon": props.iconType,
+  "no-key": !props.keyLabel,
 }))
-
-function shrinkNum(num, decimals = 0) {
-  const units = ["", "K", "M", "B", "T", "Q"]
-  if (!num) return "0"
-  if (isNaN(parseFloat(num)) || !isFinite(+num)) return "n/a"
-  let power = Math.floor(Math.abs(Math.log(+num) / Math.log(1000)))
-  if (power >= units.length) power = units.length - 1
-  // return (num / Math.pow(1000, power)).toFixed(decimals).replace(/\.?0+$/, "") + units[power]
-  return (num / Math.pow(1000, power)).toFixed(decimals).replace(/\.0+$/, "") + units[power]
-}
 
 const value = computed(() => {
   const i = props.valueLabel
-  if (props.shrinkNum && /^\d+$/.test(i)) return shrinkNum(i, 0)
-  return i
+  return props.shrinkNum ? shrinkNum(i, 0) : i
 })
-
-// const value = ref(props.valueLabel)
-// if (props.shrinkNum && /^\d+$/.test(value.value)) {
-//   value.value = shrinkNum(value.value, 0)
-// }
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/modules/mixins";
 .info-item {
-  display: inline-flex;
-  flex-flow: row wrap;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 0.25rem;
   justify-content: flex-start;
   align-items: baseline;
   position: relative;
   padding: 0.25em 0.25em;
-  min-width: 4.5em;
+  line-height: 1.25em;
   font-family: var(--fnt-defs);
-  // max-width: 14em;
   & > .icon {
-    width: 1.5em;
-    height: 1.5em;
-    position: absolute;
-    left: 0.25em;
-    top: calc(50% - 0.75em);
+    font-size: 1.5em;
+    align-self: baseline;
+    transform: translateY(0.0625em);
+    font-style: normal;
+    font-weight: 400 !important;
   }
   &.with-icon {
-    padding-left: 1.75em;
+    grid-template-columns: auto auto auto;
+    &.no-key {
+      grid-template-columns: auto auto;
+    }
   }
   & > :not(:last-child) {
-    margin-right: 0.5em;
+    // margin-right: 0.5em;
   }
 
   & > * {
-    margin-bottom: 0.125em;
+    // margin-bottom: 0.125em;
   }
 
   & > .key-label {
     font-weight: 400;
     color: var(--bng-cool-gray-100);
+    padding-right: 0.25rem;
   }
 
   & > .value-label {

@@ -50,18 +50,13 @@ function HSVtoRGB(h, s, v)
 end
 
 function rainbowColor(numOfSteps, step, format)
-  local x = step / numOfSteps
+  local x = step / max(numOfSteps, 1e-10)
   local r, g, b = min(1, max(0, 4 * x - 2)), min(1, max(0, 2 - abs(4 * x - 2))), min(1, max(0, 2 - 4 * x))
   if (format or 255) == 255 then
     return {floor(r*255), floor(g*255), floor(b*255), 255}
   else
     return {r, g, b, 1}
   end
-end
-
-function getContrastColorStringRGB(i)
-  local c = rainbowColor(16, i % 17, 255)
-  return stringformat("#%02x%02x%02x", c[1], c[2], c[3])
 end
 
 function color(r, g, b, a)
@@ -643,6 +638,11 @@ function tableSizeC(tbl)
   return #tbl + (tbl[0] == nil and 0 or 1)
 end
 
+-- returns idx of next element to be inserted
+function tableEndC(tbl)
+  return (tbl[0] == nil and next(tbl) == nil) and 0 or #tbl + 1
+end
+
 -- finds the key of a certain value. Non-recursive
 function tableFindKey(t, element)
   for k, v in pairs(t) do
@@ -1080,9 +1080,7 @@ local function serialize_rec(v)
         prefix = ","
         serialize_rec(vv)
       end
-      if prefix ~= "," then
-        bufTmp:put('{')
-      end
+      if prefix == "{" then bufTmp:put('{') end
       bufTmp:put('}')
     end
   elseif vtype == "boolean" then
@@ -1262,26 +1260,29 @@ function unflattenTable(tbl)
 end
 
 local function sortedPairs_it(ctx)
-  local i = ctx.i
-  local k = ctx[i]
-  if k == nil then return nil end
-  ctx.i = i + 1
-  return k, ctx.t[k]
+  local k, v
+  repeat
+    k = ctx[ctx.i]
+    if k == nil then return end
+    ctx.i = ctx.i + 1
+    v = ctx.t[k]
+  until v ~= nil
+  return k, v
 end
 
 function sortedPairs(t, ctx, f)
-  local i = 1
   if ctx then
     table.clear(ctx)
   else
     ctx = table.new(#t, 10)
   end
+  local i = 0
   for k in pairs(t) do
-    ctx[i] = k
     i = i + 1
+    ctx[i] = k
   end
   table.sort(ctx, f or tableSortCompareMultiType)
-  ctx.i , ctx.t = 1, t
+  ctx.i, ctx.t = 1, t
   return sortedPairs_it, ctx
 end
 
@@ -1301,7 +1302,7 @@ function hex_dump(str)
 end
 
 function simpleDebugText3d(text, pos, radius, sphereColor)
-  debugDrawer:drawTextAdvanced(pos, String(tostring(text)), ColorF(1,1,1,1), true, false, ColorI(0,0,0,192))
+  debugDrawer:drawTextAdvanced(pos, String(tostring(text or "")), ColorF(1,1,1,1), true, false, ColorI(0,0,0,192))
   if radius and radius > 0 then
     debugDrawer:drawSphere(pos, radius, sphereColor or ColorF(1,1,1,0.25))
   end

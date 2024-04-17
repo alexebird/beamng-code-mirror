@@ -1,5 +1,5 @@
 <template>
-  <bng-card :class="'vehicle-card row'">
+  <BngCard :class="'vehicle-card row'">
     <AspectRatio class="cover" :ratio="'16:9'" :image="vehicle.preview"> </AspectRatio>
     <div class="car-details">
       <div class="car-value">
@@ -11,32 +11,25 @@
           <BngPropVal
             class="prop-small"
             :iconColor="'var(--bng-cool-gray-300)'"
-            :iconType="icons.drive.busroutes"
-            :valueLabel="units.buildString('length', vehicle.Mileage, 0)"
-          />
+            :iconType="icons.bus"
+            :valueLabel="units.buildString('length', vehicle.Mileage, 0)" />
           <BngPropVal
             class="prop-small"
             style="flex: 1 0 auto"
             :iconColor="'var(--bng-cool-gray-300)'"
-            :iconType="icons.drive.busroutes"
-            :valueLabel="vehicle.Drivetrain"
-          />
-          <div v-if="vehicle.Value <= vehicleShoppingData.playerAttributes.money.value">
-            <BngPropVal class="car-price" :iconType="icons.general.beambuck" :valueLabel="units.beamBucks(vehicle.Value) + '*'" />
-          </div>
-          <div v-else style="color: rgb(245, 29, 29)">
-            <BngPropVal class="car-price" :iconType="icons.general.beambuck" :valueLabel="units.beamBucks(vehicle.Value) + '*'" />
-            Insufficient Funds
-          </div>
+            :iconType="icons.bus"
+            :valueLabel="vehicle.Drivetrain" />
+          <div v-if="vehicle.Value <= vehicleShoppingData.playerAttributes.money.value"><BngUnit class="car-price" :beambucks="vehicle.Value" />*</div>
+          <div v-else style="color: rgb(245, 29, 29)"><BngUnit class="car-price" :beambucks="vehicle.Value" />* Insufficient Funds</div>
         </div>
       </div>
       <div class="car-data">
-        <BngPropVal :iconType="icons.general.power_gauge_04" :keyLabel="'Power:'" :valueLabel="units.buildString('power', vehicle.Power, 0)" />
-        <BngPropVal :iconType="icons.general.odometer" :keyLabel="'Mileage:'" :valueLabel="units.buildString('length', vehicle.Mileage, 0)" />
+        <BngPropVal :iconType="icons.powerGauge04" :keyLabel="'Power:'" :valueLabel="units.buildString('power', vehicle.Power, 0)" />
+        <BngPropVal :iconType="icons.odometer" :keyLabel="'Mileage:'" :valueLabel="units.buildString('length', vehicle.Mileage, 0)" />
         <BngPropVal :iconType="getAttributeIcon(vehicle, 'Transmission')" :keyLabel="'Transmission:'" :valueLabel="vehicle.Transmission" />
         <BngPropVal :iconType="getAttributeIcon(vehicle, 'Fuel Type')" :keyLabel="'Fuel type:'" :valueLabel="vehicle['Fuel Type']" />
         <BngPropVal :iconType="getAttributeIcon(vehicle, 'Drivetrain')" :keyLabel="'Drivetrain:'" :valueLabel="vehicle.Drivetrain" />
-        <BngPropVal :iconType="icons.general.weight" :keyLabel="'Weight:'" :valueLabel="units.buildString('weight', vehicle.Weight, 0)" />
+        <BngPropVal :iconType="icons.weight" :keyLabel="'Weight:'" :valueLabel="units.buildString('weight', vehicle.Weight, 0)" />
       </div>
     </div>
     <template #buttons>
@@ -46,8 +39,7 @@
           style="float: left"
           v-if="!vehicleShoppingData.currentSeller"
           :keyLabel="'Distance:'"
-          :valueLabel="units.buildString('length', vehicle.distance, 1)"
-        />
+          :valueLabel="units.buildString('length', vehicle.distance, 1)" />
         <BngPropVal style="float: left" :keyLabel="'Required Insurance:'" :valueLabel="vehicle.requiredInsurance.name" />
       </div>
 
@@ -69,7 +61,7 @@
       <BngButton
         v-if="!vehicleShoppingData.currentSeller"
         :disabled="vehicleShoppingData.playerAttributes.money.value < vehicle.quickTravelPrice || vehicleShoppingData.disableShopping"
-        @click="setTaxiPopup(true)"
+        @click="confirmTaxi(vehicle)"
         :accent="vehicle.sellerId === 'private' ? 'main' : 'secondary'"
         ><span style="flex: 1 0 auto">Take Taxi</span></BngButton
       >
@@ -81,25 +73,45 @@
         >Purchase</BngButton
       >
     </template>
-  </bng-card>
-
-  <div v-if="taxiPopupOpen">
-    <div v-bng-blur class="blurBackground"></div>
-    <BngCard class="modalPopup">
-      <h3 style="padding: 10px">Do you want to taxi to this vehicle for {{ units.beamBucks(vehicle.quickTravelPrice) }}?</h3>
-      <BngButton @click="quickTravelToVehicle(vehicle)"> Yes </BngButton>
-      <BngButton @click="setTaxiPopup(false)" accent="attention"> No </BngButton>
-    </BngCard>
-  </div>
+  </BngCard>
 </template>
 
+<script>
+import { icons } from "@/common/components/base"
+
+const DRIVE_TRAIN_ICONS = {
+  AWD: icons.AWD,
+  "4WD": icons["4WD"],
+  FWD: icons.FWD,
+  RWD: icons.RWD,
+  drivetrain_special: icons.drivetrainSpecial,
+  drivetrain_generic: icons.drivetrainGeneric,
+  defaultMissing: icons.drivetrainGeneric,
+  defaultUnknown: icons.drivetrainGeneric,
+}
+
+const FUEL_TYPE_ICONS = {
+  Battery: icons.charge,
+  Gasoline: icons.fuelPump,
+  Diesel: icons.fuelPump,
+  defaultMissing: icons.fuelPump,
+  defaultUnknown: icons.fuelPump,
+}
+
+const TRANSMISSION_ICONS = {
+  Automatic: icons.transmissionA,
+  Manual: icons.transmissionM,
+  defaultMissing: icons.transmissionM,
+  defaultUnknown: icons.transmissionM,
+}
+</script>
+
 <script setup>
-import { ref } from "vue"
 import { lua, useBridge } from "@/bridge"
-import { BngCard, BngButton, BngPropVal } from "@/common/components/base"
+import { BngCard, BngButton, BngPropVal, BngUnit } from "@/common/components/base"
 import { AspectRatio } from "@/common/components/utility"
-import { icons } from "@/common/components/base/bngIcon.vue"
-import { vBngBlur } from "@/common/directives"
+import { openConfirmation } from "@/services/popup"
+import { $translate } from "@/services/translation"
 
 const { units } = useBridge()
 
@@ -108,10 +120,12 @@ const props = defineProps({
   vehicle: Object,
 })
 
-const taxiPopupOpen = ref(false)
-
-const setTaxiPopup = open => {
-  taxiPopupOpen.value = open
+const confirmTaxi = async vehicle => {
+  const res = await openConfirmation("", `Do you want to taxi to this vehicle for ${units.beamBucks(vehicle.quickTravelPrice)}?`, [
+    { label: $translate.instant("ui.common.yes"), value: true },
+    { label: $translate.instant("ui.common.no"), value: false, extras: { accent: "attention" } },
+  ])
+  if (res) quickTravelToVehicle(vehicle)
 }
 
 const showVehicle = shopId => {
@@ -126,51 +140,20 @@ const openPurchaseMenu = (purchaseType, shopId) => {
   lua.career_modules_vehicleShopping.openPurchaseMenu(purchaseType, shopId)
 }
 
-const driveTrainIcons = {
-  AWD: icons.general.awd,
-  "4WD": icons.general["4wd"],
-  FWD: icons.general.fwd,
-  RWD: icons.general.rwd,
-  drivetrain_special: icons.general.drivetrain_special,
-  drivetrain_generic: icons.general.drivetrain_generic,
-  defaultMissing: icons.general.drivetrain_generic,
-  defaultUnknown: icons.general.drivetrain_special,
-}
-
-const fuelTypeIcons = {
-  Battery: icons.general.charge,
-  Gasoline: icons.general.fuel,
-  Diesel: icons.general.fuel,
-  defaultMissing: icons.general.fuel,
-  defaultUnknown: icons.general.fuel,
-}
-
-const transmissionIcons = {
-  Automatic: icons.general.transmission_a,
-  Manual: icons.general.transmission_m,
-  defaultMissing: icons.general.transmission_m,
-  defaultUnknown: icons.general.transmission_m,
-}
-
 const getAttributeIcon = (vehicle, attribute) => {
   let iconDict
   if (attribute == "Drivetrain") {
-    iconDict = driveTrainIcons
+    iconDict = DRIVE_TRAIN_ICONS
   } else if (attribute == "Fuel Type") {
-    iconDict = fuelTypeIcons
+    iconDict = FUEL_TYPE_ICONS
   } else if (attribute == "Transmission") {
-    iconDict = transmissionIcons
+    iconDict = TRANSMISSION_ICONS
   }
 
-  if (vehicle[attribute] == null || vehicle[attribute] == undefined) {
-    return iconDict.defaultMissing
-  }
+  if (!vehicle[attribute]) return iconDict.defaultMissing
 
   let icon = iconDict[vehicle[attribute]]
-  if (icon == null || icon == undefined) {
-    return iconDict.defaultUnknown
-  }
-  return icon
+  return icon || iconDict.defaultUnknown
 }
 </script>
 
@@ -342,32 +325,6 @@ const getAttributeIcon = (vehicle, attribute) => {
         padding-bottom: 0.75rem;
       }
     }
-  }
-}
-
-.blurBackground {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  top: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.781);
-  z-index: 1000;
-}
-
-.modalPopup {
-  position: fixed;
-  top: 50vh;
-  left: 50vw;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.8);
-  // TODO: This is hacky. should be properly moved into a popup modal component
-  z-index: 1001;
-
-  & :deep(.card-cnt) {
-    background-color: rgba(0, 0, 0, 0.2);
   }
 }
 </style>

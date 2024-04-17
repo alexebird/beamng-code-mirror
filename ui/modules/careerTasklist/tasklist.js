@@ -53,8 +53,13 @@ angular
       })
 
       $rootScope.$on("SetTasklistHeader", (ev, data) => {
-        taskData.headerLabel = data.label
-        taskData.headersubtext = data.subtext
+        if(data) {
+          taskData.headerLabel = data.label
+          taskData.headersubtext = data.subtext
+        } else {
+          taskData.headerLabel = null
+          taskData.headersubtext = null
+        }
         inform("taskListHeaderChanged", data)
         if (!listVisible) {
           setVisibility(true)

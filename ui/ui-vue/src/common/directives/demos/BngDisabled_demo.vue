@@ -1,5 +1,5 @@
 <template>
-  <BngSwitch :checked="disabled" @click="disabled = !disabled">Disabled</BngSwitch>
+  <BngSwitch v-model="disabled">Disabled</BngSwitch>
   <br/>
   <BngButton v-bng-disabled="disabled" accent="secondary">Button</BngButton>
   <br/>

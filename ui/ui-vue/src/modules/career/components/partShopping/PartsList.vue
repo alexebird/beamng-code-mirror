@@ -1,7 +1,9 @@
 <template>
   <div>
     <div style="width: 100%; display: flex">
-      <BngButton @click="partShoppingStore.backAction"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
+      <span style="padding: 0.5em"
+        ><BngButton @click="partShoppingStore.backAction" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton></span
+      >
       <h1 style="width: 100%; text-align: center">Part Shop</h1>
     </div>
 
@@ -13,6 +15,7 @@
       <table class="partTable" style="width: 100%">
         <tr>
           <th>Description</th>
+          <th v-if="partShoppingStore.category == 'cargo'">Slot</th>
           <th>Price</th>
           <th></th>
         </tr>
@@ -23,11 +26,11 @@
               v-if="
                 partShoppingStore.partShoppingData.vehicleSlotToPartMap[part.slot] &&
                 partShoppingStore.partShoppingData.vehicleSlotToPartMap[part.slot].description.description == part.description.description
-              "
-            >
+              ">
               (Same part already installed)
             </div>
           </td>
+          <td v-if="partShoppingStore.category == 'cargo'">{{ partShoppingStore.partShoppingData.slotsNiceName[part.slot] }}</td>
           <td>{{ units.beamBucks(part.finalValue) }}</td>
           <td>
             <BngButton

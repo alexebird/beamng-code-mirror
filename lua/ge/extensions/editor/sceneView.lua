@@ -6,18 +6,13 @@ local M = {}
 
 local im = ui_imgui
 local imUtils = require('ui/imguiUtils')
-
 local vecUp = vec3(0, 0, 1)
-
 local renderMain = im.BoolPtr(true)
-
 local createNewViewNextFrame = false -- this is required to not add new things to the table while iterating over it ...
-
 local sceneViews = {} -- contains all sceneviews
-
 local deserializedData = nil -- data to store until editor is loaded
-
 local tmpRect = RectI(0,0,0,0)
+local lastCameraSceneNodeId = 0
 
 -- creates a new sceneview, arguments can be nil
 local function createNewSceneView(sceneViewName, data)
@@ -33,10 +28,11 @@ local function createNewSceneView(sceneViewName, data)
     lastMouseDragPos = im.ImVec2(0,0),
     attachToObject = im.BoolPtr(data.attachToObject or true),
     editorIconsVisible = im.BoolPtr(data.editorIconsVisible or false),
+    editorGizmoVisible = im.BoolPtr(data.editorGizmoVisible or false),
     ortho = im.BoolPtr(data.ortho or false),
     dragOffset = data.dragOffset or vec3(0,0,0),
     control = ImguiRenderViewControl.getOrCreate(newName),
-    targetRenderView = DebugDrawerTargetRenderViews(false, {newName}),
+    renderDebugDrawMask = im.IntPtr(data.renderDebugDrawMask or -1),
   }
   editor.registerWindow(newName, im.ImVec2(400,600))
   editor.showWindow(newName)
@@ -91,48 +87,60 @@ local function onEditorGui()
       if im.BeginPopup('viewcontrol' .. tostring(sceneViewName)) then
         local changedOrtho = false
         if im.BeginMenu('Mode') then
-          if im.MenuItem1('3d') then
+          if im.MenuItem1('3D') then
             view.ortho[0] = false
             changedOrtho = true
             view.mode = '3d'
             im.CloseCurrentPopup()
           end
-          if im.MenuItem1('left') then
+          if im.MenuItem1('Last Selected Camera') then
+            view.ortho[0] = false
+            changedOrtho = true
+            view.mode = 'currentSelectedCamera'
+            im.CloseCurrentPopup()
+          end
+          if im.MenuItem1('Camera Path') then
+            view.ortho[0] = false
+            changedOrtho = true
+            view.mode = 'cameraPath'
+            im.CloseCurrentPopup()
+          end
+          if im.MenuItem1('Left') then
             view.ortho[0] = true
             changedOrtho = true
             view.mode = 'left'
             view.dragOffset = vec3(0,0,0)
             im.CloseCurrentPopup()
           end
-          if im.MenuItem1('right') then
+          if im.MenuItem1('Right') then
             view.ortho[0] = true
             changedOrtho = true
             view.mode = 'right'
             view.dragOffset = vec3(0,0,0)
             im.CloseCurrentPopup()
           end
-          if im.MenuItem1('front') then
+          if im.MenuItem1('Front') then
             view.ortho[0] = true
             changedOrtho = true
             view.mode = 'front'
             view.dragOffset = vec3(0,0,0)
             im.CloseCurrentPopup()
           end
-          if im.MenuItem1('back') then
+          if im.MenuItem1('Back') then
             view.ortho[0] = true
             changedOrtho = true
             view.mode = 'back'
             view.dragOffset = vec3(0,0,0)
             im.CloseCurrentPopup()
           end
-          if im.MenuItem1('top') then
+          if im.MenuItem1('Top') then
             view.ortho[0] = true
             changedOrtho = true
             view.mode = 'top'
             view.dragOffset = vec3(0,0,0)
             im.CloseCurrentPopup()
           end
-          if im.MenuItem1('bottom') then
+          if im.MenuItem1('Bottom') then
             view.ortho[0] = true
             changedOrtho = true
             view.mode = 'bottom'
@@ -147,32 +155,42 @@ local function onEditorGui()
             view.farClip[0] = 100
             view.fov[0] = 150
             view.editorIconsVisible[0] = false
+            view.editorGizmoVisible[0] = false
           else
             view.nearClip[0] = 0.01
             view.farClip[0] = 2000
             view.fov[0] = 70
-            view.editorIconsVisible[0] = true
+            view.editorIconsVisible[0] = view.mode ~= "currentSelectedCamera" and view.mode ~= "cameraPath"
+            view.editorGizmoVisible[0] = view.mode ~= "currentSelectedCamera" and view.mode ~= "cameraPath"
           end
         end
-        if im.Checkbox('render Main', renderMain) then
+        if im.Checkbox('Render Main View', renderMain) then
           setRenderWorldMain(renderMain[0])
         end
-        if im.Checkbox('attach to object', view.attachToObject) then end
-        if im.Checkbox('show icons', view.editorIconsVisible) then end
+        if im.Checkbox('Attach to object', view.attachToObject) then end
+        if im.Checkbox('Show Icons', view.editorIconsVisible) then end
+        if im.Checkbox('Show Gizmo', view.editorGizmoVisible) then end
         im.PushItemWidth(100)
-        im.SliderFloat('near clip', view.nearClip, 0.001, 55, "%.3f", 4)
+        im.SliderFloat('Near Clip', view.nearClip, 0.001, 55, "%.3f", 4)
         im.PushItemWidth(100)
-        im.SliderFloat('far clip', view.farClip, 0.001, 5500, "%.3f", 4)
+        im.SliderFloat('Far Clip', view.farClip, 0.001, 5500, "%.3f", 4)
         im.PushItemWidth(100)
-        im.SliderFloat('fov', view.fov, 0.001, 179, "%.3f", 4)
+        im.SliderFloat('FOV', view.fov, 0.001, 179, "%.3f", 4)
+        if im.SliderInt("Render mask DebugDraw##renderMask", view.renderDebugDrawMask, -1, 4) then
+          if view.renderDebugDrawMask[0] == -1 then
+            view.control.renderView:maskClear()
+          else
+            view.control.renderView:maskSet(view.renderDebugDrawMask[0])
+          end
+        end
         im.Separator()
-        if im.MenuItem1('Add new view') then createNewViewNextFrame = true ; im.CloseCurrentPopup() end
-        if im.MenuItem1('delete this view') then sceneViews[sceneViewName] = nil ; im.CloseCurrentPopup() end
+        if im.MenuItem1('Add New View') then createNewViewNextFrame = true ; im.CloseCurrentPopup() end
+        if im.MenuItem1('Delete This View') then sceneViews[sceneViewName] = nil ; im.CloseCurrentPopup() end
         im.EndPopup()
       end
       im.PopStyleVar()
 
-      debugDrawer:setTargetRenderViews(view.targetRenderView)
+      --debugDrawer:setTargetRenderViews(view.targetRenderView)
 
       local delta = vec3(0, 0, 0)
       local gridSize = 5 -- meters
@@ -207,7 +225,7 @@ local function onEditorGui()
       local focusRot
       local focusObj
       if view.attachToObject[0] then
-        focusObj = be:getPlayerVehicle(0)
+        focusObj = getPlayerVehicle(0)
         if focusObj then
           focusRot = quat(focusObj:getRefNodeRotation())
           focusPos = focusObj:getPosition() + focusRot * view.dragOffset
@@ -289,16 +307,45 @@ local function onEditorGui()
         focusObj = nil
         view.pos = core_camera.getPosition()
         view.rot = core_camera.getQuat()
+      elseif view.mode == 'currentSelectedCamera' then
+        focusObj = nil
+
+        if editor.currentCamPathMarker then
+          view.pos = editor.currentCamPathMarker.pos
+          view.rot = editor.currentCamPathMarker.rot
+        end
+
+        if editor.selection.object and editor.selection.object[1] then
+          local cam = scenetree.findObjectById(editor.selection.object[1])
+          if cam and (cam:getClassName() == "Camera" or cam:getClassName() == "CameraBookmark") then
+            lastCameraSceneNodeId = editor.selection.object[1]
+          end
+        end
+
+        if 0 ~= lastCameraSceneNodeId then
+          local cam = scenetree.findObjectById(lastCameraSceneNodeId)
+          if cam then
+            view.pos = cam:getPosition()
+            view.rot = cam:getTransform():toQuatF()
+          end
+        end
+      elseif view.mode == 'cameraPath' then
+        focusObj = nil
+        if editor.currentCamPathLocation then
+          view.pos = editor.currentCamPathLocation.pos
+          view.rot = editor.currentCamPathLocation.rot
+          view.fov[0] = editor.currentCamPathLocation.fov
+        end
       end
 
       -- construct world matrix
       local mat = QuatF(view.rot.x, view.rot.y, view.rot.z, view.rot.w):getMatrix()
       mat:setPosition(view.pos)
 
-
       local txt = dumps{'type: ', view.mode, 'view.pos: ', view.pos}
+      --TODO: this will draw in all render views, use rendermask for each view
       debugDrawer:drawTextAdvanced((vec3(0,20,0)), txt, ColorF(0,0,0,1), false, true, ColorI(0, 0, 0, 255))
-      debugDrawer:clearTargetRenderViews()
+      --debugDrawer:clearTargetRenderViews()
 
       -- update renderview settings
       if focusObj then
@@ -316,13 +363,9 @@ local function onEditorGui()
       view.control.renderView.frustum = Frustum.construct(view.ortho[0], math.rad(view.fov[0]), aspectRatio, view.nearClip[0], view.farClip[0])
       view.control.renderView.fov = view.fov[0]
       view.control.renderView.renderEditorIcons = view.editorIconsVisible[0]
-
-
-
+      view.control.renderView.renderEditorGizmo = view.editorGizmoVisible[0]
       view.control:draw()
       --Imgui_ThreeDView('#' .. sceneViewName)
-
-
       -- display the texture in imgui
       --local texObj = imUtils.texObj('#' .. sceneViewName)
       --im.Image(texObj.texId, availSize)
@@ -383,8 +426,10 @@ local function onSerialize()
       rot = view.rot,
       attachToObject = view.attachToObject[0],
       editorIconsVisible = view.editorIconsVisible[0],
+      editorGizmoVisible = view.editorGizmoVisible[0],
       ortho = view.ortho[0],
       dragOffset = view.dragOffset,
+      renderDebugDrawMask = view.renderDebugDrawMask[0],
     }
   end
   return { sceneViews = viewsSerialized}

@@ -65,7 +65,7 @@ function C:init()
 
       self.targetPursuitMode = 0
     end,
-    crashed = function ()
+    disabled = function ()
       if self.veh.isAi then
         be:getObjectByID(self.veh.id):queueLuaCommand('ai.setMode("stop")')
         be:getObjectByID(self.veh.id):queueLuaCommand('electrics.set_lightbar_signal(0)')
@@ -162,7 +162,7 @@ function C:onTrafficTick(dt)
 
   if self.veh.isAi and self.targetId and self.state ~= 'disabled' and self.veh.state == 'active' and self.veh.damage > self.veh.damageLimits[3] then
     -- wreck during pursuit
-    self:setAction('crashed')
+    self:setAction('disabled')
     if self.flags.pursuit then
       local targetVeh = gameplay_traffic.getTrafficData()[self.targetId]
       if targetVeh and self.veh.pos:squaredDistance(targetVeh.pos) <= 400 then
@@ -180,6 +180,20 @@ function C:onTrafficTick(dt)
     end
   else
     self.cooldownTimer = self.cooldownTimer - dt
+  end
+
+  if self.veh.speed >= 6 and next(map.objects[self.veh.id].states) then -- lightbar triggers all traffic lights to change to the red state
+    if map.objects[self.veh.id].states.lightbar then
+      self:freezeTrafficSignals(true)
+    else
+      if self.flags.freezeSignals then
+        self:freezeTrafficSignals(false)
+      end
+    end
+  else
+    if self.flags.freezeSignals then
+      self:freezeTrafficSignals(false)
+    end
   end
 end
 

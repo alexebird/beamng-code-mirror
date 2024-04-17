@@ -106,7 +106,7 @@ local function renderUI()
 end
 
 local function onPreRender(dtReal, dtSim, dtRaw)
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then return end
   local vData = extensions.core_vehicle_manager.getVehicleData(veh:getId())
   if not vData then return end

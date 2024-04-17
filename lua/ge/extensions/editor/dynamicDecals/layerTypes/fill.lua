@@ -34,7 +34,7 @@ local function inspectLayerGui(layer, guiId)
     api.setLayer(layer, true)
   end
   im.SameLine()
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   local paletteColor = {1, 1, 1, 0}
   if layer.colorPaletteMapId == 0 then
     paletteColor = layer.color:toTable()
@@ -75,7 +75,7 @@ local function sectionGui(guiId)
     api.setFillLayerColorPaletteMapId(api.propertiesMap["fill_colorPaletteMapId"].value)
   end
   im.SameLine()
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   local paletteColor = {1, 1, 1, 0}
   if colorPaletteMapId == 0 then
     paletteColor = api.getFillLayerColor():toTable()
@@ -98,7 +98,7 @@ local function sectionGui(guiId)
   if colorPaletteMapId ~= 0 then im.EndDisabled() end
 end
 
-local function toolbarItemGui()
+local function onEditorGui()
   if editor.beginWindow(fillLayer_add_windowName, "Add Fill Layer") then
     im.Text("Add a new layer filled with a color")
     sectionGui("addLayerWindow")
@@ -113,7 +113,9 @@ local function toolbarItemGui()
     end
   end
   editor.endWindow()
+end
 
+local function toolbarItemGui()
   if editor.uiIconImageButton(editor.icons.format_color_fill, nil, nil, nil, nil, "Add fill layer") then
     editor.showWindow(fillLayer_add_windowName)
   end
@@ -153,12 +155,13 @@ local function setup(tool_in)
   colorHistory = extensions.editor_dynamicDecals_colorHistory
   widgets = extensions.editor_dynamicDecals_widgets
 
-  tool.registerSection("Fill Layer Properties", sectionGui, 1090, false, {})
+  tool.registerOnEditorGuiFn("fill", onEditorGui)
+  -- tool.registerSection("Fill Layer Properties", sectionGui, 1090, false, {})
   inspector.registerLayerGui(api.layerTypes.fill, inspectLayerGui)
   tool.registerToolbarToolItem("fill", toolbarItemGui, 10)
   docs.register({section = {"Layer Types", "Fill Layers"}, guiFn = documentationGui})
 
-  editor.registerWindow(fillLayer_add_windowName, nil, nil, nil, nil, true)
+  editor.registerWindow(fillLayer_add_windowName, im.ImVec2(360, 140), nil, nil, nil, true)
 end
 
 M.registerEditorPreferences = registerEditorPreferences

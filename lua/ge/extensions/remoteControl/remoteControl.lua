@@ -34,7 +34,7 @@ local function onExtensionLoaded()
     {'/api/ping', function() return {'pong'} end},
     {'/api/btn', function()
       buttonState = not buttonState
-      vim:emitEvent('vinput', deviceInst, "button", 0, "change", buttonState and 1 or 0)
+      vim:emitEvent('vinput', deviceInst, "button", 0, "change", buttonState and 1 or 0, os.clockhp())
       return {}
     end},
   }
@@ -47,15 +47,15 @@ local function onUpdate(dtReal, dtSim, dtRaw)
   timer = timer + dtReal
   ws.update()
   if vim then
-    vim:emitEvent('vinput', deviceInst, "axis", 0, "change", (math.sin(timer) + 1) / 2)
+    vim:emitEvent('vinput', deviceInst, "axis", 0, "change", (math.sin(timer) + 1) / 2, os.clockhp())
   else
     vim = getVirtualInputManager()
 
     deviceInst = vim:registerDevice('httpcontrollerv1', 'bngremotectrlv1', 1, 2, 0)
 
-    vim:emitEvent('vinput', deviceInst, "button", 0, "down", 1)
-    vim:emitEvent('vinput', deviceInst, "button", 0, "up", 1)
-    vim:emitEvent('vinput', deviceInst, "axis", 0, "change", 0.5)
+    vim:emitEvent('vinput', deviceInst, "button", 0, "down", 1, os.clockhp())
+    vim:emitEvent('vinput', deviceInst, "button", 0, "up", 1, os.clockhp())
+    vim:emitEvent('vinput', deviceInst, "axis", 0, "change", 0.5, os.clockhp())
   end
 end
 

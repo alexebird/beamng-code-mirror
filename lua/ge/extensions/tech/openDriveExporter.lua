@@ -461,7 +461,7 @@ local function writeXodr(filename)
   f:close()
 end
 
--- Exports the road network from the currently-loaded map to OpenDrive (.xodr) format.
+-- Exports the road network from the currently-loaded map to OpenDRIVE (.xodr) format.
 local function export(filename)
 
   -- Get the raw road network data from the currently-loaded map.
@@ -479,7 +479,7 @@ local function export(filename)
   updateConnectivityData()
   computeJunctions()
 
-  -- Export the processed road network data to OpenDrive (.xodr) format.
+  -- Export the processed road network data to OpenDRIVE (.xodr) format.
   writeXodr(filename)
 end
 

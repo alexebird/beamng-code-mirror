@@ -1,31 +1,27 @@
 <template>
   <div class="fuel-type">
-    <BngButton class="arrow" accent="text" data-testid="previous-btn" :icon="icons.general.arrow_small_left" @click="emits('previousClick')">
-      <BngIcon class="controller" span :type="icons.device.xbox.btn_lb" />
+    <BngButton class="arrow empty" accent="text" data-testid="previous-btn" :icon="icons.arrowLargeLeft" @click="emit('previousClick')">
+      <BngBinding class="controller" ui-event="tab_l" deviceMask="xinput" />
     </BngButton>
-    <bng-pill-filters-container :html-id="htmlId" :options="fuelOptions" :select-many="false" :has-checked-icon="true" />
-    <BngButton class="arrow" accent="text" data-testid="next-btn" :iconRight="icons.general.arrow_small_right" @click="emits('nextClick')">
-      <BngIcon class="controller" span :type="icons.device.xbox.btn_rb" />
+    <BngPillFilters :options="fuelOptions" />
+    <BngButton class="arrow empty" accent="text" data-testid="next-btn" :iconRight="icons.arrowLargeRight" @click="emit('nextClick')">
+      <BngBinding class="controller" ui-event="tab_r" deviceMask="xinput" />
     </BngButton>
   </div>
 </template>
 
 <script setup>
-import { BngButton, BngPillFiltersContainer, BngIcon } from "@/common/components/base"
+import { BngButton, BngPillFilters, BngBinding } from "@/common/components/base"
 import { icons } from "@/common/components/base/bngIcon.vue"
 
 defineProps({
-  htmlId: {
-    type: String,
-    required: true,
-  },
   fuelOptions: {
     type: Array,
     required: true,
   },
 })
 
-const emits = defineEmits(["previousClick", "nextClick", "fuelTypeSelect"])
+const emit = defineEmits(["previousClick", "nextClick", "fuelTypeSelect"])
 </script>
 
 <style scoped lang="scss">
@@ -39,12 +35,12 @@ const emits = defineEmits(["previousClick", "nextClick", "fuelTypeSelect"])
   }
 }
 
-.arrow:deep(.bngicon.controller) {
+.arrow:deep(.bngicon) {
   min-width: 1.5em;
   min-height: 1.5em;
 }
 
-.arrow:deep(.bngicon:not(.controller)) {
+.arrow:deep(.bngicon:not(.bng-binding-icon)) {
   width: 0.65em;
   min-width: 0;
   min-height: 0;

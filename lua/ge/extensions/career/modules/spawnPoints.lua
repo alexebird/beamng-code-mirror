@@ -26,7 +26,7 @@ local lastUpdateTimer = updateTime
 local function onUpdate(dtReal, dtSim, dtRaw)
   -- Check if an undiscovered spawn point is close
   if not career_modules_linearTutorial.getTutorialFlag('spawnPointDiscoveryEnabled') then return end
-  if not (getCurrentLevelIdentifier() and career_modules_inventory and career_modules_inventory.getCurrentVehicle() and be:getPlayerVehicle(0)) then return end
+  if not (getCurrentLevelIdentifier() and career_modules_inventory and career_modules_inventory.getCurrentVehicle() and getPlayerVehicle(0)) then return end
   lastUpdateTimer = lastUpdateTimer + dtReal
   if lastUpdateTimer < updateTime then return end
 
@@ -49,7 +49,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
       if not M.isSpawnPointDiscovered(currentLevel, spawnPoint.objectname) then
         local obj = scenetree.findObject(spawnPoint.objectname)
         if obj then
-          playerPos = playerPos or be:getPlayerVehicle(0):getPosition()
+          playerPos = playerPos or getPlayerVehicle(0):getPosition()
           if obj:getPosition():distance(playerPos) < discoveryDistance then
             unlockedSpawnpoints[currentLevel][spawnPoint.objectname] = true
             --log("I", "", "New quick travel point discovered: " .. spawnPoint.objectname)
@@ -99,7 +99,7 @@ end
 
 -- this should only be loaded when the career is active
 local function onSaveCurrentSaveSlot(currentSavePath)
-  jsonWriteFile(currentSavePath .. "/career/"..fileName, unlockedSpawnpoints, true)
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/"..fileName, unlockedSpawnpoints, true)
 end
 
 local function onClientStartMission()

@@ -4,7 +4,7 @@
     <div class="fade-effect left-fade-effect"></div>
     <div class="fade-effect right-fade-effect"></div>
     <div class="scroll-container" ref="filtersContainer">
-      <bng-pill-filters
+      <BngPillFilters
         ref="bngPillFiltersRef"
         :htmlId="htmlId"
         :options="options"
@@ -13,8 +13,7 @@
         :select-many="selectMany"
         :has-checked-icon="hasCheckedIcon"
         @valueChanged="onValueChanged"
-        @pillItemFocusIn="onPillItemFocusIn"
-      ></bng-pill-filters>
+        @pillItemFocusIn="onPillItemFocusIn" />
     </div>
   </div>
 </template>
@@ -22,6 +21,8 @@
 <script setup>
 import { onMounted, ref } from "vue"
 import BngPillFilters from "@/common/components/base/bngPillFilters"
+
+const emit = defineEmits(["update:modelValue", "valueChanged"])
 
 const props = defineProps({
   htmlId: {
@@ -81,6 +82,7 @@ function onContainerFocusOut($event) {
 function onValueChanged(items, id) {
   selectedItems.value = items
   selectedItemId = id
+  emit("valueChanged", items, id)
 }
 
 function onPillItemFocusIn(id) {

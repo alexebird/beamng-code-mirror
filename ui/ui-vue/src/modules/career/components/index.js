@@ -1,6 +1,7 @@
-// combined import file for all base components
+// combined import file for all career components
 
 // Components
+export { default as CareerSimpleStats } from "./careerSimpleStats.vue"
 export { default as CareerStatus } from "./careerStatus.vue"
 
 

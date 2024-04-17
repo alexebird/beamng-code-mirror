@@ -1,0 +1,18 @@
+// BNG UI Icon Font
+// --------------------------------------
+
+$font_path: "fonts";
+
+@font-face {
+  font-family: "bngIcons";
+  src:
+    --ASSET_URL('#{$font_path}/bngIcons/bngIcons.otf') format("opentype"),
+    --ASSET_URL("#{$font_path}/bngIcons/bngIcons.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  // unicode-range: U+BEA00-BEFFF;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

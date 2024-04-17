@@ -3,8 +3,10 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 local M = {}
 
+
 local roadsSensors = {}          -- The collection of active roads sensors.
 local latestReadings = {}       -- The collection of latest readings for each roads sensor
+
 
 -- Send the roads sensor readings to ge lua.
 local function updateRoadsSensorGFXStep(dtSim, sensorId, isAdHocRequest, adHocRequestId)
@@ -54,13 +56,9 @@ local function remove(sensorId)
   roadsSensors[sensorId] = nil
 end
 
-local function setUpdateTime(sensorId, GFXUpdateTime)
-  roadsSensors[sensorId].GFXUpdateTime = GFXUpdateTime
-end
+local function setUpdateTime(sensorId, GFXUpdateTime) roadsSensors[sensorId].GFXUpdateTime = GFXUpdateTime end
 
-local function adHocRequest(sensorId, requestId)
-  updateRoadsSensorGFXStep(0.0, sensorId, true, requestId)
-end
+local function adHocRequest(sensorId, requestId) updateRoadsSensorGFXStep(0.0, sensorId, true, requestId) end
 
 local function cacheLatestReading(sensorId, latestReading)
   if sensorId ~= nil then
@@ -68,9 +66,9 @@ local function cacheLatestReading(sensorId, latestReading)
   end
 end
 
-local function getRoadsSensorReading(sensorId)
-  return latestReadings[sensorId]
-end
+local function getRoadsSensorReading(sensorId) return latestReadings[sensorId] end
+
+local function getLatest(sensorId) return roadsSensors[sensorId].controller.getLatest() end
 
 local function updateGFX(dtSim)
   for sensorId, _ in pairs(roadsSensors) do
@@ -87,20 +85,16 @@ local function onVehicleDestroyed(vid)
   end
 end
 
+
 -- Public interface:
-
--- roads sensor core API functions.
-M.create                                    = create
-M.remove                                    = remove
-M.adHocRequest                              = adHocRequest
-M.cacheLatestReading                        = cacheLatestReading
-M.getRoadsSensorReading                     = getRoadsSensorReading
-
--- Roads sensor property setters.
-M.setUpdateTime                             = setUpdateTime
-
--- Functions triggered by hooks.
-M.updateGFX                                 = updateGFX
-M.onVehicleDestroyed                        = onVehicleDestroyed
+M.create                                                  = create
+M.remove                                                  = remove
+M.adHocRequest                                            = adHocRequest
+M.cacheLatestReading                                      = cacheLatestReading
+M.getRoadsSensorReading                                   = getRoadsSensorReading
+M.getLatest                                               = getLatest
+M.setUpdateTime                                           = setUpdateTime
+M.updateGFX                                               = updateGFX
+M.onVehicleDestroyed                                      = onVehicleDestroyed
 
 return M

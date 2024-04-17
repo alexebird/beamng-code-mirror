@@ -249,7 +249,7 @@ local function extractVehicleDataTelemetry(vid)
     end
 
     vehicleData = {}
-    if vehicle.partConfig ~= nil and (string.find(vehicle.partConfig, '{') ~= nil or string.find(vehicle.partConfig, '\\[')) then
+    if vehicle.partConfig ~= nil and (string.find(vehicle.partConfig, '{') ~= nil or string.find(vehicle.partConfig, '[', nil, true)) then
       vehicleData.config = ":custom"
     else
       local _, config, _ = path.splitWithoutExt(vehicle.partConfig)

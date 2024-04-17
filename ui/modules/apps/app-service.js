@@ -155,7 +155,7 @@ function ($compile, $filter, $http, $injector, $q, $rootScope, $ocLazyLoad, UIAp
 
     clearCurrentLayout: function (container) {
       //console.info('UIA| clearCurrentLayout')
-      if('apps' in UIAppStorage.current) {
+      if (Array.isArray(UIAppStorage.current.apps)) {
         for (let app of UIAppStorage.current.apps) {
           if(app !== undefined && app.element !== undefined) {
             app.element.remove()

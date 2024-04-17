@@ -35,6 +35,7 @@ local max, min, abs, random, sqrt = math.max, math.min, math.abs, math.random, m
 local impactGenericEvent = "event:>Destruction>Vehicle>vehicle_part_impact"
 local impactMetalEvent = "event:>Destruction>Vehicle>vehicle_part_impact"
 local impactPlasticEvent = "event:>Destruction>Vehicle>vehicle_part_impact_plastic"
+local impactSoundVolumeCoef = 1
 local breakGenericEvent = "event:>Destruction>Vehicle>vehicle_part_break"
 local breakPlasticEvent = "event:>Destruction>Vehicle>vehicle_part_break_plastic"
 
@@ -223,6 +224,7 @@ local function updateGFX(dt)
     local impactEnergy, breakEnergy, breakNode, mat1, mat2 = obj:getImpactDeformEnergyNode()
     -- if not (scrapeAbsorbing[mat1] or scrapeAbsorbing[mat2]) then // removed because it was stopping some small impacts from happening as the system thinks it's a scrape
     -- local volImpact = impactEnergy / (impactEnergy + 6)
+    impactEnergy = impactEnergy * impactSoundVolumeCoef
     local volImpact = impactEnergy / (impactEnergy + 4.5)
     -- local volBreak = breakEnergy / (breakEnergy + 1000)
     local volBreak = breakEnergy / (breakEnergy + 600)
@@ -390,7 +392,6 @@ local function updateGFX(dt)
     local looseRollVolume = 0
     local looseRollPitch = 0
     local looseRollDepth = 0
-    local looseRollSlip = 0 -- colorRTPC - to be removed
     local looseSkidVolume = 0
     local looseSkidPitch = 0
     local looseSkidDepth = 0
@@ -398,24 +399,22 @@ local function updateGFX(dt)
     --shared calculations for most surfaces
     local absWheelSpeed = abs(wd.angularVelocity * wd.radius)
     local slip = wd.lastSlip * min(wd.downForce * 0.1, 1)
-    local slipEnergy = wd.slipEnergy * 0.000005
     local sideSlip = abs(wd.lastSideSlip)
-    local lastSlip = wd.lastSlip * 0.0125
     local tirePressure = sqrt(wd.downForce * 0.00002) --replacing tirePatchPressure so the tireGoem from tirePatchPressure can become a static RTPC. Was using a linear range of 0 - 30,000
-    -- local vehicleWheelSpeedDiff = sign(absWheelSpeed - groundSpeed) * wd.lastSlip * 0.007
-    local vehicleWheelSpeedDiff = (absWheelSpeed - groundSpeed) * 0.01
+    -- local vehicleWheelSpeedDiff = sign(absWheelSpeed - groundSpeed) * wd.lastSlip * 0.7
+    local vehicleWheelSpeedDiff = absWheelSpeed - groundSpeed
 
-    -- if wd.name == "RR" then print(string.format("RR skids = slip %6.3f / slipEnergy %6.3f / sideSlip %6.3f / lastSlip %0.3f", slip, slipEnergy, sideSlip, lastSlip)); end
+    -- if wd.name == "RR" then print(string.format("RR skids = slip %6.3f / slipEnergy %6.3f / sideSlip %6.3f / lastSlip %0.3f", slip, wd.slipEnergy * 0.000005, sideSlip, wd.lastSlip * 0.0125)); end
 
     -- if wd.name == "RR" or wd.name == "RL" then streams.drawGraph(wd.name.." sideSlip", {value = sideSlip * 0.0125, min = 0, max = 0.3}); end
 
     --Release settings
     local vehicleWheelSpeedDiffSlip
     if vehicleWheelSpeedDiff > 0 then
-      --vehicleWheelSpeedDiffSlip = (vehicleWheelSpeedDiff + sideSlip * 0.0125) * 0.5
+      --vehicleWheelSpeedDiffSlip = (vehicleWheelSpeedDiff * 0.01 + sideSlip * 0.0125) * 0.5
       vehicleWheelSpeedDiffSlip = sideSlip * 0.0125
     else
-      vehicleWheelSpeedDiffSlip = vehicleWheelSpeedDiff
+      vehicleWheelSpeedDiffSlip = vehicleWheelSpeedDiff * 0.01
     end
 
     local mat, mat2 = wd.contactMaterialID1, wd.contactMaterialID2
@@ -423,7 +422,8 @@ local function updateGFX(dt)
       mat, mat2 = mat2, mat
     end
     local isRubberTire = mat2 == 4 and wd.hasTire -- if the tire is rubber
-    local maxContact = 0
+    local maxContactBase = obj:inWater(wd.node1) and math.huge or 0
+    local maxContact = maxContactBase
 
     -- print (string.format(" wd.downf=%6.3d : tirePressure=%5.2f : wd.lastSlip*0.01=%7.3f : slip=%7.3f ; absWhlSpd=%6.1f/MPH%3.0f : c_tirePropVol=%6.3f, c_tirePropPit=%6.3f", wd.downForce, tirePressure, wd.lastSlip * 0.01, slip, absWheelSpeed, (absWheelSpeed*2.285), wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch).." "..wd.name)
     -- print (string.format("tireVolumePitch=%7.3f : wd.tireVolume=%7.3f : material=%2.0f : wd.contactDepth=%0.2f", wheelSound.tireVolumePitch, wd.tireVolume, mat, wd.contactDepth).." "..wd.name)
@@ -432,14 +432,14 @@ local function updateGFX(dt)
     -- streams.drawGraph(wd.name.." tirePressure", {value = tirePressure, min = 0, max = 1})
     -- streams.drawGraph(wd.name.." slip", {value = slip, min = 0, max = 1})
     -- streams.drawGraph(wd.name.." wd.downForce * 0.00002", {value = sqrt(wd.downForce * 0.00002), min = 0, max = 1})
-    -- streams.drawGraph(wd.name.." lastSlip", {value = lastSlip, min = 0, max = 1})
-    -- streams.drawGraph(wd.name.." slipEnergy", {value = slipEnergy, min = 0, max = 1})
+    -- streams.drawGraph(wd.name.." lastSlip", {value = wd.lastSlip * 0.0125, min = 0, max = 1})
+    -- streams.drawGraph(wd.name.." slipEnergy", {value = wd.slipEnergy * 0.000005, min = 0, max = 1})
     -- streams.drawGraph(wd.name.." sideSlip", {value = sideSlip * 0.0125, min = 0, max = 1})
 
     -- shows the differences between slip and spin/lock
     -- if wd.name == "RR" then
-    -- streams.drawGraph(wd.name.." lastSlip", {value = lastSlip, min = 0, max = 1})
-    -- streams.drawGraph(wd.name.." vehicleWheelSpeedDiff", {value = (vehicleWheelSpeedDiff) + 0.5, min = 0, max = 1})
+    -- streams.drawGraph(wd.name.." lastSlip", {value = wd.lastSlip * 0.0125, min = 0, max = 1})
+    -- streams.drawGraph(wd.name.." vehicleWheelSpeedDiff", {value = (vehicleWheelSpeedDiff * 0.01) + 0.5, min = 0, max = 1})
     -- streams.drawGraph(wd.name.." tirePressure", {value = tirePressure, min = 0, max = 1})
     -- end
 
@@ -568,7 +568,7 @@ local function updateGFX(dt)
       wheelSound.rigidSkid:setVolumePitch(rigidSkidVolume * wd.tireSoundVolumeCoef, rigidSkidPitch, rigidSkidSlip + 0.5, rigidSurfaceType)
     end
 
-    maxContact = 0
+    maxContact = maxContactBase --I don't think this is required twuce
 
     -- LOOSE dirt
     local dirtContactSmooth = wheelSound.dirtContactSmoother:getUncapped(boolToNum[mat == 15 and isRubberTire], dt)
@@ -578,7 +578,7 @@ local function updateGFX(dt)
       looseSurfaceType = 0.025
       looseRollVolume = min(1, absWheelSpeed * 0.015) * dirtContactSmooth
       looseRollPitch = tirePressure
-      looseRollDepth = wd.contactDepth
+      looseRollDepth = wd.contactDepth + 0.1
       looseSkidVolume = slip * wheelSound.tirePropertiesSlip * 0.030 * dirtContactSmooth
       looseSkidPitch = tirePressure
       looseSkidDepth = wd.contactDepth
@@ -592,8 +592,8 @@ local function updateGFX(dt)
       if wheelSound.looseSurfaceKickupLimit <= 0 and wheelPeripherySpeedKickup > 2 and wd.tireSoundVolumeCoef > 0 then
         local kickupVolume = min(1, wheelPeripherySpeedKickup * 0.002 * wheelSound.tirePropertiesKickup)
         playSoundOnceAtNode("event:>Surfaces>kickup_dirt", wd.node1, kickupVolume * wd.tireSoundVolumeCoef, wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch, 1)
-        wheelSound.looseSurfaceKickupLimit = randomGauss3() * 20 / wheelSound.tirePropertiesKickup
-      --print(string.format("KICKUP DIRT Vol=%.2f : Pitch=%.2f : Color=%.2f : tirePropertiesKickup=%.2f", kickupVolume, wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch, wheelSound.tirePropertiesKickup) .. " " .. wd.name)
+        wheelSound.looseSurfaceKickupLimit = randomGauss3() * 8 / wheelSound.tirePropertiesKickup
+      -- print(string.format("KICKUP DIRT Vol=%.2f : Pitch=%.2f : Color=%.2f : tirePropertiesKickup=%.2f", kickupVolume, wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch, wheelSound.tirePropertiesKickup) .. " " .. wd.name)
       -- streams.drawGraph(wd.name.." kickupVolume", {value = kickupVolume, min = 0, max = 1})
       end
     end
@@ -621,7 +621,7 @@ local function updateGFX(dt)
         local kickupVolume = min(1, wheelPeripherySpeedKickup * 0.002 * wheelSound.tirePropertiesKickup)
         playSoundOnceAtNode("event:>Surfaces>kickup_dirtDusty", wd.node1, kickupVolume * wd.tireSoundVolumeCoef, wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch, 1)
         wheelSound.looseSurfaceKickupLimit = wheelSound.looseSurfaceKickupLimit + randomGauss3() * 20 / wheelSound.tirePropertiesKickup
-      --print(string.format("KICKUP DUST Vol=%.2f : Pitch=%.2f : Color=%.2f : tirePropertiesKickup=%.2f", kickupVolume, wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch, wheelSound.tirePropertiesKickup) .. " " .. wd.name)
+      -- print(string.format("KICKUP DUST Vol=%.2f : Pitch=%.2f : Color=%.2f : tirePropertiesKickup=%.2f", kickupVolume, wheelSound.tirePropertiesVolRoll, wheelSound.tirePropertiesPitch, wheelSound.tirePropertiesKickup) .. " " .. wd.name)
       -- streams.drawGraph(wd.name.." kickupVolume", {value = kickupVolume, min = 0, max = 1})
       end
     end
@@ -662,7 +662,7 @@ local function updateGFX(dt)
       looseSurfaceType = 0.175
       looseRollVolume = min(1, absWheelSpeed * 0.015) * gravelContactSmooth
       looseRollPitch = tirePressure
-      looseRollDepth = wd.contactDepth
+      looseRollDepth = wd.contactDepth + 0.4
       looseSkidVolume = slip * wheelSound.tirePropertiesSlip * 0.030 * gravelContactSmooth
       looseSkidPitch = tirePressure
       looseSkidDepth = wd.contactDepth
@@ -690,7 +690,7 @@ local function updateGFX(dt)
       looseSurfaceType = 0.225
       looseRollVolume = min(1, absWheelSpeed * 0.015) * mudContactSmooth
       looseRollPitch = tirePressure
-      looseRollDepth = wd.contactDepth
+      looseRollDepth = wd.contactDepth * 2
       looseSkidVolume = slip * wheelSound.tirePropertiesSlip * 0.030 * mudContactSmooth
       looseSkidPitch = tirePressure
       looseSkidDepth = wd.contactDepth
@@ -744,7 +744,7 @@ local function updateGFX(dt)
       looseSurfaceType = 0.325
       looseRollVolume = min(1, absWheelSpeed * 0.015) * sandContactSmooth
       looseRollPitch = tirePressure
-      looseRollDepth = wd.contactDepth
+      looseRollDepth = wd.contactDepth * 1
       looseSkidVolume = slip * wheelSound.tirePropertiesSlip * 0.020 * sandContactSmooth
       looseSkidPitch = tirePressure
       looseSkidDepth = wd.contactDepth
@@ -773,6 +773,7 @@ local function updateGFX(dt)
     -- streams.drawGraph(wd.name.." looseSkidPitch", {value = looseSkidPitch, min = 0, max = 1})
     -- streams.drawGraph(wd.name.." looseSkidDepth", {value = looseSkidDepth, min = 0, max = 0.3})
     -- if looseRollDepth > 0 then print (string.format("looseSurfaceType = %0.3f / looseRollDepth = %0.2f", looseSurfaceType, looseRollDepth)); end
+
     if wd.tireSoundVolumeCoef > 0 then
       wheelSound.looseRoll:setVolumePitch(looseRollVolume * wd.tireSoundVolumeCoef, looseRollPitch, looseRollDepth, looseSurfaceType)
       wheelSound.looseSkid:setVolumePitch(looseSkidVolume * wd.tireSoundVolumeCoef, looseSkidPitch, looseSkidDepth, looseSurfaceType)
@@ -1022,7 +1023,9 @@ local function updateCabinFilter()
 end
 
 local function init()
-  if not v.data.nodes then return end
+  if not v.data.nodes then
+    return
+  end
   obj:deleteSFXSources()
   local cameraNode = 0
   if v.data.camerasInternal ~= nil then
@@ -1179,13 +1182,13 @@ local function init()
             soundTable.noiseFactor = bm.noiseFactor or 0
             soundTable.noiseTrail = 0
 
-            -- display the current suspension setup from jbeam
-            -- print (string.format("Default Suspension Settings color=%.2f  attack=%.0f  volume=%.2f  decay=%.0f  pitch=%.2f  maxStress=%.0f", bm.colorFactor, bm.attackFactor, bm.volumeFactor, bm.decayFactor, bm.pitchFactor, bm.maxStress))
+            -- Audio debug - display the current suspension setup from jbeam
+            -- print (string.format("Suspension : %s color=%.2f  attack=%.0f  volume=%.2f  decay=%.0f  pitch=%.2f  maxStress=%.0f", bm.soundFile, bm.colorFactor, bm.attackFactor, bm.volumeFactor, bm.decayFactor, bm.pitchFactor, bm.maxStress))
 
-            --finally, insert it
+            -- finally, insert it for graphing
             table.insert(beamSounds, soundTable)
           else
-            --log('E', 'sounds.init', 'unable to load sound: ' .. tostring(soundFile))
+            log('E', 'sounds.init', 'unable to load sound: ' .. tostring(soundFile))
           end
         end
       end
@@ -1201,6 +1204,7 @@ local function init()
     impactGenericEvent = v.data.sounds.impactGeneric == nil and impactGenericEvent or v.data.sounds.impactGeneric
     impactMetalEvent = v.data.sounds.impactMetal == nil and impactMetalEvent or v.data.sounds.impactMetal
     impactPlasticEvent = v.data.sounds.impactPlastic == nil and impactPlasticEvent or v.data.sounds.impactPlastic
+    impactSoundVolumeCoef = v.data.sounds.impactSoundVolumeCoef == nil and impactSoundVolumeCoef or v.data.sounds.impactSoundVolumeCoef
     --break
     breakGenericEvent = v.data.sounds.breakGeneric == nil and breakGenericEvent or v.data.sounds.breakGeneric
     --aero

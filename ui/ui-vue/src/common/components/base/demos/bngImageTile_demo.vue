@@ -12,7 +12,6 @@
 </template>
 
 <script setup>
-import { icons } from "@/common/components/base/bngIcon.vue"
-import { BngImageTile } from "@/common/components/base"
-const $xp = icons.general.beamXP
+import { BngImageTile, icons } from "@/common/components/base"
+const $xp = icons.beamXPLo
 </script>

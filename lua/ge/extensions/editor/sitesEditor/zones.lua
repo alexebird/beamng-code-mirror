@@ -372,7 +372,7 @@ function C:drawElement(zone)
     end
   end
   local pos
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     pos = playerVehicle:getPosition()
   else

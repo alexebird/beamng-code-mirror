@@ -608,7 +608,7 @@ end
 local function teleportToLastRoadCallback(data, resetVeh)
   local mapData = map.getMap()
   local legalSide = map.getRoadRules().rightHandDrive and -1 or 1
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   local pos, rot
   if tableIsEmpty(mapData.nodes) then
     pos = veh:getPosition()
@@ -645,7 +645,7 @@ local function teleportToLastRoadCallback(data, resetVeh)
             if core_groundMarkers.currentlyHasTarget() then
               core_groundMarkers.routePlanner:trackPosition(recoveryPoint.pos)
               if core_groundMarkers.routePlanner.path[2] then
-                local routeDir = core_groundMarkers.routePlanner.path[2].pos - be:getPlayerVehicle(0):getPosition()
+                local routeDir = core_groundMarkers.routePlanner.path[2].pos - getPlayerVehicle(0):getPosition()
                 roadSide = roadDir:dot(routeDir) > 0 and legalSide or -legalSide
               end
             end
@@ -689,7 +689,7 @@ local function teleportToLastRoadCallback(data, resetVeh)
 end
 
 local function teleportToLastRoad(veh, resetVeh)
-  veh = veh or be:getPlayerVehicle(0)
+  veh = veh or getPlayerVehicle(0)
   if not veh then return end
   queueCallbackInVehicle(veh, "spawn.teleportToLastRoadCallback", "recovery.recoveryPoints", resetVeh)
 end
@@ -699,6 +699,11 @@ local function spawnVehicle(model, partConfig, pos, rot, options)
   if not veh then
     log('E', logTag, 'Failed to create vehicle')
     return
+  end
+  if pos then
+    log('I', logTag, string.format("spawning %s at initial position (%f,%f,%f)", model, pos.x, pos.y, pos.z))
+  else
+    log('I', logTag, string.format("spawning %s with no initial position", model))
   end
 
   options = options or {}

@@ -5,9 +5,8 @@
       v-if="activityOptions && activityOptions.length > 1"
       :activities="activityOptions"
       :value="selectedActivityIndex"
-      @valueChanged="onActivitySelected"
-    />
-    <BngScreenHeading v-if="selectedActivity.heading" mute divider :preheadings="preheadings" :blur-delay="200">
+      @valueChanged="onActivitySelected" />
+    <BngScreenHeading v-if="selectedActivity.heading" mute divider :preheadings="preheadings" :blur-delay="400">
       {{ $ctx_t(selectedActivity.heading) }} <span v-if="selectedActivity.description">: {{ $ctx_t(selectedActivity.description) }}</span>
     </BngScreenHeading>
     <div class="activity-props">
@@ -15,21 +14,18 @@
         v-if="selectedActivity.stars && selectedActivity.stars.defaultStarCount"
         :unlocked-stars="selectedActivity.stars.defaultUnlockedStarCount"
         :total-stars="selectedActivity.stars.defaultStarCount"
-        class="main-stars"
-      />
+        class="main-stars" />
       <BngMainStars
         v-if="selectedActivity.stars && selectedActivity.stars.bonusStarCount"
         :unlocked-stars="selectedActivity.stars.bonusStarsUnlockedCount"
         :total-stars="selectedActivity.stars.bonusStarCount"
-        class="bonus-stars"
-      />
+        class="bonus-stars" />
       <BngPropVal
         v-for="(label, index) of selectedActivity.labels"
         :key="index"
         :iconType="label.icon"
         :keyLabel="label.keyLabel"
-        :valueLabel="label.valueLabel"
-      />
+        :valueLabel="label.valueLabel" />
     </div>
     <div>
       <BngButton accent="main" v-bng-on-ui-nav:menu.asMouse @click="invokeActivityAction">
@@ -41,7 +37,7 @@
       </BngButton>
       <BngButton accent="secondary" v-bng-on-ui-nav:back.asMouse @click="onCancel">
         <BngBinding ui-event="back" deviceMask="xinput" />
-        {{ $tt('ui.common.close')}}
+        {{ $tt("ui.common.close") }}
       </BngButton>
     </div>
   </div>
@@ -50,14 +46,13 @@
 <script setup>
 import { computed, onBeforeMount, ref, onUnmounted, onMounted } from "vue"
 import { storeToRefs } from "pinia"
-import { BngButton, BngScreenHeading, BngPropVal, BngMainStars, BngBinding } from "@/common/components/base"
+import { BngButton, BngScreenHeading, BngPropVal, BngMainStars, BngBinding, icons } from "@/common/components/base"
 import { $translate, useGameContextStore } from "@/services"
 import { useUINavScope } from "@/services/uiNav"
 import { default as UINavEvents, UI_EVENT_GROUPS, UI_EVENTS } from "@/bridge/libs/UINavEvents"
 import { vBngOnUiNav } from "@/common/directives"
 import { lua } from "@/bridge"
 import ActivitySelector from "../components/ActivitySelector.vue"
-import * as assets from "@/assets/icons"
 
 useUINavScope("activityStart")
 
@@ -74,7 +69,7 @@ const selectedActivityIndex = ref(0)
 const availableActivities = ref([])
 const activityOptions = computed(() => {
   const result = availableActivities.value ? availableActivities.value.map((x, index) => ({ id: index, value: index, icon: x.icon })) : []
-  doFiltering && filterEvents(result.length>1)
+  doFiltering && filterEvents(result.length > 1)
   return result
 })
 
@@ -90,7 +85,7 @@ const selectedActivity = computed(() => {
     heading: activity.heading,
     icon: activity.icon,
     preheadings: activity.preheadings,
-    labels: labels.map(x => ({ keyLabel: $translate.instant(x.keyLabel), valueLabel: $translate.instant(x.valueLabel), icon: getAssetByString(x.icon) })),
+    labels: labels.map(x => ({ keyLabel: $translate.instant(x.keyLabel), valueLabel: $translate.instant(x.valueLabel), icon: icons[x.icon] })),
     stars: activity.props && activity.props.length > 0 ? activity.props.find(x => x.type === BNG_MAIN_STARS_TYPE) : null,
     startable: true,
     buttonLabel: activity.buttonLabel,
@@ -126,19 +121,18 @@ onUnmounted(() => {
 })
 
 let doFiltering = true
-const filterEvents = withTabs => UINavEvents.setFilteredEvents.allExcept(UI_EVENTS.back, UI_EVENTS.menu, UI_EVENTS.pause, UI_EVENTS.center_cam, ...(withTabs ? [UI_EVENTS.tab_l, UI_EVENTS.tab_r] : []))
-
-const getAssetByString = assetString => {
-  try {
-    return eval(`assets.${assetString}`)
-  } catch (e) {
-    return ""
-  }
-}
+const filterEvents = withTabs =>
+  UINavEvents.setFilteredEvents.allExcept(
+    UI_EVENTS.back,
+    UI_EVENTS.menu,
+    UI_EVENTS.pause,
+    UI_EVENTS.center_cam,
+    ...(withTabs ? [UI_EVENTS.tab_l, UI_EVENTS.tab_r] : [])
+  )
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/modules/mixins";
+@import "@/styles/modules/density";
 
 $bgcolor: rgba(black, 0.6);
 

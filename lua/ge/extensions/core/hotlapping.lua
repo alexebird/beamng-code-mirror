@@ -144,7 +144,7 @@ local function startHotlapping()
   bestLapIndex = -1
   --firstRoundIgnored = false
 
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then
     log('E', logTag, 'No vehicle found!')
     allowPlacingCP = false
@@ -278,7 +278,7 @@ local function addCheckPoint(cpPos, cpSize)
     return
   end
   if cpPos == nil then -- use the current players position
-    local vehicle = be:getPlayerVehicle(0)
+    local vehicle = getPlayerVehicle(0)
     cpPos = vehicle and vehicle:getPosition() or vec3(0,0,0)
   end
   if cpSize == nil then
@@ -828,7 +828,7 @@ local function save( filename )
   end
   local date = os.date("*t")
   local now = string.format("%.4d-%.2d-%.2d_%.2d-%.2d-%.2d", date.year,date.month,date.day, date.hour,date.min,date.sec)
-  fn = M.getCurrentTrackName()
+  local fn = M.getCurrentTrackName()
   filename = 'settings/hotlapping/'..fn..'/'..now..'.json'
   jsonWriteFile(filename,checkPointPosAndSize, false)
   log('I',logTag,'Serialized '..#checkPointPosAndSize..' checkpoints to file Documents/BeamNG.drive/'..filename)
@@ -1004,7 +1004,7 @@ local function onRaceStart( )
 end
 
 local function onRaceWaypointReached( wpInfo )
-
+  if wpInfo.vehId ~= be:getPlayerVehicleID(0) then return end
  --[[ local prevTimes = 0
 
   if currentLap > 1 then

@@ -15,7 +15,7 @@ C.category = 'once_p_duration'
 C.todo = "Needs further documentation on what each parameter does and how it should be used."
 
 C.pinSchema = {
-  { dir = 'in', type = 'number', name = 'vehId', description = 'Defines the id of the vehicle, whose gravity to modify.' },
+  { dir = 'in', type = 'number', name = 'vehId', description = 'Defines the id of the vehicle that will have modified gravity' },
   { dir = 'in', type = 'vec3', name = 'position', description = 'Defines the position to spawn the planet in.' },
   { dir = 'in', type = 'string', name = 'heightmap', description = 'Defines the heightmap for the planet.' },
   { dir = 'in', type = 'number', name = 'surfaceHeight', description = 'Defines the surface height for the planet.' },
@@ -63,12 +63,10 @@ function C:workOnce()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   self.veh = veh
-  --if self.data.clearPlanets then
-   -- veh:queueLuaCommand('obj:setPlanet')
- -- end
+
   local command = 'obj:setPlanets({'
   command = command .. (self.pinIn.position.value[1] or 0)..','..(self.pinIn.position.value[2] or 0)..','..(self.pinIn.position.value[3] or 0)..','
   command = command .. (self.pinIn.radius.value) ..','
@@ -133,7 +131,7 @@ function C:drawMiddle(builder, style)
     if self.pinIn.vehId.value then
       veh = scenetree.findObjectById(self.pinIn.vehId.value)
     else
-      veh = be:getPlayerVehicle(0)
+      veh = getPlayerVehicle(0)
     end
 
     if not veh then return end

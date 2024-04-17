@@ -1,19 +1,19 @@
 <template>
   <div style="margin-top: 1em">
     Default Switch
-    <bng-switch/>
+    <BngSwitch/>
   </div>
   <div style="margin-top: 1em">
     Disabled Switch
-    <bng-switch :disabled="true"></bng-switch>
+    <BngSwitch :disabled="true"></BngSwitch>
   </div>
   <div style="margin-top: 1em">
     Labeled switch <br />
-    <bng-switch>Labelled-text</bng-switch>
+    <BngSwitch>Labelled-text</BngSwitch>
   </div>
   <div style="margin-top: 1em">
     Disabled Labeled switch <br />
-    <bng-switch :disabled="true">Labelled-text</bng-switch>
+    <BngSwitch :disabled="true">Labelled-text</BngSwitch>
   </div>
 </template>
 

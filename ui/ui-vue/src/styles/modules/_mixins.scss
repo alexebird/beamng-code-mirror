@@ -1,12 +1,4 @@
-$border-rad-1: 0.25rem;
-$border-rad-2: 0.5rem;
-$border-rad-3: 1rem;
-$hsafezone: 1.25rem;
-$vsafezone: 1.25rem;
-$f-offset: 0.25rem;
-$rad: $border-rad-1;
-
-$focus-rad: $border-rad-3;
+@import '@/styles/modules/density';
 
 @mixin test {
   border: 2px solid #f00;

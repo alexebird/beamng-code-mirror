@@ -13,7 +13,6 @@ C.behaviour = { duration = true }
 C.description = "Shows a number of messages sequentally."
 C.category = 'once_f_duration'
 
-C.todo = "Not tested a lot, added rudimentary reset functionality for now"
 C.pinSchema = {
   { dir = 'in', type = 'string', name = 'category', default = 'flowgraph', description = 'Defines the message category.' },
   { dir = 'in', type = 'string', name = 'icon', default = 'error', description = 'Defines the icon for the messages.' },

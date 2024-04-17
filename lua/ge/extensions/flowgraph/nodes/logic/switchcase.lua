@@ -4,7 +4,6 @@
 
 local im  = ui_imgui
 
-local fg_utils = require('/lua/ge/extensions/flowgraph/utils')
 local C = {}
 
 C.name = 'Switch Case'
@@ -12,7 +11,6 @@ C.icon = "call_split"
 C.description = "Compares the input value against each switch value. Lets flow through the matching one."
 C.category = 'logic'
 
-C.todo = "WiP"
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'flow', description = 'Inflow for this node.' },
   { dir = 'in', type = 'any', name = 'value', description = 'The value which will be checked.' },

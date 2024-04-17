@@ -5,6 +5,9 @@ import { openConfirmation } from "@/services/popup"
 
 const COUNTDOWN_INTERVAL = 1000
 
+// custom 'forEach' to check if it's an array first - some empty data from Lua seems to come back as an empty object rather than []
+const _forEach = (arr, func) => arr.length && arr.forEach(func)
+
 export const useCargoOverviewStore = defineStore("cargoOverview", () => {
   const { events } = useBridge()
 
@@ -12,6 +15,7 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
   const cargoData = ref()
   const dropDownData = ref({})
   const newCargoAvailable = ref(false)
+  const cargoHighlighted = ref(false)
 
   let facilityId
   let parkingSpotPath
@@ -19,47 +23,45 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
   let queueCountdownStop
 
   function countDownCargoTimes() {
-    if (!queueCountdownStop) {
-      countdownRunning = true
-      cargoData.value.player.vehicles.length && cargoData.value.player.vehicles.forEach(vehicleData => {
-        vehicleData.containers.length && vehicleData.containers.forEach(containerData => {
-          containerData.cargo.length && containerData.cargo.forEach(cargoElement => {
-            cargoElement.remainingOfferTime -= 1
+    if (queueCountdownStop) return countdownRunning = false
 
-            // countdown for modifiers
-            if (cargoElement.modifiers) cargoElement.modifiers.length && cargoElement.modifiers.forEach(modifier => {
-              if (modifier.type == "timed" && modifier.data.active) {
-                if (modifier.data.remainingDeliveryTime > 0) {
-                  modifier.data.remainingDeliveryTime = modifier.data.remainingDeliveryTime > 1 ? modifier.data.remainingDeliveryTime - 1 : 0
-                } else if (modifier.data.remainingPaddingTime > 0) {
-                  modifier.data.remainingPaddingTime = modifier.data.remainingPaddingTime > 1 ? modifier.data.remainingPaddingTime - 1 : 0
-                }
+    countdownRunning = true
+    _forEach(cargoData.value.player.vehicles, vehicleData => {
+      _forEach(vehicleData.containers, containerData => {
+        _forEach(containerData.cargo, cargoElement => {
+          cargoElement.remainingOfferTime -= 1
+          // countdown for modifiers
+          if (cargoElement.modifiers) _forEach(cargoElement.modifiers, modifier => {
+            if (modifier.type == "timed" && modifier.data.active) {
+              if (modifier.data.remainingDeliveryTime > 0) {
+                modifier.data.remainingDeliveryTime = modifier.data.remainingDeliveryTime > 1 ? modifier.data.remainingDeliveryTime - 1 : 0
+              } else if (modifier.data.remainingPaddingTime > 0) {
+                modifier.data.remainingPaddingTime = modifier.data.remainingPaddingTime > 1 ? modifier.data.remainingPaddingTime - 1 : 0
               }
-            })
-
+            }
           })
         })
       })
+    })
 
-      if (cargoData.value && cargoData.value.facility) {
+    if (cargoData.value && cargoData.value.facility) {
+      _forEach(cargoData.value.facility.outgoingCargo, cargoElement => {
+        processCargoElementTime(cargoElement)
+        if (cargoElement.remainingOfferTime <= 0) {
+          dropDownData.value[cargoElement.ids[cargoElement.ids.length - 1]].items = []
+        }
+      })
 
-        cargoData.value.facility.outgoingCargo.length && cargoData.value.facility.outgoingCargo.forEach(cargoElement => {
-          processCargoElementTime(cargoElement)
-          if (cargoElement.remainingOfferTime <= 0) {
-            dropDownData.value[cargoElement.ids[cargoElement.ids.length - 1]].items = []
-          }
-        })  
+      _forEach(cargoData.value.facility.vehicleOffers, cargoElement => {
+        processCargoElementTime(cargoElement)
+      })
 
-        cargoData.value.facility.incomingCargo.length && cargoData.value.facility.incomingCargo.forEach(cargoElement => {
-          processCargoElementTime(cargoElement)
-        })
-
-      }
-
-      setTimeout(countDownCargoTimes, COUNTDOWN_INTERVAL)
-    } else {
-      countdownRunning = false
+      _forEach(cargoData.value.facility.trailerOffers, cargoElement => {
+        processCargoElementTime(cargoElement)
+      })
     }
+
+    setTimeout(countDownCargoTimes, COUNTDOWN_INTERVAL)
   }
 
   const processCargoElementTime = el => {
@@ -72,30 +74,38 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
     }
   }
 
-  const sortedOutgoingCargoFacility = computed(() => {
-    if (!cargoData.value.facility) return []
-
-    let result = Object.values(cargoData.value.facility.outgoingCargo)
-
-    result.sort((a, b) => {
-      if (a.remainingOfferTime < 0 && b.remainingOfferTime >= 0) {
+  function sortByRemainingOfferTime(data) {
+    let result = Object.values(data)
+    result.sort(({remainingOfferTime: a}, {remainingOfferTime: b}) => {
+      if (a < 0 && b >= 0) {
         return 1 // Move items with negative remainingOfferTime to the end
-      } else if (a.remainingOfferTime >= 0 && b.remainingOfferTime < 0) {
+      } else if (a >= 0 && b < 0) {
         return -1 // Move items with non-negative remainingOfferTime to the front
       } else {
-        return a.remainingOfferTime - b.remainingOfferTime
+        return a - b
       }
     })
-
     return result
+  }
+
+  const sortedOutgoingCargoFacility = computed(() => {
+    if (!cargoData.value || !cargoData.value.facility) return []
+    return sortByRemainingOfferTime(cargoData.value.facility.outgoingCargo)
   })
 
+  const sortedVehicleOffers = computed(() => {
+    if (!cargoData.value || !cargoData.value.facility) return []
+    return sortByRemainingOfferTime(cargoData.value.facility.vehicleOffers)
+  })
 
-  const sortedIncomingCargoFacility = computed(() => {
-    if (!cargoData.value.facility) return []
-    let result = Object.values(cargoData.value.facility.incomingCargo)
-    result.sort((a, b) => a.distance - b.distance)
-    return result
+  const sortedTrailerOffers = computed(() => {
+    if (!cargoData.value || !cargoData.value.facility) return []
+    return sortByRemainingOfferTime(cargoData.value.facility.trailerOffers)
+  })
+
+  const sortedAcceptedOffers = computed(() => {
+    if (!cargoData.value) return []
+    return sortByRemainingOfferTime(cargoData.value.player.acceptedOffers)
   })
 
   const killWatchers = () => Object.values(dropDownData.value).forEach(data => data.watchStopHandle())
@@ -105,7 +115,7 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
     queueCountdownStop = true
     cargoData.value = undefined
     dropDownData.value = {}
-    lua.career_modules_delivery_deliveryManager.showCargoRoutePreview(undefined)
+    lua.career_modules_delivery_cargoScreen.showCargoRoutePreview(undefined)
   }
 
   // Actions
@@ -113,13 +123,13 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
     killWatchers()
     facilityId = _facilityId
     parkingSpotPath = _parkingSpotPath
-    lua.career_modules_delivery_deliveryManager.requestCargoDataForUi(facilityId, parkingSpotPath, updateMaxTimeStamp)
+    lua.career_modules_delivery_cargoScreen.requestCargoDataForUi(facilityId, parkingSpotPath, updateMaxTimeStamp)
     if (updateMaxTimeStamp != false) newCargoAvailable.value = false
   }
 
 
   const moveCargoToLocation = (cargoId, targetLocation) => {
-    lua.career_modules_delivery_deliveryManager.moveCargoFromUi(cargoId, targetLocation)
+    lua.career_modules_delivery_cargoScreen.moveCargoFromUi(cargoId, targetLocation)
     requestCargoData(facilityId, parkingSpotPath, false)
   }
 
@@ -142,14 +152,14 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
   }
 
   const createDropDownDataForCargo = cargoList => {
-    cargoList.length && cargoList.forEach(cargoElement => {
+    _forEach(cargoList, cargoElement => {
       if (cargoElement.ids.length) {
         let cargoId = cargoElement.ids[cargoElement.ids.length - 1]
         let dropDownDate = {}
 
         dropDownDate.items = []
         let disableDropdown = true
-        cargoElement.targetLocations.length && cargoElement.targetLocations.forEach(targetLocationInfo => {
+        _forEach(cargoElement.targetLocations, targetLocationInfo => {
           if (targetLocationInfo.enabled) {
             dropDownDate.items.push({ label: targetLocationInfo.label, value: targetLocationInfo })
             disableDropdown = false
@@ -175,8 +185,8 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
     if (!cargoData.value.player) return
     if (!cargoData.value.player.vehicles) return
 
-    cargoData.value.player.vehicles.length && cargoData.value.player.vehicles.forEach(vehicleData => {
-      vehicleData.containers.length && vehicleData.containers.forEach(containerData => {
+    _forEach(cargoData.value.player.vehicles, vehicleData => {
+      _forEach(vehicleData.containers, containerData => {
         if (containerData.cargo.length > 0) {
           containerData.cargo.sort((a, b) => a.distance - b.distance)
           createDropDownDataForCargo(containerData.cargo)
@@ -190,31 +200,65 @@ export const useCargoOverviewStore = defineStore("cargoOverview", () => {
     }
 
     queueCountdownStop = false
-    if (!countdownRunning) {
-      countDownCargoTimes()
+    if (!countdownRunning) countDownCargoTimes()
+  }
+
+  const highlightCargoIds = highlightedIdMap => {
+    cargoHighlighted.value = Object.keys(highlightedIdMap).length > 0
+
+    if (cargoData.value && cargoData.value.facility) {
+      _forEach(cargoData.value.facility.outgoingCargo, cargo => {
+        cargo.highlight = highlightedIdMap[cargo.id]
+      })
+      _forEach(cargoData.value.facility.vehicleOffers, offer => {
+        offer.highlight = highlightedIdMap[offer.id]
+      })
+      _forEach(cargoData.value.facility.trailerOffers, offer => {
+        offer.highlight = highlightedIdMap[offer.id]
+      })
     }
+
+    if (cargoData.value && cargoData.value.player && cargoData.value.player.vehicles) {
+      _forEach(cargoData.value.player.vehicles, vehicleData => {
+        _forEach(vehicleData.containers, containerData => {
+          _forEach(containerData.cargo, cargo => {
+            cargo.highlight = highlightedIdMap[cargo.id]
+          })
+        })
+      })
+    }
+
+  }
+
+
+
+  const setAutomaticRoute = () => {
+    lua.career_modules_delivery_cargoScreen.setBestRoute()
   }
 
   const dispose = () => {
     events.off("cargoDataForUiReady")
     events.off("newCargoAvailable")
+    events.off("sendHighlightedCargoIds")
   }
 
   events.on("cargoDataForUiReady", setCargoData)
-
-  events.on("newCargoAvailable", data => {
-    newCargoAvailable.value = true
-  })
+  events.on("newCargoAvailable", () => newCargoAvailable.value = true)
+  events.on("sendHighlightedCargoIds", highlightCargoIds)
 
   return {
     cargoData,
     sortedOutgoingCargoFacility,
-    sortedIncomingCargoFacility,
+    sortedVehicleOffers,
+    sortedTrailerOffers,
+    sortedAcceptedOffers,
     dropDownData,
     newCargoAvailable,
+    cargoHighlighted,
     requestCargoData,
     requestMoveCargoToLocation,
     menuClosed,
     dispose,
+    setAutomaticRoute
   }
 })

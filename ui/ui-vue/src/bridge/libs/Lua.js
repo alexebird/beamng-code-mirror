@@ -98,12 +98,18 @@ function normaliseTypes(types, paramCount) {
  */
 export function run(funcName, args, { argTypes = Array(args.length).fill(Any), mockResponse }) {
   loadAPI()
-  if (api.isMock && mockResponse) return runMocked(mockResponse)
-  if (args.length != argTypes.length)
+  if (args.length < argTypes.length)
     throw new Error(
-      `Wrong number of arguments (${args.length}) provided for Lua function '${funcName}' which takes ${argTypes.length ? `${argTypes.length}` : "none"}`
+      `Wrong number of required arguments (${args.length}) provided for Lua function '${funcName}' which takes ${argTypes.length ? `${argTypes.length}` : "none"}`
     )
-  const transformedArgs = args.map((arg, i) => serialize((argTransformers[argTypes[i].name] || Any)(arg)))
+
+  let transformedArgs
+  if (api.isMock && mockResponse) {
+    transformedArgs = args.map((arg, i) => (argTypes[i] && argTransformers[argTypes[i].name] || Any)(arg))
+    return runMocked(mockResponse, transformedArgs)
+  }
+
+  transformedArgs = args.map((arg, i) => serialize((argTypes[i] && argTransformers[argTypes[i].name] || Any)(arg)))
   return runRaw(`${funcName}(${transformedArgs})`)
 }
 
@@ -134,14 +140,14 @@ export function runRaw(luaCode, withPromise = true) {
  *                                  wrapped in a Promise if not a promise, or the promise)
  * @return     {Promise}  promise that resolves to the result
  */
-function runMocked(response) {
+function runMocked(response, args) {
   let ret
   if (typeof response === "function") {
-    ret = response()
+    ret = response(...args)
   } else {
     ret = response
   }
-  return ret.then ? ret : new Promise((resolve, reject) => resolve(ret))
+  return (ret && ret.then) ? ret : new Promise((resolve, reject) => resolve(ret))
 }
 
 /**

@@ -7,52 +7,42 @@ local M = {}
 local im = ui_imgui
 
 local logTag = "editor_trafficSignals"
-local editWindowName = "Traffic Signals"
+local editWindowName = "Traffic Signals Editor"
 local editModeName = "signalsEditMode"
 
-local intersections, controllers = {}, {}
-local interIdx, ctrlIdx, nodeIdx, signalIdx = 1, 1, 1, 1
-local selectedNodeIdx, selectedObject, oldPos
-local interName, ctrlName = im.ArrayChar(256, ""), im.ArrayChar(256, "")
-local colorBase, colorNode, colorGuide, colorNoNode = ColorF(1, 1, 1, 0.4), ColorF(1, 1, 0.25, 0.4), ColorF(0.25, 1, 0.25, 0.4), ColorF(1, 0.25, 0.25, 0.4)
-local colorWarning, colorError = im.ImVec4(1, 1, 0, 1), im.ImVec4(1, 0, 0, 1)
-local defaultSignalType = "lightsBasic"
+local instances, controllers, sequences, elements, controllerDefinitions = {}, {}, {}, {}, {}
+local signalIdx, ctrlIdx, sequenceIdx, phaseIdx = 1, 1, 1, 1
+local signalName, ctrlName, sequenceName, selectedObject
+local colorWarning = im.ImVec4(1, 1, 0, 1)
+local dummyVec = im.ImVec2(0, 5)
+local lastUsed = {signalType = "lightsBasic"}
+local timedTexts = {}
+local oldTransform = {pos = vec3(), rot = quat(), scl = 1}
+local options = {displayNameMode = 1, smartSelection = true, showClosestRoad = false}
 local tabFlags = {}
-local lastUsed = {prototype = defaultSignalType}
 local signalObjects = {}
 local signalObjectFlags = {}
-local timedTexts = {}
-local signalMetadata
+local selectableControllers = {}
+local isDragging = false
+local overwriteDialog = false
+local itemWidth = 100
 local trafficSignals
 
-local mousePos = vec3(0, 0, 0)
+local mousePos = vec3()
 local vecUp = vec3(0, 0, 1)
+local vecUp5 = vec3(0, 0, 5)
 local vecY = vec3(0, 1, 0)
-local intersectionRadius = 1.5
-local signalNodeRadius = 0.25
+local cylinderRadius = 0.25
+local debugColors = {
+  main = ColorF(1, 1, 1, 0.4),
+  selected = ColorF(1, 1, 0.25, 0.4),
+  guide = ColorF(0.25, 1, 0.25, 0.4),
+  road = ColorF(0.25, 0.5, 0.1, 0.4),
+  error = ColorF(1, 0.25, 0.25, 0.4)
+}
 
-local mapNodes, mapGp, currNode, currSignalObj
+local currNode, currSignalObj
 local firstLoad, running = true, false
-
-local function getControllerIndex(name) -- returns the index of the named controller
-  if not name then return end
-  for i, v in ipairs(controllers) do
-    if v.name == name then return i end
-  end
-  return
-end
-
-local function closestRoadData(pos)
-  local n1, n2, dist = map.findClosestRoad(pos)
-  if not n1 then
-    return {}
-  else
-    if mapNodes[n2].pos:squaredDistance(pos) < mapNodes[n1].pos:squaredDistance(pos) then
-      n1, n2 = n2, n1
-    end
-    return {n1 = n1, n2 = n2, pos = mapNodes[n1].pos, radius = mapNodes[n1].radius}
-  end
-end
 
 local function staticRayCast()
   local rayCastHit
@@ -64,488 +54,548 @@ local function staticRayCast()
   return rayCastHit
 end
 
-local function updateGizmoPos()
-  local data = intersections[interIdx]
+local function updateGizmoTransform()
+  local data = instances[signalIdx]
   if data then
-    local pos = (selectedNodeIdx and data.signalNodes[selectedNodeIdx]) and data.signalNodes[selectedNodeIdx].pos or data.pos
     local nodeTransform = MatrixF(true)
-    nodeTransform:setPosition(pos)
+    nodeTransform:setPosition(data.pos)
     editor.setAxisGizmoTransform(nodeTransform)
   end
 end
 
-local function setRunState(val)
+local function selectInstance(idx)
+  idx = idx or 1
+  local instance = instances[idx]
+  if not instance then return end
+
+  signalName = im.ArrayChar(256, instance.name)
+  signalIdx = idx
+  table.clear(signalObjects)
+  table.clear(signalObjectFlags)
+  table.clear(selectableControllers)
+  updateGizmoTransform()
+end
+
+local function selectController(idx)
+  idx = idx or 1
+  local ctrl = controllers[idx]
+  if not ctrl then return end
+
+  ctrlName = im.ArrayChar(256, ctrl.name)
+  ctrlIdx = idx
+end
+
+local function selectSequence(idx)
+  idx = idx or 1
+  local sequence = sequences[idx]
+  if not sequence then return end
+
+  sequenceName = im.ArrayChar(256, sequence.name)
+  sequenceIdx = idx
+  phaseIdx = 1
+end
+
+local function resetSignals()
+  table.clear(instances)
+  table.clear(controllers)
+  table.clear(sequences)
+  signalIdx, ctrlIdx, sequenceIdx, phaseIdx = 1, 1, 1, 1
+  lastUsed = {signalType = "lightsBasic"}
+end
+
+local function getSerializedSignals() -- error checks and serializes the current signals data
+  local instancesSerialized, controllersSerialized, sequencesSerialized = {}, {}, {}
+
+  for _, instance in ipairs(instances) do
+    table.insert(instancesSerialized, instance:onSerialize())
+  end
+  for _, ctrl in ipairs(controllers) do
+    table.insert(controllersSerialized, ctrl:onSerialize())
+  end
+  for _, sequence in ipairs(sequences) do
+    table.insert(sequencesSerialized, sequence:onSerialize())
+  end
+
+  return {instances = instancesSerialized, controllers = controllersSerialized, sequences = sequencesSerialized}
+end
+
+local function getCurrentSignals() -- returns the signals data from the editor
+  return {instances = instances, controllers = controllers, sequences = sequences}
+end
+
+local function setCurrentSignals(data) -- directly sets the signals data for the editor
+  data = data or core_trafficSignals.getData()
+  data.instances = data.instances or {}
+  data.controllers = data.controllers or {}
+  data.sequences = data.sequences or {}
+  resetSignals()
+
+  for _, instance in ipairs(data.instances) do
+    instance.pos = vec3(instance.pos)
+    instance.dir = vec3(instance.dir)
+    local new = trafficSignals.newSignal(instance)
+    table.insert(instances, new)
+    elements[new.id] = new
+  end
+  for _, ctrl in ipairs(data.controllers) do
+    local new = trafficSignals.newController(ctrl)
+    table.insert(controllers, new)
+    elements[new.id] = new
+  end
+  for _, sequence in ipairs(data.sequences) do
+    local new = trafficSignals.newSequence(sequence)
+    table.insert(sequences, new)
+    elements[new.id] = new
+  end
+
+  selectInstance(signalIdx)
+  selectController(ctrlIdx)
+  selectSequence(sequenceIdx)
+end
+
+local function loadFile(fileName) -- loads the main signals data
+  fileName = fileName or editor.levelPath.."signals.json"
+  local data = jsonReadFile(fileName)
+  if data then
+    if not data.intersections then
+      setCurrentSignals(data)
+    else
+      log("W", logTag, "Obsolete signals data!")
+      setCurrentSignals({})
+    end
+  end
+end
+
+local function saveFile(fileName) -- saves the main signals data
+  fileName = fileName or editor.levelPath.."signals.json"
+  jsonWriteFile(fileName, getSerializedSignals(), true)
+  timedTexts.save = {"Signals saved!", 3}
+end
+
+local function simulate(val) -- runs the simulation for the traffic lights
   if val then
-    trafficSignals.setupSignals({intersections = intersections, controllers = controllers, metadata = signalMetadata})
-    trafficSignals.setDebugLevel(2)
+    for _, sequence in ipairs(sequences) do
+      sequence.enableTestTimer = true
+    end
+
+    trafficSignals.setupSignals(getCurrentSignals()) -- also activates the signals
+    trafficSignals.debugLevel = 2
+    map.reset() -- TEMP: this forces the mapmgr signals to update
     running = true
   else
     trafficSignals.setActive(false)
-    trafficSignals.setDebugLevel(0)
+    trafficSignals.debugLevel = 0
     running = false
   end
 end
 
-local function formatData()
-  local intersectionsList, controllersList = {}, {}
-
-  for _, v in ipairs(intersections) do
-    table.insert(intersectionsList, v:onSerialize())
-  end
-  for _, v in ipairs(controllers) do
-    table.insert(controllersList, v:onSerialize())
-  end
-  return {intersections = intersectionsList, controllers = controllersList}
+local function createInstanceActionUndo(data)
+  table.remove(instances, data.deleteIdx or #instances)
+  signalIdx = math.max(1, signalIdx - 1)
+  selectInstance(signalIdx)
 end
 
-local function loadData(data)
-  intersections, controllers = {}, {}
-  interIdx, ctrlIdx, nodeIdx, signalIdx = 1, 1, 1, 1
-
-  if data then
-    for k, v in ipairs(data.intersections) do
-      local o = trafficSignals.newIntersection()
-      o:onDeserialized(v)
-      table.insert(intersections, o)
-    end
-    for k, v in ipairs(data.controllers) do
-      local o = trafficSignals.newSignalController()
-      o:onDeserialized(v)
-      table.insert(controllers, o)
-    end
-  end
-
-  if intersections[interIdx] then
-    interName = im.ArrayChar(256, intersections[interIdx].name)
-  end
-  if controllers[ctrlIdx] then
-    ctrlName = im.ArrayChar(256, controllers[ctrlIdx].name)
-  end
+local function createInstanceActionRedo(data)
+  table.insert(instances, trafficSignals.newSignal(data))
+  signalIdx = #instances
+  instances[signalIdx].name = data.name or "Signal "..signalIdx
+  elements[instances[signalIdx].id] = instances[signalIdx]
+  selectInstance(signalIdx)
 end
 
-local function saveFile()
-  local fileName = getMissionFilename()
-  if fileName and fileName ~= "" then
-    fileName = path.split(fileName).."signals.json"
-    local json = jsonReadFile(fileName)
-    if not json then json = {} end
-
-    local allData = formatData()
-    json.intersections, json.controllers = allData.intersections, allData.controllers
-    jsonWriteFile(fileName, json, true)
-    timedTexts.save = {"Signals saved!", 3}
-  end
+local function transformInstanceActionUndo(data)
+  instances[signalIdx].pos:set(data.oldTransform.pos)
+  instances[signalIdx].dir = vecY:rotated(data.oldTransform.rot)
+  instances[signalIdx].radius = clamp(data.oldTransform.scl, 1, 100)
+  instances[signalIdx].road = nil
+  updateGizmoTransform()
 end
 
-local function loadFile()
-  local fileName = getMissionFilename()
-  if fileName and fileName ~= "" then
-    fileName = path.split(fileName).."signals.json"
-    loadData(jsonReadFile(fileName))
-  end
-end
-
-local function createIntersectionActionUndo(data)
-  table.remove(intersections, data.deleteIdx or #intersections)
-  interIdx = math.max(1, interIdx - 1)
-  local name = intersections[interIdx] and intersections[interIdx].name or ""
-  interName = im.ArrayChar(256, name)
-end
-
-local function createIntersectionActionRedo(data)
-  table.insert(intersections, trafficSignals.newIntersection())
-  interIdx = #intersections
-  intersections[interIdx]:onDeserialized(data)
-  if not intersections[interIdx].name then intersections[interIdx].name = "intersection"..#intersections end
-  interName = im.ArrayChar(256, intersections[interIdx].name)
-  table.clear(signalObjects)
-end
-
-local function moveIntersectionActionUndo(data)
-  intersections[interIdx].pos = vec3(data.oldPos)
-  intersections[interIdx].mapNode = closestRoadData(data.oldPos).n1
-  intersections[interIdx]._moved = true
-  updateGizmoPos()
-end
-
-local function moveIntersectionActionRedo(data)
-  intersections[interIdx].pos = vec3(data.newPos)
-  intersections[interIdx].mapNode = closestRoadData(data.newPos).n1
-  intersections[interIdx]._moved = true
-  updateGizmoPos()
-end
-
-local function createSignalNodeActionUndo(data)
-  intersections[interIdx]:deleteSignalNode(nodeIdx)
-  nodeIdx = math.max(1, nodeIdx - 1)
-end
-
-local function createSignalNodeActionRedo(data)
-  intersections[interIdx]:addSignalNode(data)
-  nodeIdx = #intersections[interIdx].signalNodes
-end
-
-local function moveSignalNodeActionUndo(data)
-  local oldPos = vec3(data.oldPos)
-  intersections[interIdx].signalNodes[selectedNodeIdx].pos = oldPos
-  intersections[interIdx].signalNodes[selectedNodeIdx].mapNode = closestRoadData(oldPos).n1
-  intersections[interIdx]._moved = true
-  updateGizmoPos()
-end
-
-local function moveSignalNodeActionRedo(data)
-  local newPos = vec3(data.newPos)
-  intersections[interIdx].signalNodes[selectedNodeIdx].pos = newPos
-  intersections[interIdx].signalNodes[selectedNodeIdx].mapNode = closestRoadData(newPos).n1
-  intersections[interIdx]._moved = true
-  updateGizmoPos()
+local function transformInstanceActionRedo(data)
+  instances[signalIdx].pos:set(data.newTransform.pos)
+  instances[signalIdx].dir = vecY:rotated(data.newTransform.rot)
+  instances[signalIdx].radius = clamp(data.newTransform.scl, 1, 100)
+  instances[signalIdx].road = nil
+  updateGizmoTransform()
 end
 
 local function createControllerActionUndo(data)
   table.remove(controllers, data.deleteIdx or #controllers)
   ctrlIdx = math.max(1, ctrlIdx - 1)
-  local name = controllers[ctrlIdx] and controllers[ctrlIdx].name or ""
-  ctrlName = im.ArrayChar(256, name)
+  selectController(ctrlIdx)
 end
 
 local function createControllerActionRedo(data)
-  table.insert(controllers, trafficSignals.newSignalController())
+  table.insert(controllers, trafficSignals.newController())
   ctrlIdx = #controllers
   controllers[ctrlIdx]:onDeserialized(data)
-  if not controllers[ctrlIdx].name then controllers[ctrlIdx].name = "controller"..#controllers end
-  ctrlName = im.ArrayChar(256, controllers[ctrlIdx].name)
+  controllers[ctrlIdx].name = data.name or "Controller "..ctrlIdx
+  elements[controllers[ctrlIdx].id] = controllers[ctrlIdx]
+  selectController(ctrlIdx)
 end
 
-local function createSignalActionUndo(data)
+local function createSequenceActionUndo(data)
+  table.remove(sequences, data.deleteIdx or #sequences)
   controllers[ctrlIdx]:deleteSignal(signalIdx)
-  signalIdx = math.max(1, signalIdx - 1)
+  sequenceIdx = math.max(1, sequenceIdx - 1)
+  selectController(sequenceIdx)
 end
 
-local function createSignalActionRedo(data)
-  controllers[ctrlIdx]:addSignal(data)
-  signalIdx = #controllers[ctrlIdx].signals
-end
-
-local function reloadAllDataActionUndo(data)
-  loadData(data.old)
-  setRunState(false)
-end
-
-local function reloadAllDataActionRedo(data)
-  loadData(data.new)
-  setRunState(false)
+local function createSequenceActionRedo(data)
+  table.insert(sequences, trafficSignals.newSequence())
+  sequenceIdx = #sequences
+  sequences[sequenceIdx]:onDeserialized(data)
+  sequences[sequenceIdx].name = data.name or "Sequence "..sequenceIdx
+  elements[sequences[sequenceIdx].id] = sequences[sequenceIdx]
+  selectSequence(sequenceIdx)
 end
 
 local function gizmoBeginDrag()
-  local data = intersections[interIdx]
-  if data then
-    oldPos = (selectedNodeIdx and data.signalNodes[selectedNodeIdx]) and vec3(data.signalNodes[selectedNodeIdx].pos) or vec3(data.pos)
+  if instances[signalIdx] then
+    instances[signalIdx].rot = quatFromDir(instances[signalIdx].dir, vecUp)
+    oldTransform.pos = vec3(instances[signalIdx].pos)
+    oldTransform.rot = quat(instances[signalIdx].rot)
+    oldTransform.scl = instances[signalIdx].radius
   end
 end
 
 local function gizmoEndDrag()
-  local data = intersections[interIdx]
-  if data then
-    local act = {oldPos = oldPos, newPos = vec3(editor.getAxisGizmoTransform():getColumn(3))}
-    if selectedNodeIdx and data.signalNodes[selectedNodeIdx] then
-      editor.history:commitAction("Position Intersection Signal Node", act, moveSignalNodeActionUndo, moveSignalNodeActionRedo)
-    else
-      editor.history:commitAction("Position Intersection", act, moveIntersectionActionUndo, moveIntersectionActionRedo)
-    end
+  if instances[signalIdx] then
+    isDragging = false
+    local newTransform = {
+      pos = vec3(instances[signalIdx].pos),
+      rot = quat(instances[signalIdx].rot),
+      scl = instances[signalIdx].radius
+    }
+
+    local act = {oldTransform = oldTransform, newTransform = newTransform}
+    editor.history:commitAction("Transform Signal Instance", act, transformInstanceActionUndo, transformInstanceActionRedo)
   end
 end
 
 local function gizmoMidDrag()
-  if editor.getAxisGizmoMode() == editor.AxisGizmoMode_Translate then
-    local data = intersections[interIdx]
-    if data then
-      if selectedNodeIdx and data.signalNodes[selectedNodeIdx] then
-        data.signalNodes[selectedNodeIdx].pos = vec3(editor.getAxisGizmoTransform():getColumn(3))
+  if instances[signalIdx] then
+    isDragging = true
+    if editor.getAxisGizmoMode() == editor.AxisGizmoMode_Translate then
+      instances[signalIdx].pos:set(editor.getAxisGizmoTransform():getColumn(3))
+    elseif editor.getAxisGizmoMode() == editor.AxisGizmoMode_Rotate then
+      local rotation = QuatF(0, 0, 0, 1)
+      rotation:setFromMatrix(editor.getAxisGizmoTransform())
+
+      if editor.getAxisGizmoAlignment() == editor.AxisGizmoAlignment_Local then
+        instances[signalIdx].rot = quat(rotation)
       else
-        data.pos = vec3(editor.getAxisGizmoTransform():getColumn(3))
+        instances[signalIdx].rot = oldTransform.rot * quat(rotation)
       end
+      instances[signalIdx].dir = vecY:rotated(instances[signalIdx].rot)
+    elseif editor.getAxisGizmoMode() == editor.AxisGizmoMode_Scale then
+      local scl = vec3(editor.getAxisGizmoScale())
+      local sclMin, sclMax = math.min(scl.x, scl.y, scl.z), math.max(scl.x, scl.y, scl.z)
+      instances[signalIdx].radius = clamp(sclMin < 1 and oldTransform.scl * sclMin or oldTransform.scl * sclMax, 1, 100)
     end
   end
 end
 
-local function tabIntersections()
-  im.BeginChild1("intersections", im.ImVec2(150 * im.uiscale[0], 0), im.WindowFlags_ChildWindow)
-  for i, v in ipairs(intersections) do
-    if im.Selectable1(v.name, interIdx == i) then
-      interName = im.ArrayChar(256, v.name)
-      interIdx = i
-      nodeIdx = 1
-      selectedNodeIdx = nil
-      table.clear(signalObjects)
-      updateGizmoPos()
+local function tabInstances()
+  im.BeginChild1("instances", im.ImVec2(150 * im.uiscale[0], 0), im.WindowFlags_ChildWindow)
+  for i, instance in ipairs(instances) do
+    if im.Selectable1(instance.name, signalIdx == i) then
+      selectInstance(i)
     end
   end
   im.Separator()
 
-  im.Selectable1("New...##intersection", false)
-  im.tooltip("Shift-Click in the world to create a new intersection point.")
+  im.Selectable1("New...##instance", false)
+  im.tooltip("Shift-Click in the world to create a new signal instance point.")
   im.EndChild()
   im.SameLine()
 
-  im.BeginChild1("intersectionData", im.ImVec2(0, 0), im.WindowFlags_ChildWindow)
-  if not im.IsWindowHovered(im.HoveredFlags_AnyWindow) and editor.keyModifiers.shift and mousePos then
-    debugDrawer:drawTextAdvanced(mousePos, "Create Intersection", ColorF(1, 1, 1, 1), true, false, ColorI(0, 0, 0, 255))
+  im.BeginChild1("instanceData", im.ImVec2(0, 0), im.WindowFlags_ChildWindow)
+  itemWidth = im.GetContentRegionAvailWidth() * 0.5
+  if not im.IsWindowHovered(im.HoveredFlags_AnyWindow) and not signalObjectFlags.selectObjects and editor.keyModifiers.shift and mousePos then
+    debugDrawer:drawTextAdvanced(mousePos, "Create Signal Instance", ColorF(1, 1, 1, 1), true, false, ColorI(0, 0, 0, 255))
 
     if im.IsMouseClicked(0) then
-      local point = closestRoadData(mousePos)
-      editor.history:commitAction("Create Intersection", {pos = vec3(mousePos), radius = 2, node = point.n1, controllerName = lastUsed.controllerName}, createIntersectionActionUndo, createIntersectionActionRedo)
+      local act = {pos = mousePos, controllerId = lastUsed.controllerId, sequenceId = lastUsed.sequenceId}
+      editor.history:commitAction("Create Signal Instance", act, createInstanceActionUndo, createInstanceActionRedo)
+      selectInstance(signalIdx)
     end
   end
 
-  if intersections[interIdx] then
-    local edited = im.BoolPtr(false)
-    editor.uiInputText("Name##intersection", interName, nil, nil, nil, nil, edited)
-    if edited then
-      -- TODO: validate name here
-      intersections[interIdx].name = ffi.string(interName)
-    end
+  local currInstance = instances[signalIdx]
+  if currInstance then
+    im.TextUnformatted("Current Signal: "..currInstance.name.." ["..currInstance.id.."]")
+
     im.SameLine()
-    if im.Button("Delete##intersection") then
-      local act = intersections[interIdx]:onSerialize()
-      act.node = intersections[interIdx].mapNode
-      act.deleteIdx = interIdx
-      editor.history:commitAction("Delete Intersection", act, createIntersectionActionRedo, createIntersectionActionUndo)
-    end
-  end
-
-  local data = intersections[interIdx]
-  if data then
-    local interPos = im.ArrayFloat(3)
-    interPos[0], interPos[1], interPos[2] = data.pos.x, data.pos.y, data.pos.z
-    if im.InputFloat3("Position##interPos", interPos, "%0."..editor.getPreference("ui.general.floatDigitCount").."f", im.InputTextFlags_EnterReturnsTrue) then
-      local act = {oldPos = vec3(data.pos), newPos = vec3(interPos[0], interPos[1], interPos[2])}
-      editor.history:commitAction("Position Intersection", act, moveIntersectionActionUndo, moveIntersectionActionRedo)
-    end
-    if im.Button("Down to Terrain##interPos") and core_terrain.getTerrain() then
-      local act = {oldPos = vec3(data.pos), newPos = vec3(interPos[0], interPos[1], core_terrain.getTerrainHeight(vec3(data.pos)))}
-      editor.history:commitAction("Position Intersection", act, moveIntersectionActionUndo, moveIntersectionActionRedo)
+    if im.Button("Delete##instance") then
+      local act = instances[signalIdx]:onSerialize()
+      act.deleteIdx = signalIdx
+      editor.history:commitAction("Delete Signal Instance", act, createInstanceActionRedo, createInstanceActionUndo)
     end
 
-    local name = data.controllerName or "(None)"
-    if im.BeginCombo("Controller##intersection", name) then
-      for _, v in ipairs(controllers) do
-        if im.Selectable1(v.name, v.name == name) then
-          data.controllerName = v.name
-          lastUsed.controllerName = v.name
+    im.PushItemWidth(itemWidth)
+    if editor.uiInputText("Name##instance", signalName, nil, im.InputTextFlags_EnterReturnsTrue) then
+      currInstance.name = ffi.string(signalName)
+    end
+    im.PopItemWidth()
+
+    local signalPos = im.ArrayFloat(3)
+    local changed = false
+    signalPos[0], signalPos[1], signalPos[2] = currInstance.pos.x, currInstance.pos.y, currInstance.pos.z
+
+    im.PushItemWidth(itemWidth)
+    if im.InputFloat3("Position##instance", signalPos, "%0."..editor.getPreference("ui.general.floatDigitCount").."f", im.InputTextFlags_EnterReturnsTrue) then
+      changed = true
+    end
+    im.PopItemWidth()
+    if im.Button("Down to Terrain##instance") then
+      if core_terrain.getTerrain() then
+        signalPos[2] = core_terrain.getTerrainHeight(currInstance.pos)
+        changed = true
+      end
+    end
+
+    if changed then -- commits changes to history
+      gizmoBeginDrag()
+      instances[signalIdx].pos = vec3(signalPos[0], signalPos[1], signalPos[2])
+      gizmoEndDrag()
+    end
+
+    im.Dummy(dummyVec)
+
+    ---- select sequence for signal instance ----
+    local elem = elements[currInstance.sequenceId]
+    local name = elem and elem.name or "Basic"
+
+    im.PushItemWidth(itemWidth)
+    if im.BeginCombo("Sequence (Signal Group)##instance", name) then
+      if im.Selectable1("Basic##instanceSequenceBasic", not elem) then
+        currInstance:setSequence(0)
+        lastUsed.sequenceId = 0
+        table.clear(selectableControllers)
+      end
+      for _, sequence in ipairs(sequences) do
+        if im.Selectable1(sequence.name.."##instanceSequence", sequence.name == name) then
+          currInstance:setSequence(sequence.id)
+          lastUsed.sequenceId = sequence.id
+          table.clear(selectableControllers)
         end
       end
       im.EndCombo()
     end
+    im.PopItemWidth()
 
-    if data.controllerName then
-      if im.Button("Edit##intersectionCtrl") then
-        local idx = getControllerIndex(data.controllerName)
-        if idx then
-          ctrlName = im.ArrayChar(256, controllers[idx].name)
-          ctrlIdx = idx
-          tabFlags = {im.flags(im.TabItemFlags_None), im.flags(im.TabItemFlags_SetSelected)}
+    if currInstance.sequenceId > 0 then
+      if im.Button("Edit##instanceSequence") or currInstance._newSequence then
+        tabFlags = {im.flags(im.TabItemFlags_None), im.flags(im.TabItemFlags_None), im.flags(im.TabItemFlags_SetSelected)}
+        currInstance._newSequence = nil
+        for i, sequence in ipairs(sequences) do
+          if sequence.id == currInstance.sequenceId then
+            selectSequence(i)
+          end
         end
       end
-      im.SameLine()
-    end
-    if im.Button("Use Default##intersectionCtrl") then
-      if not getControllerIndex("default") then
-        editor.history:commitAction("Create Controller", trafficSignals.defaultSignalController(), createControllerActionUndo, createControllerActionRedo)
-      end
-      data.controllerName = "default"
-    end
-    im.SameLine()
-    if im.Button("Create New##intersectionCtrl") then
-      editor.history:commitAction("Create Controller", {name = data.name}, createControllerActionUndo, createControllerActionRedo)
-      local idx = #controllers
-      data.controllerName = controllers[idx].name
-      ctrlIdx = idx
-      tabFlags = {im.flags(im.TabItemFlags_None), im.flags(im.TabItemFlags_SetSelected)}
-    end
-
-    if not data.mapNode then
-      data.mapNode = closestRoadData(data.pos).n1
-      if not data.mapNode then
-        im.TextColored(colorWarning, "Warning, could not find closest road node!")
+    else
+      if im.Button("New...##instanceSequence") then
+        editor.history:commitAction("Create Sequence", {}, createSequenceActionUndo, createSequenceActionRedo)
+        currInstance.sequenceId = sequences[#sequences].id
+        currInstance._newSequence = true
       end
     end
 
-    im.Dummy(im.ImVec2(0, 5))
-    im.Separator()
-    im.TextUnformatted("Signal Nodes")
-
-    if im.Button("Add##signalNode") then
-      local nPos
-      local dist = data.mapNode and math.max(5, mapNodes[data.mapNode].radius) or 5
-      if data.mapNode then
-        local node = mapGp.graph[data.mapNode] -- automatically attempt to place child nodes
-        if node then
-          local sortedSignalNodes = tableKeysSorted(node)
-          local idx = #data.signalNodes + 1
-          local childVec = sortedSignalNodes[idx] and (mapGp.positions[sortedSignalNodes[idx]] - data.pos):normalized() or vecY
-          nPos = data.pos + childVec * (dist + 0.5)
-        end
-      end
-      if not nPos then
-        nPos = data.pos + vecY * (dist + 0.5)
-      end
-      local act = {pos = vec3(nPos)}
-      editor.history:commitAction("Create Intersection Signal Node", act, createSignalNodeActionUndo, createSignalNodeActionRedo)
-    end
-    im.tooltip("Create a signal node with a stop position and signal phase number.")
-    im.SameLine()
-    if im.Button("Delete##signalNode") then
-      if data.signalNodes[nodeIdx] then
-        local act = {pos = vec3(data.signalNodes[nodeIdx].pos), signalIdx = data.signalNodes[nodeIdx].signalIdx}
-        editor.history:commitAction("Delete Intersection Signal Node", act, createSignalNodeActionRedo, createSignalNodeActionUndo)
-      end
-    end
-    if data.signalNodes[nodeIdx] then
-      im.SameLine()
-      im.TextUnformatted("Node #"..nodeIdx)
-    end
-
-    if data.signalNodes[1] then
-      local dataCount = #data.signalNodes
-      im.BeginChild1("Node List", im.ImVec2(0, 32 * im.uiscale[0]), im.WindowFlags_ChildWindow)
-      im.Columns(dataCount + 1, "Node Cols", false)
-      for i, v in ipairs(data.signalNodes) do
-        im.SetColumnWidth(i - 1, clamp(30, 2, 40 - dataCount))
-        if im.Selectable1(tostring(i), nodeIdx == i) then
-          nodeIdx = i
-          selectedNodeIdx = i
-          updateGizmoPos()
-          table.clear(signalObjectFlags)
-        end
-        im.NextColumn()
-      end
-      im.Columns(1)
-      im.EndChild()
-    end
-
-    for _, v in ipairs(data.signalNodes) do
-      if not v.mapNode then
-        v.mapNode = closestRoadData(v.pos).n1
-      end
-    end
-
-    local sNode = data.signalNodes[nodeIdx]
-
-    if sNode then
-      local nodePos = im.ArrayFloat(3)
-      nodePos[0], nodePos[1], nodePos[2] = sNode.pos.x, sNode.pos.y, sNode.pos.z
-      if im.InputFloat3("Position##nodePos", nodePos, "%0."..editor.getPreference("ui.general.floatDigitCount").."f", im.InputTextFlags_EnterReturnsTrue) then
-        local act = {oldPos = vec3(sNode.pos), newPos = vec3(nodePos[0], nodePos[1], nodePos[2])}
-        editor.history:commitAction("Position Intersection Signal Node", act, moveSignalNodeActionUndo, moveSignalNodeActionRedo)
-      end
-      if im.Button("Down to Terrain##nodePos") and core_terrain.getTerrain() then
-        selectedNodeIdx = nodeIdx
-        local act = {oldPos = vec3(sNode.pos), newPos = vec3(nodePos[0], nodePos[1], core_terrain.getTerrainHeight(vec3(sNode.pos)))}
-        editor.history:commitAction("Position Intersection Signal Node", act, moveSignalNodeActionUndo, moveSignalNodeActionRedo)
-      end
-
-      if not sNode.mapNode then
-        im.TextColored(colorWarning, "Warning, could not find closest road node!")
-      end
-
-      local signalStr = "Phase #"
-      local ctrl = getControllerIndex(data.controllerName)
-      if not ctrl then
-        signalStr = "(Controller Not Found)"
-      elseif not controllers[ctrl].signals[1] then
-        signalStr = "(None)"
-      else
-        signalStr = signalStr..sNode.signalIdx
-      end
-
-      local comboStr = signalStr
-      if im.BeginCombo("Controller Phase##signalNode", comboStr) then
-        if ctrl then
-          ctrl = controllers[ctrl]
-          for i, v in ipairs(ctrl.signals) do
-            if im.Selectable1("Phase #"..i.." - "..signalMetadata.types[v.prototype].name, signalStr..i == signalStr..sNode.signalIdx) then
-              sNode.signalIdx = i
+    -- update selectable controllers here
+    if not selectableControllers[1] then
+      local sequence = elements[currInstance.sequenceId]
+      if sequence then
+        local temp = {}
+        for _, phase in ipairs(sequence.phases) do
+          for _, data in ipairs(phase.controllerData) do
+            if elements[data.id] and not temp[data.id] then
+              table.insert(selectableControllers, elements[data.id])
+              temp[data.id] = 1
             end
           end
         end
-        im.EndCombo()
+      else
+        for _, ctrl in ipairs(controllers) do
+          table.insert(selectableControllers, ctrl)
+        end
       end
     end
 
-    im.Dummy(im.ImVec2(0, 5))
+    ---- select controller for signal instance ----
+    elem = elements[currInstance.controllerId]
+    name = elem and elem.name or "(None)"
+
+    im.PushItemWidth(itemWidth)
+    if im.BeginCombo("Controller (Signal Type)##instance", name) then
+      if im.Selectable1("(None)##instanceController", not elem) then
+        currInstance:setController(0)
+        lastUsed.controllerId = 0
+      end
+      -- only controllers found within the current sequence should be selectable
+      for _, ctrl in ipairs(selectableControllers) do
+        if im.Selectable1(ctrl.name, ctrl.name == name) then
+          currInstance:setController(ctrl.id)
+          lastUsed.controllerId = ctrl.id
+        end
+      end
+      im.EndCombo()
+    end
+    im.PopItemWidth()
+
+    if currInstance.controllerId > 0 then
+      if im.Button("Edit##instanceCtrl") or currInstance._newController then
+        tabFlags = {im.flags(im.TabItemFlags_None), im.flags(im.TabItemFlags_SetSelected), im.flags(im.TabItemFlags_None)}
+        currInstance._newController = nil
+        for i, ctrl in ipairs(controllers) do
+          if ctrl.id == currInstance.controllerId then
+            selectController(i)
+          end
+        end
+      end
+    else
+      if im.Button("New...##instanceCtrl") then
+        editor.history:commitAction("Create Controller", {}, createControllerActionUndo, createControllerActionRedo)
+        currInstance.controllerId = controllers[#controllers].id
+        currInstance._newController = true
+      end
+    end
+
+    if not currInstance.road then
+      currInstance.road = currInstance:getBestRoad()
+      if not currInstance.road then
+        im.TextColored(colorWarning, "Warning, could not find closest road node!")
+      end
+    end
+
+    im.Dummy(dummyVec)
     im.Separator()
     im.TextUnformatted("Signal Objects")
 
-    local str = signalObjects[1] and "Refresh" or "Find Objects"
-    if im.Button(str.."##signalObjects") then
-      signalObjects = data:getSignalObjects(nil, true)
+    if timedTexts.signalObjects then
+      im.Dummy(dummyVec)
+      im.TextWrapped(timedTexts.signalObjects[1])
+    elseif timedTexts.applyFields then
+      im.TextColored(colorWarning, timedTexts.applyFields[1])
+    else
+      im.TextUnformatted(" ")
+    end
+
+    im.Dummy(dummyVec)
+
+    if not signalObjectFlags.objectsNotFound and not signalObjects[1] then
+      signalObjects = currInstance:getSignalObjects(true)
       signalObjectFlags.objectsNotFound = not signalObjects[1] and true or false
     end
-    im.tooltip("Search for world objects that have the dynamic field [intersection] that matches this intersection name.")
 
-    im.SameLine()
-
-    if not signalObjectFlags.selectObjects then
+    local selectObjects = signalObjectFlags.selectObjects and true or false
+    if not selectObjects then
       if im.Button("Select Objects##signalObjects") then
         signalObjectFlags.selectObjects = true
         editor.selectEditMode(editor.editModes["objectSelect"])
+        timedTexts.selectObjects = {"Currently in Object Selection mode.", 5000}
       end
-      im.tooltip("Switch to object selection mode to select signal objects.")
+      im.tooltip("Enables object selection mode to select signal objects.")
+
+      local val = im.BoolPtr(options.smartSelection)
+      if im.Checkbox("Smart Selection Mode", val) then
+        options.smartSelection = val[0]
+      end
+      im.tooltip("If true, objects with the same type and rotation will be added to the selection.")
     else
+      if options.smartSelection then
+        -- whenever a single object is selected, all others of the same type, area, and rotation are also selected
+        -- use internalName if you want to group varying traffic light shapes together
+        -- otherwise, this will only match by shapeName
+
+        -- maybe this should be a function
+        if signalObjectFlags.smartSelectObjects then
+          local selectedObj = scenetree.findObjectById(editor.selection.object[1])
+          local validIds = {}
+          if selectedObj:getClassName() == "TSStatic" then
+            local internalName = selectedObj:getInternalName()
+
+            local dir1 = selectedObj:getTransform():getForward()
+            for _, obj in ipairs(getObjectsByClass("TSStatic") or {}) do
+              if (internalName and obj:getInternalName() == internalName) or obj.shapeName == selectedObj.shapeName then
+                if selectedObj:getPosition():squaredDistance(obj:getPosition()) <= 1600 then -- checks within a 40 m radius
+                  -- strong assumption that the TSStatics were created with the same initial rotation
+                  local dir2 = obj:getTransform():getForward()
+                  if dir1:dot(dir2) >= 0.93 then -- roughly within 20 degrees
+                    table.insert(validIds, obj:getId())
+                  end
+                end
+              end
+            end
+          end
+
+          if validIds[2] then
+            editor.selectObjects(validIds)
+          end
+          signalObjectFlags.smartSelectObjects = nil
+        end
+      end
+
       local count = tableSize(editor.selection.object)
-      str = "Apply Data to Selection ("..count
-      str = str..")"
-      if im.Button(str.."##signalObjects") then
+      if im.Button("Confirm Selection ("..count..")##signalObjects") then
         if count > 0 then
           for _, id in ipairs(editor.selection.object) do
-            editor.setDynamicFieldValue(id, "intersection", data.name)
-            editor.setDynamicFieldValue(id, "phaseNum", data.signalNodes[nodeIdx].signalIdx)
+            editor.setDynamicFieldValue(id, "signalInstance", currInstance.name)
           end
           editor.selectEditMode(editor.editModes[editModeName])
           editor.selection.object = nil
-          signalObjects = data:getSignalObjects(nil, true) -- refresh
-          signalObjectFlags.selectObjects = false
-          timedTexts.applyFields = {"Updated "..count.." objects: [intersection] = "..data.name..", [phaseNum] = "..data.signalNodes[nodeIdx].signalIdx.." .", 6}
+          table.clear(signalObjects)
+          table.clear(signalObjectFlags)
+          timedTexts.selectObjects = nil
+          timedTexts.signalObjects = nil
+          timedTexts.applyFields = {"Updated "..count.." objects: [signalInstance] = "..currInstance.name, 6}
         end
       end
-      im.tooltip("Apply the dynamic fields [intersection] and [phaseNum] to this object.")
+      im.tooltip("Apply the dynamic field [signalInstance] to objects in this selection.")
       im.SameLine()
 
       if im.Button("Cancel##signalObjects") then
-        signalObjectFlags.selectObjects = false
         editor.selectEditMode(editor.editModes[editModeName])
         editor.selection.object = nil
+        table.clear(signalObjects)
+        table.clear(signalObjectFlags)
+      end
+
+      if timedTexts.selectObjects then
+        im.TextColored(colorWarning, timedTexts.selectObjects[1])
       end
     end
-    if timedTexts.applyFields then
-      im.TextColored(colorWarning, timedTexts.applyFields[1])
-    end
+
+    im.Dummy(dummyVec)
 
     if signalObjectFlags.objectsNotFound then
-      im.TextUnformatted("No matching objects found.")
-    end
-    if signalObjects[1] then
-      if signalObjectFlags.objectsNotFound then signalObjectFlags.objectsNotFound = false end
-      im.TextUnformatted(#signalObjects.." matching objects found.")
-      im.SameLine()
+      im.TextUnformatted("No linked objects found.")
+    else
       if im.Button("View Selection##signalObjects") then
-        if selectedObject then editor.fitViewToSelection() end
+        if not selectedObject and signalObjects[1] then
+          editor.selectObjects({signalObjects[1]})
+          selectedObject = signalObjects[1]
+        end
+        editor.fitViewToSelection()
+      end
+      im.SameLine()
+      if im.Button("Clear Object Fields##signalObjects") then
+        for _, id in ipairs(signalObjects) do
+          scenetree.findObjectById(id).signalInstance = ""
+        end
+        editor.selection.object = nil
+        table.clear(signalObjects)
+        table.clear(signalObjectFlags)
       end
 
-      im.BeginChild1("signalObjects", im.ImVec2(im.GetContentRegionAvailWidth(), 150 * im.uiscale[0]), im.WindowFlags_ChildWindow)
-      for _, v in ipairs(signalObjects) do
-        local obj = scenetree.findObjectById(v)
+      im.BeginChild1("signalObjects", im.ImVec2(itemWidth, 150 * im.uiscale[0]), im.WindowFlags_ChildWindow)
+      for _, oid in ipairs(signalObjects) do
+        local obj = scenetree.findObjectById(oid)
         if obj then
-          local sigNum = obj.signalNum and tonumber(obj.signalNum) or tonumber(obj.phaseNum)
-          local sigText = sigNum and "(phase #"..sigNum..")" or "(no phase)"
-          local line = "["..v.."] "..sigText
-
-          if im.Selectable1(line, selectedObject == v) then
-            editor.selectObjects({v})
-            selectedObject = v
-          end
-          if not sigNum then
-            im.tooltip("Object dynamic field [phaseNum] has no number value.")
+          if im.Selectable1(tostring(oid), selectedObject == oid) then
+            editor.selectObjects({oid})
+            selectedObject = oid
           end
         end
       end
@@ -553,23 +603,12 @@ local function tabIntersections()
     end
 
     if mousePos and editor.isViewportHovered() and im.IsMouseClicked(0) and not editor.isAxisGizmoHovered() and not editor.keyModifiers.shift then
-      selectedNodeIdx = nil
-      for i, v in ipairs(data.signalNodes) do
-        if mousePos:squaredDistance(v.pos) <= signalNodeRadius + 0.3 then
-          nodeIdx = i
-          selectedNodeIdx = i
+      for i, instance in ipairs(instances) do
+        if mousePos:squaredDistance(instance.pos) <= cylinderRadius * 2 then
+          selectInstance(i)
         end
       end
-      if not selectedNodeIdx then
-        for i, v in ipairs(intersections) do
-          if mousePos:squaredDistance(v.pos) <= intersectionRadius + 0.3 then
-            interName = im.ArrayChar(256, intersections[interIdx].name)
-            interIdx = i
-            table.clear(signalObjects)
-          end
-        end
-      end
-      updateGizmoPos()
+      updateGizmoTransform()
     end
     editor.updateAxisGizmo(gizmoBeginDrag, gizmoEndDrag, gizmoMidDrag)
     editor.drawAxisGizmo()
@@ -578,13 +617,13 @@ local function tabIntersections()
 end
 
 local function tabControllers()
+  table.clear(selectableControllers)
+
   im.BeginChild1("controllers", im.ImVec2(150 * im.uiscale[0], 0), im.WindowFlags_ChildWindow)
 
-  for i, v in ipairs(controllers) do
-    if im.Selectable1(v.name, ctrlIdx == i) then
-      ctrlName = im.ArrayChar(256, v.name)
-      ctrlIdx = i
-      signalIdx = 1
+  for i, ctrl in ipairs(controllers) do
+    if im.Selectable1(ctrl.name, ctrlIdx == i) then
+      selectController(i)
     end
   end
   im.Separator()
@@ -595,179 +634,317 @@ local function tabControllers()
   im.SameLine()
 
   im.BeginChild1("controllerData", im.ImVec2(0, 0), im.WindowFlags_ChildWindow)
-  if controllers[ctrlIdx] then
-    local edited = im.BoolPtr(false)
-    editor.uiInputText("Name##controller", ctrlName, nil, nil, nil, nil, edited)
-    if edited then
-      -- TODO: validate name here
-      controllers[ctrlIdx].name = ffi.string(ctrlName)
-    end
+  itemWidth = im.GetContentRegionAvailWidth() * 0.5
+  local currController = controllers[ctrlIdx]
+  if currController then
+    im.TextUnformatted("Current Controller: "..currController.name.." ["..currController.id.."]")
+
     im.SameLine()
     if im.Button("Delete##controller") then
-      local act = controllers[ctrlIdx]:onSerialize()
+      local act = currController:onSerialize()
       act.deleteIdx = ctrlIdx
       editor.history:commitAction("Delete Controller", act, createControllerActionRedo, createControllerActionUndo)
     end
-  end
 
-  local data = controllers[ctrlIdx]
-  if data then
-    local var = im.IntPtr(data.signalStartIdx)
-    im.PushItemWidth(100 * im.uiscale[0])
-    im.InputInt("Initial Signal##controller", var, 1)
-    im.PopItemWidth()
-    data.signalStartIdx = math.max(1, var[0])
-
-    var = im.IntPtr(data.lightStartIdx)
-    im.PushItemWidth(100 * im.uiscale[0])
-    im.InputInt("Initial Light##controller", var, 1)
-    im.PopItemWidth()
-    data.lightStartIdx = math.max(1, var[0])
-
-    var = im.FloatPtr(data.startTime)
-    im.PushItemWidth(100 * im.uiscale[0])
-    im.InputFloat("Initial Time##controller", var, 1, nil, "%.2f")
-    im.PopItemWidth()
-    data.startTime = math.max(0, var[0])
-
-    var = im.BoolPtr(data.skipStart)
-    if im.Checkbox("Start Disabled##controller", var) then
-      data.skipStart = var[0]
+    im.PushItemWidth(itemWidth)
+    if editor.uiInputText("Name##controller", ctrlName, nil, im.InputTextFlags_EnterReturnsTrue) then
+      currController.name = ffi.string(ctrlName)
     end
-    im.tooltip("Start this signal controller in the off state.")
+    im.PopItemWidth()
 
-    var = im.BoolPtr(data.customTimings)
-    if im.Checkbox("Enable Custom Timings", var) then
-      data.customTimings = var[0]
+    local currCtrlType = currController.type
+    if currCtrlType == "none" then
+      currController.type = lastUsed.signalType or "none"
     end
-    im.tooltip("Enable custom timing values for this signal controller.")
+    local signalTypes = core_trafficSignals.getControllerDefinitions().types
+    local typeName = signalTypes[currCtrlType] and signalTypes[currCtrlType].name or "(None)"
 
-    im.Dummy(im.ImVec2(0, 5))
+    im.PushItemWidth(itemWidth)
+    if im.BeginCombo("Signal Type##controller", typeName) then
+      for _, k in ipairs(tableKeysSorted(signalTypes)) do
+        if im.Selectable1(signalTypes[k].name, k == currController.type) then
+          currController.type = k
+          lastUsed.signalType = k
+        end
+      end
+      im.EndCombo()
+    end
+    im.PopItemWidth()
+
+    if currController.type ~= currCtrlType then
+      currController:applyDefinition(currController.type)
+    end
+
+    im.Dummy(dummyVec)
     im.Separator()
-    im.TextUnformatted("Signal Phases")
+    im.TextUnformatted("States")
 
-    if im.Button("Add##signal") then
-      editor.history:commitAction("Create Controller Signal", {signalType = lastUsed.prototype}, createSignalActionUndo, createSignalActionRedo)
-    end
-    im.tooltip("Create a signal phase that controls one or more directions of traffic flow.")
-    im.SameLine()
-    if im.Button("Delete##signal") then
-      if data.signals[signalIdx] then
-        local act = {lightDefaultIdx = data.signals[signalIdx].lightDefaultIdx, timings = deepcopy(data.signals[signalIdx].timings), action = data.signals[signalIdx].action, signalType = lastUsed.prototype}
-        editor.history:commitAction("Delete Controller Signal", act, createSignalActionRedo, createSignalActionUndo)
-      end
-    end
+    im.Dummy(dummyVec)
 
-    if data.signals[signalIdx] then
-      im.SameLine()
-      im.TextUnformatted("Phase #"..tostring(signalIdx))
-    end
-
-    if data.signals[1] then
-      local dataCount = #data.signals
-      im.BeginChild1("Signal List", im.ImVec2(0, 32 * im.uiscale[0]), im.WindowFlags_ChildWindow)
-      im.Columns(dataCount + 1, "Signal Cols", false)
-      for i, v in ipairs(data.signals) do
-        im.SetColumnWidth(i - 1, clamp(30, 2, 40 - dataCount))
-        if im.Selectable1(tostring(i), signalIdx == i) then
-          signalIdx = i
+    if currController.isSimple or not currController.states[1] then
+      for _, state in ipairs(currController.states) do
+        local stateData = currController:getStateData(state.state)
+        if stateData then
+          im.TextUnformatted(stateData.name)
         end
-        im.NextColumn()
       end
-      im.Columns(1)
-      im.EndChild()
-    end
 
-    local signal = data.signals[signalIdx]
-    if signal then
-      if im.BeginCombo("Signal Type##signal", signalMetadata.types[signal.prototype].name) then
-        local sortedSignalTypes = tableKeys(signalMetadata.types)
-        table.sort(sortedSignalTypes)
-        for _, v in ipairs(sortedSignalTypes) do
-          if im.Selectable1(signalMetadata.types[v].name, v == signal.prototype) then
-            signal.prototype = v
-            lastUsed.prototype = v
-            signal.lightDefaultIdx = signalMetadata.types[v].defaultIdx
-            signal.timings = deepcopy(signalMetadata.types[v].timings)
+      im.Dummy(dummyVec)
+      im.TextUnformatted("No settings available for this controller.")
+    else
+      for i, state in ipairs(currController.states) do
+        local stateData = currController:getStateData(state.state)
+        if stateData then
+          state.duration = state.duration or -1
+
+          local var = im.FloatPtr(state.duration)
+          im.PushItemWidth(100 * im.uiscale[0])
+          if im.InputFloat(stateData.name.."##controllerState"..i, var, 0.1, 0.1, "%.2f", im.InputTextFlags_EnterReturnsTrue) then
+            state.duration = math.max(0, var[0])
+          end
+          if state.state == "redTrafficLight" then
+            im.tooltip("This is usually the delay time until the next signal phase starts.")
+          end
+
+          im.SameLine()
+          if im.Button("Set Infinite##controllerState"..i) then
+            state.duration = -1
           end
         end
-        im.EndCombo()
-      end
-
-      im.Dummy(im.ImVec2(0, 5))
-      im.TextUnformatted("Timings")
-
-      if signal.timings then
-        if data.customTimings then -- individual timings for each state (if enabled)
-          for _, v in ipairs(signal.timings) do
-            var = im.FloatPtr(v.duration)
-            im.PushItemWidth(100 * im.uiscale[0])
-            im.InputFloat(v.type.."##signal", var, 0.5, nil, "%.2f")
-            im.PopItemWidth()
-            v.duration = math.max(0.01, var[0])
-          end
-        else
-          im.TextUnformatted("Signal timings will be set automatically.")
-        end
-      else
-        im.TextUnformatted("No timings exist for this signal.")
       end
     end
   end
   im.EndChild()
 end
 
-local function tabSimulation()
-  local inter = intersections[interIdx]
-  if intersections[1] and controllers[1] then
-    if not running then
-      if im.Button("Play") then
-        setRunState(true)
-      end
-    else
-      if im.Button("Stop") then
-        setRunState(false)
+local function tabSequences()
+  table.clear(selectableControllers)
+
+  im.BeginChild1("sequences", im.ImVec2(150 * im.uiscale[0], 0), im.WindowFlags_ChildWindow)
+
+  for i, sequence in ipairs(sequences) do
+    if im.Selectable1(sequence.name, sequenceIdx == i) then
+      selectSequence(i)
+    end
+  end
+  im.Separator()
+  if im.Selectable1("Create...##sequence", false) then
+    editor.history:commitAction("Create Sequence", {}, createSequenceActionUndo, createSequenceActionRedo)
+  end
+  im.EndChild()
+  im.SameLine()
+
+  im.BeginChild1("sequenceData", im.ImVec2(0, 0), im.WindowFlags_ChildWindow)
+  itemWidth = im.GetContentRegionAvailWidth() * 0.5
+  local currSequence = sequences[sequenceIdx]
+  if currSequence then
+    im.TextUnformatted("Current Sequence: "..currSequence.name.." ["..currSequence.id.."]")
+
+    im.SameLine()
+    if im.Button("Delete##sequence") then
+      local act = currSequence:onSerialize()
+      act.deleteIdx = sequenceIdx
+      editor.history:commitAction("Delete Sequence", act, createSequenceActionRedo, createSequenceActionUndo)
+    end
+
+    im.PushItemWidth(itemWidth)
+    if editor.uiInputText("Name##sequence", sequenceName, nil, im.InputTextFlags_EnterReturnsTrue) then
+      currSequence.name = ffi.string(sequenceName)
+    end
+    im.PopItemWidth()
+
+    local var = im.FloatPtr(currSequence.startTime)
+    im.PushItemWidth(100 * im.uiscale[0])
+    if im.InputFloat("Start Delay##sequence", var, 0.01, 0.1, "%.2f", im.InputTextFlags_EnterReturnsTrue) then
+      currSequence.startTime = var[0]
+    end
+    im.PopItemWidth()
+    im.tooltip("This can also be negative, to skip ahead in the sequence.")
+
+    var = im.BoolPtr(currSequence.startDisabled)
+    if im.Checkbox("Start Disabled##sequence", var) then
+      currSequence.startDisabled = var[0]
+    end
+    im.tooltip("If true, this sequence starts with all signals in the off state.")
+
+    im.Dummy(dummyVec)
+    im.Separator()
+    im.TextUnformatted("Phases")
+
+    im.Dummy(dummyVec)
+
+    if im.Button("Create##sequencePhase") then
+      currSequence:createPhase()
+      phaseIdx = #currSequence.phases
+    end
+    im.SameLine()
+    if im.Button("Delete##sequencePhase") then
+      currSequence:deletePhase()
+      if not currSequence.phases[phaseIdx] then
+        phaseIdx = math.max(1, #currSequence.phases)
       end
     end
 
-    if running then
-      local debugData = trafficSignals.getValues()
-      if debugData.nextTime then
-        im.TextUnformatted("Current time / event time: "..tostring(string.format("%.2f", debugData.timer)).." / "..tostring(string.format("%.2f", debugData.nextTime)))
+    for i, phase in ipairs(currSequence.phases) do
+      local isCurrentPhase = i == phaseIdx
+      if isCurrentPhase then
+        im.PushStyleColor2(im.Col_Button, im.GetStyleColorVec4(im.Col_ButtonActive))
+      end
+      if im.Button(" "..i.." ") then
+        phaseIdx = i
+      end
+      if isCurrentPhase then
+        im.PopStyleColor()
+      end
+      im.SameLine()
+    end
+    im.Dummy(dummyVec)
+
+    local phase = currSequence.phases[phaseIdx]
+    if phase then
+      im.TextUnformatted("Phase #"..phaseIdx)
+
+      im.Dummy(dummyVec)
+      im.TextUnformatted("Controllers")
+      local count = #phase.controllerData
+      if count <= 0 then
+        table.insert(phase.controllerData, {id = 0, required = true})
+        count = 1
       end
 
-      im.Dummy(im.ImVec2(0, 5))
-      im.Separator()
-      im.TextUnformatted("User Controls")
-
-      im.PushItemWidth(200 * im.uiscale[0])
-      if im.BeginCombo("Intersections##simulation", inter.name) then
-        for i, v in ipairs(intersections) do
-          if im.Selectable1(v.name, v.name == inter.name) then
-            interName = im.ArrayChar(256, v.name)
-            interIdx = i
-          end
+      var = im.IntPtr(count)
+      im.PushItemWidth(100 * im.uiscale[0])
+      if im.InputInt("Count##phaseController", var, 1) then
+        while var[0] > #phase.controllerData do
+          table.insert(phase.controllerData, {id = 0, required = true})
         end
-        im.EndCombo()
+        while var[0] < #phase.controllerData do
+          table.remove(phase.controllerData, #phase.controllerData)
+        end
       end
       im.PopItemWidth()
 
-      local interObj = inter and core_trafficSignals.getIntersections()[inter.name] -- this one is the live copy, not in editor
-      if interObj and interObj.control then
-        local var = im.BoolPtr(interObj.control.skipTimer)
-        if im.Checkbox("Ignore Timer##controller", var) then
-          interObj.control:ignoreTimer(var[0])
-        end
-        im.tooltip("Disable automatic signal timings.")
+      local controllersDict = {}
+      for _, cd in ipairs(phase.controllerData) do
+        controllersDict[cd.id] = 1
+      end
 
-        if im.Button("Advance") then
-          interObj.control:advance()
+      for j, cd in ipairs(phase.controllerData) do
+        im.PushItemWidth(itemWidth)
+        if im.BeginCombo("Controller #"..j.."##phaseController", elements[cd.id] and elements[cd.id].name or "(None)") then
+          for _, ctrl in ipairs(controllers) do
+            if not controllersDict[ctrl.id] and im.Selectable1(ctrl.name, cd.id == ctrl.id) then
+              cd.id = ctrl.id
+            end
+          end
+          im.EndCombo()
         end
-        im.tooltip("Advance to the next light state.")
+        im.PopItemWidth()
+      end
+
+      im.Dummy(dummyVec)
+      im.TextWrapped("Advance to the next phase when these controller cycles are complete:")
+
+      im.BeginChild1("controllerRequirements", im.ImVec2(itemWidth, 150 * im.uiscale[0]), im.WindowFlags_ChildWindow)
+      for _, cd in ipairs(phase.controllerData) do
+        if elements[cd.id] then
+          local isRequired = cd.required
+          if isRequired then
+            im.PushStyleColor2(im.Col_Header, im.GetStyleColorVec4(im.Col_ButtonActive))
+          end
+          if im.Selectable1(elements[cd.id].name, cd.required) then
+            cd.required = not cd.required
+          end
+          if isRequired then
+            im.PopStyleColor()
+          end
+        end
+      end
+      im.EndChild()
+    end
+  end
+  im.EndChild()
+end
+
+local function tabSimulation()
+  if instances[1] then
+    if not running then
+      if im.Button("Play") then
+        simulate(true)
+      end
+    else
+      local debugData = trafficSignals.getData()
+      if im.Button("Stop") then
+        simulate(false)
+      end
+      im.SameLine()
+      if debugData.active then
+        if im.Button("Pause##simulation") then
+          core_trafficSignals.setActive(false)
+        end
+      else
+        if im.Button("Resume##simulation") then
+          core_trafficSignals.setActive(true)
+        end
       end
     end
+    if not be:getEnabled() then
+      im.SameLine()
+      im.TextColored(colorWarning, "Main simulation is currently paused.")
+    end
+
+    if running then
+      local debugData = trafficSignals.getData()
+      if debugData.nextTime then
+        im.TextUnformatted("Current timer: "..tostring(string.format("%.2f", debugData.timer)))
+        im.TextUnformatted("Next event time: "..tostring(string.format("%.2f", debugData.nextTime)))
+      end
+
+      im.Dummy(dummyVec)
+      im.Separator()
+
+      local columnWidth = im.GetContentRegionAvailWidth() * 0.24
+      im.Columns(4)
+      im.SetColumnWidth(0, columnWidth)
+      im.SetColumnWidth(1, columnWidth)
+      im.SetColumnWidth(2, columnWidth)
+
+      for i, sequence in ipairs(core_trafficSignals.getSequences()) do
+        im.TextUnformatted(sequence.name)
+
+        im.NextColumn()
+        im.TextUnformatted("Step: "..sequence.currStep)
+
+        im.NextColumn()
+        local currTime = sequence.testTimer or 0
+        local maxTime = math.max(1e-6, sequence.sequenceDuration)
+        im.ProgressBar(currTime / maxTime, im.ImVec2(im.GetContentRegionAvailWidth(), 0))
+
+        im.NextColumn()
+        if im.Button("Advance##simulation"..i) then
+          if sequence.active then
+            sequence:advance()
+          else
+            sequence:setActive(true)
+          end
+        end
+        im.SameLine()
+        if not sequence.ignoreTimer then
+          if im.Button("Pause##simulation"..i) then
+            sequence:enableTimer(false)
+          end
+        else
+          if im.Button("Resume##simulation"..i) then
+            sequence:enableTimer(true)
+          end
+        end
+
+        im.NextColumn()
+      end
+      im.Columns(1)
+    end
   else
-    im.TextUnformatted("Intersection and signal controller need to exist before running simulation.")
+    im.TextUnformatted("Signals need to exist before running simulation.")
     running = false
   end
 end
@@ -775,58 +952,90 @@ end
 local function debugDraw()
   if running then return end
 
-  for i, data in ipairs(intersections) do
-    local alpha = interIdx == i and 1 or 0.5
-    local camDist = data.pos:squaredDistance(core_camera.getPosition())
-    local str = ""
-    if data.controllerName and camDist <= 40000 then
-      str = " ("..data.controllerName..")"
-    end
-    debugDrawer:drawTextAdvanced(data.pos, String(data.name..str), ColorF(1, 1, 1, alpha), true, false, ColorI(0, 0, 0, alpha * 255))
+  local mapNodes = map.getMap().nodes
 
-    if camDist <= square(editor.getPreference("gizmos.visualization.visualizationDrawDistance")) then
-      local shapeColor = colorBase
-      if interIdx == i then
-        shapeColor = data.mapNode and colorNode or colorNoNode
+  for i, instance in ipairs(instances) do
+    local alpha = signalIdx == i and 1 or 0.5
+    local camDist = instance.pos:squaredDistance(core_camera.getPosition())
+    if camDist <= square(editor.getPreference("gizmos.visualization.visualizationDrawDistance")) or signalIdx == i then
+      local str = instance.name
+      local strColor = ColorF(1, 1, 1, alpha)
+      if options.displayNameMode == 2 then
+        str = elements[instance.controllerId] and elements[instance.controllerId].name or "(Null controller)"
+        strColor = ColorF(0, 1, 0, alpha)
+      elseif options.displayNameMode == 3 then
+        str = elements[instance.sequenceId] and elements[instance.sequenceId].name or "(Null sequence)"
+        strColor = ColorF(0, 1, 1, alpha)
       end
 
-      debugDrawer:drawSphere(data.pos, intersectionRadius, shapeColor)
+      local shapeColor = signalIdx == i and debugColors.selected or debugColors.main
 
-      if interIdx == i then
-        for j, sNode in ipairs(intersections[interIdx].signalNodes) do
-          if sNode.pos then
-            shapeColor = j == nodeIdx and colorNode or colorBase
-            if not sNode.mapNode then shapeColor = colorNoNode end
-            local topPos = sNode.pos + vecUp * 7.5
-            local c = rainbowColor(10, ((sNode.signalIdx or 0) * 7) % 10, 1)
-            local capColor = ColorF(c[1], c[2], c[3], 0.6)
-            debugDrawer:drawCylinder(sNode.pos, topPos, signalNodeRadius, shapeColor)
-            debugDrawer:drawCylinder(topPos, topPos + vec3(0, 0, 0.5), signalNodeRadius, capColor)
-            debugDrawer:drawText(sNode.pos, String("phase #"..sNode.signalIdx), ColorF(0, 0, 0, 1))
+      if signalIdx == i and instance.road then
+        shapeColor = debugColors.selected
+      end
 
-            if nodeIdx == j then
-              debugDrawer:drawSquarePrism(data.pos, sNode.pos, Point2F(0.5, 0), Point2F(0.5, 2), colorGuide)
+      if signalIdx == i then
+        debugDrawer:drawSphere(instance.pos, cylinderRadius * 2, debugColors.main)
+        if isDragging then
+          debugDrawer:drawSphere(instance.pos, instance.radius, ColorF(1, 1, 1, 0.1))
+        end
+
+        if options.showClosestRoad and instance.road and instance.road.n1 then
+          debugDrawer:drawSphere(mapNodes[instance.road.n1].pos, cylinderRadius, debugColors.road)
+          debugDrawer:drawSphere(mapNodes[instance.road.n2].pos, cylinderRadius, debugColors.road)
+          debugDrawer:drawSquarePrism(mapNodes[instance.road.n1].pos, mapNodes[instance.road.n2].pos, Point2F(0.2, 0.2), Point2F(0.2, 0.2), debugColors.road)
+        end
+
+        for _, oid in ipairs(signalObjects) do
+          local obj = scenetree.findObjectById(oid)
+          if obj then
+            local abovePos = obj:getWorldBox():getCenter()
+            abovePos.z = abovePos.z + obj:getWorldBox():getExtents().z * 0.5 + 0.25
+            debugDrawer:drawSquarePrism(abovePos, abovePos + vecUp, Point2F(0, 0), Point2F(0.5, 0.5), debugColors.selected)
+          end
+        end
+      end
+
+      local instancePosUp = instance.pos + vecUp5
+      debugDrawer:drawCylinder(instance.pos, instancePosUp, cylinderRadius, shapeColor)
+      debugDrawer:drawSquarePrism(instance.pos, instance.pos + instance.dir * instance.radius, Point2F(0.5, instance.radius * 0.25), Point2F(0.5, 0), debugColors.guide)
+      debugDrawer:drawTextAdvanced(instance.pos, String(str), strColor, true, false, ColorI(0, 0, 0, alpha * 255))
+
+      if camDist <= 10000 then -- draw signal cylinder cap that represents each controller
+        local r, g, b = 0, 0, 0
+        if elements[instance.controllerId] then
+          for sci, sc in ipairs(selectableControllers) do
+            if instance.controllerId == sc.id then
+              r, g, b = HSVtoRGB(sci / (#selectableControllers + 1), 1, 1)
+              break
             end
           end
         end
+        debugDrawer:drawCylinder(instancePosUp, instancePosUp + vecUp * 0.5, cylinderRadius, ColorF(r, g, b, 0.6))
       end
     end
   end
 end
 
+local displayNameModesSorted = {"Signals", "Controllers", "Sequences"}
 local function onEditorGui(dt)
   if editor.beginWindow(editModeName, editWindowName, im.WindowFlags_MenuBar) then
     if firstLoad then
       editor.selectEditMode(editor.editModes[editModeName])
-
-      mapNodes = map.getMap().nodes
-      mapGp = map.getGraphpath()
       trafficSignals = extensions.core_trafficSignals
-      signalMetadata = signalMetadata or trafficSignals.getSignalMetadata()
+      trafficSignals.loadControllerDefinitions(editor.levelPath.."signalControllerDefinitions.json")
+      controllerDefinitions = trafficSignals.getControllerDefinitions()
 
-      if not intersections[1] and not controllers[1] then
-        loadFile() -- loads default intersections & signals data from map
+      if not instances[1] then
+        setCurrentSignals() -- automatically loads active signals data from map
       end
+
+      selectInstance(signalIdx)
+      selectController(ctrlIdx)
+      selectSequence(sequenceIdx)
+
+      timedTexts.signalObjects = {"Select signal objects in the level to link with this instance. Remember to Save Level (Ctrl+S) if signal objects were assigned or updated.", 5000}
+
       firstLoad = false
     end
 
@@ -835,19 +1044,31 @@ local function onEditorGui(dt)
     im.BeginMenuBar()
     if im.BeginMenu("File") then
       if im.MenuItem1("Load") then
-        local act = {old = deepcopy(formatData())}
         loadFile()
-        act.new = deepcopy(formatData())
-        editor.history:commitAction("Reload Traffic Signals Editor Data", act, reloadAllDataActionUndo, reloadAllDataActionRedo)
       end
       if im.MenuItem1("Save") then
         saveFile()
       end
       if im.MenuItem1("Clear") then
-        -- maybe add a modal popup here?
-        local act = {old = deepcopy(formatData())}
-        editor.history:commitAction("Reload Traffic Signals Editor Data", act, reloadAllDataActionUndo, reloadAllDataActionRedo)
+        overwriteDialog = true
       end
+      im.EndMenu()
+    end
+    if im.BeginMenu("Preferences") then
+      if im.BeginMenu("Display Name Mode") then
+        for mi, mode in ipairs(displayNameModesSorted) do
+          if im.Selectable1(mode, mode == displayNameModesSorted[options.displayNameMode]) then
+            options.displayNameMode = mi
+          end
+        end
+        im.EndMenu()
+      end
+
+      local var = im.BoolPtr(options.showClosestRoad)
+      if im.Checkbox("Draw Closest Road Segment", var) then
+        options.showClosestRoad = var[0]
+      end
+
       im.EndMenu()
     end
 
@@ -857,16 +1078,38 @@ local function onEditorGui(dt)
     end
     im.EndMenuBar()
 
+    if overwriteDialog then
+      im.SetNextWindowPos(im.GetCursorScreenPos())
+      if im.Begin("Confirm##trafficSignals", im.BoolPtr(true), bit.bor(im.WindowFlags_NoDocking, im.WindowFlags_NoCollapse)) then
+        im.TextUnformatted("Are you sure you want to clear signals data?")
+        if im.Button("YES") then
+          im.CloseCurrentPopup()
+          overwriteDialog = false
+          resetSignals()
+        end
+        im.SameLine()
+        if im.Button("NO") then
+          im.CloseCurrentPopup()
+          overwriteDialog = false
+        end
+      end
+      im.End()
+    end
+
     if im.BeginTabBar("Signal Tools") then
-      if im.BeginTabItem("Intersections", nil, tabFlags[1]) then
-        tabIntersections()
+      if im.BeginTabItem("Signals", nil, tabFlags[1]) then
+        tabInstances()
         im.EndTabItem()
       end
       if im.BeginTabItem("Controllers", nil, tabFlags[2]) then
         tabControllers()
         im.EndTabItem()
       end
-      if im.BeginTabItem("Simulation", nil, tabFlags[3]) then
+      if im.BeginTabItem("Sequences", nil, tabFlags[3]) then
+        tabSequences()
+        im.EndTabItem()
+      end
+      if im.BeginTabItem("Simulation", nil, tabFlags[4]) then
         tabSimulation()
         im.EndTabItem()
       end
@@ -891,41 +1134,25 @@ local function onActivate()
   editor.clearObjectSelection()
 end
 
-local function onSerialize()
-  local intersectionsData, controllersData = {}, {}
+local function onEditorObjectSelectionChanged()
+  if signalObjectFlags.selectObjects and options.smartSelection and tableSize(editor.selection.object) == 1 and not signalObjectFlags.smartSelectObjects then
+    signalObjectFlags.smartSelectObjects = true
+  end
+end
 
-  for _, v in ipairs(intersections) do
-    table.insert(intersectionsData, v:onSerialize())
-  end
-  for _, v in ipairs(controllers) do
-    table.insert(controllersData, v:onSerialize())
-  end
-  local data = {
-    intersections = intersectionsData,
-    controllers = controllersData,
-  }
+local function onClientEndMission()
+  firstLoad = true
+end
+
+local function onSerialize()
+  local data = {options = options, signals = getSerializedSignals()}
   return data
 end
 
 local function onDeserialized(data)
-  trafficSignals = extensions.core_trafficSignals
-
-  for _, v in ipairs(data.intersections) do
-    local o = trafficSignals.newIntersection()
-    o:onDeserialized(v)
-    table.insert(intersections, o)
-  end
-  for _, v in ipairs(data.controllers) do
-    local o = trafficSignals.newSignalController()
-    o:onDeserialized(v)
-    table.insert(controllers, o)
-  end
-  if intersections[1] then
-    interName = im.ArrayChar(256, intersections[1].name)
-  end
-  if controllers[1] then
-    ctrlName = im.ArrayChar(256, controllers[1].name)
-  end
+  trafficSignals = core_trafficSignals
+  options = data.options
+  setCurrentSignals(data.signals)
 end
 
 local function onWindowMenuItem()
@@ -935,20 +1162,27 @@ local function onWindowMenuItem()
 end
 
 local function onEditorInitialized()
-  editor.registerWindow(editModeName, im.ImVec2(560, 520))
+  editor.registerWindow(editModeName, im.ImVec2(540, 600))
   editor.editModes[editModeName] = {
     displayName = editWindowName,
     onActivate = onActivate,
     auxShortcuts = {}
   }
-  editor.editModes[editModeName].auxShortcuts[bit.bor(editor.AuxControl_LMB, editor.AuxControl_Shift)] = "Create Intersection"
+  editor.editModes[editModeName].auxShortcuts[bit.bor(editor.AuxControl_LMB, editor.AuxControl_Shift)] = "Create Signal"
   editor.editModes[editModeName].auxShortcuts[editor.AuxControl_LMB] = "Select"
   editor.addWindowMenuItem(editWindowName, onWindowMenuItem, {groupMenuName = "Gameplay"})
 end
 
+M.getCurrentSignals = getCurrentSignals
+M.setCurrentSignals = setCurrentSignals
+M.loadFile = loadFile
+M.saveFile = saveFile
+
 M.onEditorInitialized = onEditorInitialized
 M.onWindowMenuItem = onWindowMenuItem
 M.onEditorGui = onEditorGui
+M.onEditorObjectSelectionChanged = onEditorObjectSelectionChanged
+M.onClientEndMission = onClientEndMission
 M.onSerialize = onSerialize
 M.onDeserialized = onDeserialized
 

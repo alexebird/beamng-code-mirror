@@ -12,7 +12,7 @@ C.color = ui_flowgraph_editor.nodeColors.traffic
 C.icon = ui_flowgraph_editor.nodeIcons.traffic
 C.category = 'repeat_instant'
 C.tags = {'police', 'cops', 'pursuit', 'chase', 'traffic', 'ai'}
-
+C.todo = "Move this out of the traffic subsystem, eventually"
 
 C.pinSchema = {
   {dir = 'in', type = 'number', name = 'vehId', description = 'Vehicle id to get information from; if none given, uses the player vehicle.'},
@@ -25,6 +25,7 @@ C.pinSchema = {
 }
 
 -- All "score" numbers are set from 0 (bad) to 1 (good) depending on how long the offense is done; the default minimum cutoff to trigger a pursuit offense is 0.5 .
+-- This system will likely change in the future
 
 function C:work()
   local vehId = self.pinIn.vehId.value or be:getPlayerVehicleID(0)
@@ -37,7 +38,7 @@ function C:work()
   self.pinOut.collisions.value = tracking.collisions
   self.pinOut.driveScore.value = tracking.driveScore
   self.pinOut.directionScore.value = tracking.directionScore
-  self.pinOut.intersectionScore.value = tracking.intersectionScore
+  self.pinOut.intersectionScore.value = tracking.signalFault or 0
 end
 
 return _flowgraph_createNode(C)

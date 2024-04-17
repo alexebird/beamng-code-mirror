@@ -33,7 +33,7 @@ function C:workOnce()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   if veh then
     --print("Recover in Place")

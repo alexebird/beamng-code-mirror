@@ -1,16 +1,36 @@
+<!-- TODO: should be replaced with BngImageTile -->
+
 <template>
-  <div :class="`garage-button ${addclass} ${active ? 'garage-button-active' : ''} ${disable ? 'garage-button-disabled' : ''}`"
-    _:disabled="disable"
-    _v-focus-if="focus"
+  <div
+    :class="`garage-button ${addclass} ${active ? 'garage-button-active' : ''} ${disable ? 'garage-button-disabled' : ''}`"
+    v-bng-disabled="disable"
+    v-bng-focus-if="focus"
     v-bng-blur="true"
     v-bng-sound-class="'bng_click_hover_generic'"
     bng-nav-item
-    _focus-on-hover
-  >
-    <div class="garage-button-icon" :style="{ '-webkit-mask-image': 'url(' + icon +')'}"></div>
+    _focus-on-hover>
+    <div class="garage-button-icon" :style="{ '-webkit-mask-image': 'url(' + icon + ')' }"></div>
     <span class="garage-button-text"><slot></slot></span>
   </div>
 </template>
+
+<script setup>
+import { vBngBlur, vBngSoundClass, vBngDisabled, vBngFocusIf } from "@/common/directives"
+
+defineProps({
+  icon: {
+    type: String,
+    default: "/ui/assets/SVG/24/test-cone.svg",
+  },
+  addclass: {
+    type: String,
+    default: "",
+  },
+  active: Boolean,
+  focus: Boolean,
+  disable: Boolean,
+})
+</script>
 
 <style lang="scss">
 .garage-button {
@@ -26,12 +46,17 @@
   font-weight: 800;
   line-height: 1.2em;
   color: white;
-  background-color: rgba(0,0,0, 0.6);
+  background-color: rgba(#000, 0.6);
   border-radius: 4px;
   text-align: center;
   text-decoration: none;
   cursor: default;
   pointer-events: all !important;
+
+  &:hover,
+  &:focus {
+    background-color: rgba(var(--bng-cool-gray-700-rgb), 0.8);
+  }
 
   .garage-button-icon {
     min-width: 3em;
@@ -56,19 +81,19 @@
 }
 
 .garage-menu1 .garage-button {
-  padding-left:0.75em;
+  padding-left: 0.75em;
   padding-right: 0.75em;
 }
 
 .garage-button-disabled,
 .garage-button[disabled] {
-  background-color: rgba(0,0,0, 0.5) !important;
+  background-color: rgba(#000, 0.5) !important;
   color: #aaa !important;
   pointer-events: none !important;
 }
 .garage-button-active.garage-button-disabled,
 .garage-button-active[disabled] {
-  background-color: rgba(200,200,200, 0.5) !important;
+  background-color: rgba(200, 200, 200, 0.5) !important;
 }
 .garage-button.garage-button-disabled .garage-button-icon,
 .garage-button[disabled] .garage-button-icon {
@@ -77,43 +102,15 @@
 
 /* smaller screen */
 @media (max-width: 1280px) {
-    .garage-button-text {
-        font-size: 1em;
-    }
+  .garage-button-text {
+    font-size: 1em;
+  }
 }
 
 /* portrait mode */
 @media (max-width: 1081px) and (orientation: portrait) {
-    .garage-button-text {
-        font-size: 1em;
-    }
+  .garage-button-text {
+    font-size: 1em;
+  }
 }
-
 </style>
-
-<script setup>
-import { vBngBlur, vBngSoundClass/*, vFocusIf*/ } from "@/common/directives";
-
-defineProps({
-  icon: {
-    type: String,
-    default: "/ui/assets/SVG/24/test-cone.svg"
-  },
-  addclass: {
-    type: String,
-    default: ""
-  },
-  active: {
-    type: Boolean,
-    default: false
-  },
-  focus: {
-    type: Boolean,
-    default: false
-  },
-  disable: {
-    type: Boolean,
-    default: false
-  },
-})
-</script>

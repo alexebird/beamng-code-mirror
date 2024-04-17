@@ -48,7 +48,7 @@ function C:play()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   self.recording.recording.loopCount = self.pinIn.loopCount.value or -1
   self.recording.recording.loopType = "firstOnlyTeleport"
@@ -61,7 +61,7 @@ function C:stop()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   veh:queueLuaCommand('ai.stopFollowing()')
   self.running = false

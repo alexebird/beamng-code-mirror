@@ -67,8 +67,7 @@ end
 local function readNumber(si)
   local c, i, r = byte(s, si), si, 0
   while c >= 48 and c <= 57 do -- \d
-    i = i + 1
-    r = r * 10 + (c - 48)
+    i, r = i + 1, r * 10 + (c - 48)
     c = byte(s, i)
   end
   if c == 46 then -- .
@@ -76,8 +75,7 @@ local function readNumber(si)
     c = byte(s, i)
     local f, scale = 0, 0.1
     while c >= 48 and c <= 57 do -- \d
-      i = i + 1
-      f = f + (c - 48) * scale
+      i, f = i + 1, f + (c - 48) * scale
       c = byte(s, i)
       scale = scale * 0.1
     end
@@ -205,12 +203,9 @@ local function readKey(si, c)
   if c == 34 then -- '"'
     key, i = readString(si)
   else
-    if c == nil then
-      jsonError(string.format("Expected dictionary key"), si)
-    end
     i = si
     local ch = byte(s, i)
-    while (ch >= 97 and ch <= 122) or (ch >= 65 and ch <= 90) or (ch >= 48 and ch <= 57) or ch == 95 do -- [a z] [A Z] or [0 9] or _
+    while ch ~= nil and ((ch >= 97 and ch <= 122) or (ch >= 65 and ch <= 90) or (ch >= 48 and ch <= 57) or ch == 95) do -- [a z] [A Z] or [0 9] or _
       i = i + 1
       ch = byte(s, i)
     end

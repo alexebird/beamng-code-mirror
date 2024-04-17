@@ -13,7 +13,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.vehicle
 
 C.description = 'Sets directional gravity using really large, really distant planets.'
 C.category = 'dynamic_p_duration'
-C.todo = "This node needs testing to see if it actually works correctly"
 
 C.pinSchema = {
   { dir = 'in', type = 'number', name = 'vehId', description = 'Id of target vehicle.' },
@@ -35,6 +34,14 @@ function C:init()
   self.planet = {}
 end
 
+function C:_executionStopped()
+  local veh = self.pinIn.vehId.value and scenetree.findObjectById(self.pinIn.vehId.value) or getPlayerVehicle(0)
+
+  if veh then
+    veh:queueLuaCommand("obj:setPlanets({})")
+  end
+end
+
 function C:workOnce()
   self:setDirectionalGravity()
 end
@@ -50,19 +57,9 @@ function C:setDirectionalGravity()
     return
   end
 
-  local veh
-  if self.pinIn.vehId.value then
-    veh = scenetree.findObjectById(self.pinIn.vehId.value)
-  else
-    veh = be:getPlayerVehicle(0)
-  end
+  local veh = self.pinIn.vehId.value and scenetree.findObjectById(self.pinIn.vehId.value) or getPlayerVehicle(0)
+  if not veh then return end
 
-  if not veh then
-    return
-  end
-  --if self.data.clearPlanets then
-  -- veh:queueLuaCommand('obj:setPlanet')
-  -- end
   local magnitude = self.pinIn.magnitude.value or 0
   local radius = 1000000
   local mass = (magnitude * radius * radius) / C.gConst
@@ -91,7 +88,7 @@ function C:drawMiddle(builder, style)
     if self.pinIn.vehId.value then
       veh = scenetree.findObjectById(self.pinIn.vehId.value)
     else
-      veh = be:getPlayerVehicle(0)
+      veh = getPlayerVehicle(0)
     end
 
     if veh then

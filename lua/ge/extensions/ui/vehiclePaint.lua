@@ -42,7 +42,7 @@ local function onUpdate()
   if not showUI[0] then return end
 
   local imgui = ui_imgui
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then return end
 
   imgui.Begin('Metallic paint', showUI, imgui.WindowFlags_AlwaysAutoResize)
@@ -89,7 +89,7 @@ local function onExtensionLoaded()
 end
 
 local function changeData(change, index)
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   data = stringToData(playerVehicle:getField('metallicPaintData', 0))
   data[index] = change
   playerVehicle:setField('metallicPaintData', 0, dataToString(data))

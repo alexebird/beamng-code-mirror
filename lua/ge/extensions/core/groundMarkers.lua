@@ -17,9 +17,12 @@ local decals = {}
 local numDecals = 0
 
 local arrowPoolId
+local arrowLerpInfos = {}
 local wpToArrowMap = {}
 local arrowToWpMap = {}
 local upVec = vec3(0,0,1)
+
+local arrowScale = 3
 
 local function getPathLength()
   if M.routePlanner.path and M.routePlanner.path[1] then
@@ -50,6 +53,7 @@ local function getPathPositionDirection(dist, lastNodeData)
   return nil
 end
 
+local decalScale = 3
 local function getNewData()
   -- create decals
   local data = {
@@ -58,7 +62,7 @@ local function getNewData()
     position = vec3(0, 0, 0),
     forwardVec = vec3(0, 0, 0),
     color = ColorF(M.color[1], M.color[2], M.color[3], 0 ),
-    scale = vec3(4, 6, 2),
+    scale = vec3(1*decalScale, 1*decalScale, 1*decalScale),
     fadeStart = M.fadeStart,
     fadeEnd = M.fadeEnd
   }
@@ -67,14 +71,14 @@ end
 
 local function calculateAlpha(pos, start, dist)
   local linearAlpha = min(dist, max(0, pos - start)) / dist
-  return 1-square(square(1-linearAlpha)) -- increase opacity much sooner than a linear ramp
+  return 0.5-square(square(1-linearAlpha)) -- increase opacity much sooner than a linear ramp
 end
 
 M.decalPool = {}
 M.decalPoolCount = 0
 M.decalDrawingDistance = 150--m
-M.decalBlendOffset = 5--m
-M.decalBlendStart = 25--m
+M.decalBlendOffset = 1--m
+M.decalBlendStart = 7--m
 M.decalBlendEnd = 120--m
 --M.stepDistance = 5
 local function increaseDecalPool(max)
@@ -110,7 +114,7 @@ local function generateDecalsForSegment(from, to, idx, first)
       M.decalPool[idx].color.a = 1
     end
     -- enable this line for "quicker" blending
-    M.decalPool[idx].color.a = 1-square(1-M.decalPool[idx].color.a)
+    --M.decalPool[idx].color.a = 1-square(1-M.decalPool[idx].color.a)
     idx = idx + 1
   end
   return idx, (M.startingDist-to.distToTarget) < M.decalDrawingDistance, last
@@ -126,8 +130,9 @@ local function getUnusedArrow()
   end
 end
 
-local arrowHeight = vec3(0,0,3)
+local arrowHeight = vec3(0,0,4)
 local renderedWpArrows = {}
+local arrowScaleVec = vec3()
 local function generateRouteDecals(startPos)
   profilerPushEvent("Groundmarkers generateRouteDecals")
 
@@ -143,6 +148,7 @@ local function generateRouteDecals(startPos)
   local nextIdx, cont, first = 1, true, 1
   local i = 1
   local dirPrevPoint
+  local prevPointId
   table.clear(renderedWpArrows)
 
   while cont do
@@ -151,9 +157,25 @@ local function generateRouteDecals(startPos)
       local vehicleDist = totalDist - path[i].distToTarget
       local dirNextPoint = (M.routePlanner.path[i+1].pos - path[i].pos)
       dirNextPoint:normalize()
-      if dirPrevPoint then
+      if dirPrevPoint and vehicleDist > M.decalBlendOffset and (path[i].linkCount and path[i].linkCount > 2) and path[i].wp then
         local nodeToNodeAngle = acos(dirPrevPoint:cosAngle(dirNextPoint)) * 180/pi
-        if vehicleDist > M.decalBlendOffset and nodeToNodeAngle > 25 and (path[i].linkCount and path[i].linkCount > 2) and path[i].wp then
+
+        -- Check if the route has the smallest angle of any possible path of the intersection
+        local routeHasSmallestAngle = true
+        if nodeToNodeAngle <= 25 then
+          for wpId, edgeInfo in pairs(map.getGraphpath().graph[path[i].wp]) do
+            if prevPointId ~= wpId then
+              local connectedNodePos = map.getMap().nodes[wpId].pos
+              local dirConnectedNode = (connectedNodePos - path[i].pos); dirConnectedNode:normalize()
+              local connectedNodeAngle = acos(dirPrevPoint:cosAngle(dirConnectedNode)) * 180/pi
+              if nodeToNodeAngle > connectedNodeAngle then
+                routeHasSmallestAngle = false
+                break
+              end
+            end
+          end
+        end
+        if nodeToNodeAngle > 25 or not routeHasSmallestAngle then
 
           -- Show an arrow
           if not wpToArrowMap[path[i].wp] then
@@ -166,6 +188,15 @@ local function generateRouteDecals(startPos)
               local pos = path[i].pos + arrowHeight
               local rot = quatFromDir(dirNextPoint, upVec)
               arrow:setPosRot(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w)
+              -- TODO Removed the exaggerate angle for now
+              --[[ if nodeToNodeAngle <= 25 then
+                -- Add rotation lerp info when the angle is too shallow
+                local rightDir = dirPrevPoint:cross(upVec)
+                local rightTurn = rightDir:dot(dirNextPoint) > 0
+                local exaggeratedDir = vec3()
+                exaggeratedDir:setLerp(rightTurn and rightDir or -rightDir, dirPrevPoint, 0.5)
+                arrowLerpInfos[arrow:getId()] = {pos = pos, realRot = rot, exaggeratedRot = quatFromDir(exaggeratedDir, upVec)}
+              end ]]
             end
           end
 
@@ -179,8 +210,17 @@ local function generateRouteDecals(startPos)
               else
                 lerpFactor = 1 - (clamp(vehicleDist, M.decalBlendEnd, M.decalDrawingDistance)-M.decalBlendEnd) / (M.decalDrawingDistance-M.decalBlendEnd)
               end
-              arrow:setField('instanceColor', 0, spaceSeparated4Values(1, 1, 1, lerpFactor))
-              arrow:setField('instanceColor1', 0, spaceSeparated4Values(M.floatingArrowColor[1], M.floatingArrowColor[2], M.floatingArrowColor[3], lerpFactor))
+              local arrowInfo = arrowLerpInfos[arrow:getId()]
+              if arrowInfo then
+                -- lerp the arrow rotation as you are coming closer
+                local rot = arrowInfo.realRot:nlerp(arrowInfo.exaggeratedRot, (clamp(vehicleDist - 30, 0, 30)) / 30)
+                arrow:setPosRot(arrowInfo.pos.x, arrowInfo.pos.y, arrowInfo.pos.z, rot.x, rot.y, rot.z, rot.w)
+              end
+              arrow:setField('instanceColor', 0, spaceSeparated4Values(M.floatingArrowColor[1], M.floatingArrowColor[2], M.floatingArrowColor[3], lerpFactor))
+              arrow:setField('instanceColor1', 0, spaceSeparated4Values(0, 0, 0, lerpFactor))
+              local exaggeratedScale = clamp(vehicleDist-60, arrowScale, 5)
+              arrowScaleVec:set(exaggeratedScale, exaggeratedScale, exaggeratedScale)
+              arrow:setScale(arrowScaleVec)
               arrow:updateInstanceRenderData()
               renderedWpArrows[path[i].wp] = true
             end
@@ -188,9 +228,10 @@ local function generateRouteDecals(startPos)
         end
       end
       dirPrevPoint = dirNextPoint
+      prevPointId = M.routePlanner.path[i+1].wp
     end
 
-    if path[i+1] then
+    if path[i+1] and (not path[i-1] or (path[i+1].pos ~= path[i-1].pos)) then
       nextIdx, cont, first = generateDecalsForSegment(path[i], path[i+1], nextIdx, first)
       i = i+1
       cont = cont and path[i+1]
@@ -213,6 +254,7 @@ local function generateRouteDecals(startPos)
         arrow.hidden = true
         arrowToWpMap[arrow:getId()] = nil
         wpToArrowMap[wp] = nil
+        arrowLerpInfos[arrow:getId()] = nil
       end
     end
   end
@@ -227,7 +269,7 @@ local function onPreRender(dt)
 
   profilerPushEvent("Groundmarkers onPreRender")
 
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if veh then
     M.routePlanner:trackVehicle(veh)
   end
@@ -239,7 +281,6 @@ local function onPreRender(dt)
   end
 
   if M.debugPath then
-    local pathSegmentsSize = tableSize(M.pathSegments)
     for i, wp in ipairs(M.routePathTmp or {}) do
       debugDrawer:drawSphere(vec3(wp), 0.25, ColorF(1, 0.4, 1,0.2))
       debugDrawer:drawTextAdvanced(wp, String(i), ColorF(1,1,1,1), true, false, ColorI(0,0,0,192))
@@ -289,13 +330,13 @@ local function setFocus(wp, step, _fadeStart, _fadeEnd, _endPos, _disableVeh, _c
   M.activeDecalCount = 0
   lastGenerationPos = nil
 
-  M.stepDistance = step or 8
-  M.fadeStart =  100
-  M.fadeEnd =  150
+  M.stepDistance = step or 4
+  M.fadeStart =  150
+  M.fadeEnd = 200
   M.endPos = _endPos
   M.disableVeh = _disableVeh
   --{ 0.2, 0.53, 1, 1 } --  from fg node
-  M.color = _color or {0.2, 0.53, 1}
+  M.color = _color or {0, 0.4, 1}
   M.floatingArrowColor = M.color
 
   M.cutOffDrivability = _cutOffDrivability
@@ -311,7 +352,7 @@ local function setFocus(wp, step, _fadeStart, _fadeEnd, _endPos, _disableVeh, _c
     }
     guihooks.trigger("NavigationGroundMarkersUpdate", data)
   else
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     local vehiclePos = vec3(veh and veh:getPosition() or core_camera.getPosition())
     local multiPath = {}
     table.insert(multiPath, vehiclePos)
@@ -343,6 +384,7 @@ local function setFocus(wp, step, _fadeStart, _fadeEnd, _endPos, _disableVeh, _c
 
   wpToArrowMap = {}
   arrowToWpMap = {}
+  arrowLerpInfos = {}
 
   local group = scenetree.findObject("arrowPool")
   if not group then
@@ -354,7 +396,7 @@ local function setFocus(wp, step, _fadeStart, _fadeEnd, _endPos, _disableVeh, _c
       for i = 0, 10 do
         local arrow = createObject('TSStatic')
         arrow:setField('shapeName', 0, "art/shapes/arrows/s_arrow_floating.dae")
-        arrow.scale = vec3(2.5, 2.5, 2.5)
+        arrow.scale = vec3(arrowScale, arrowScale, arrowScale)
         arrow.useInstanceRenderData = true
         arrow:setField('instanceColor', 1, "1 1 1 1")
         arrow:setField('instanceColor1', 1, ""..M.floatingArrowColor[1].." "..M.floatingArrowColor[2].." "..M.floatingArrowColor[3].." 1")
@@ -387,6 +429,7 @@ local function clearArrows()
   end
   wpToArrowMap = {}
   arrowToWpMap = {}
+  arrowLerpInfos = {}
 end
 
 local function resetAll()

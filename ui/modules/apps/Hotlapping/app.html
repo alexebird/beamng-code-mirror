@@ -32,7 +32,7 @@
           <md-button class="md-icon-button bng-no-focus" md-no-ink style="margin: 0; width: auto" ng-click="refreshTracklist(); $mdOpenMenu()">
             <md-icon class="material-icons" style="cursor: pointer; color: rgba(255, 255, 255, 0.901961);">folder</md-icon>
           </md-button>
-          <md-menu-content>
+          <md-menu-content style="color:white">
             <md-list-item ng-repeat="file in tracklist" ng-click="load(file)">
               {{file}}
             </md-list-item>

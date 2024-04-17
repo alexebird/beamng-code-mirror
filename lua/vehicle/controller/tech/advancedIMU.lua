@@ -31,6 +31,18 @@ local smoothedAccelReading                      -- The smoothed acceleration rea
 local smoothedGyroReading                       -- The smoothed gyroscopic reading.
 local readings = {}                             -- The table of raw sensor readings (since the last graphics step update).
 local readingIndex = 1                          -- The index in the raw readings array at which to place the next data.
+local latestReading = {
+  time = 0.0,
+  mass = 0.0,
+  accRaw = { 0, 0, 0 },
+  accSmooth = { 0, 0, 0 },
+  angVel = { 0, 0, 0 },
+  angVelSmooth = { 0, 0, 0 },
+  angAccel = { 0, 0, 0 },
+  pos = { 0, 0, 0 },
+  dirX = { 0, 0, 0 },
+  dirY = { 0, 0, 0 },
+  dirZ = { 0, 0, 0 } }
 
 -- Properties which are updated regularly.
 local currentPos = vec3(0, 0, 0)
@@ -50,7 +62,7 @@ local function update(dtSim)
   local edge1, edge2 = node2 - node1, node3 - node1
   local edge1Norm, edge2Norm = edge1:normalized(), edge2:normalized()
   local normal = edge1Norm:cross(edge2Norm):normalized()
-  local projPos = b1 * node1 + b2 * node2 + b3 * node3                -- The projection of the world-space position onto the triangle plane.
+  local projPos = node1 + b1 * edge2 + b2 * edge1                     -- The projection of the world-space position onto the triangle plane.
   currentPos = projPos + signedProjDist * normal                      -- The current world-space position of the sensor.
 
   -- Get the mass at each node.
@@ -114,7 +126,7 @@ local function update(dtSim)
   smoothedGyroReading = vec3(physicsSmootherGyroX:get(angVel.x), physicsSmootherGyroY:get(angVel.y), physicsSmootherGyroZ:get(angVel.z))
 
   -- Gather the latest reading data.
-  local latestReading = {
+  latestReading = {
     time = obj:getSimTime(),
     mass = interpolatedMass,
     accRaw = accel:toTable(),
@@ -197,25 +209,23 @@ local function getSensorData()
     rawReadings = readings }
 end
 
-local function setIsUsingGravity(value)
-  isUsingGravity = value
-end
+local function getLatest() return latestReading end
 
-local function setIsVisualised(value)
-  isVisualised = value
-end
+local function setIsUsingGravity(value) isUsingGravity = value end
 
-local function incrementTimer(dtSim)
-  timeSinceLastPoll = timeSinceLastPoll + dtSim
-end
+local function setIsVisualised(value) isVisualised = value end
+
+local function incrementTimer(dtSim) timeSinceLastPoll = timeSinceLastPoll + dtSim end
+
 
 -- Public interface:
-M.update                                    = update
-M.init                                      = init
-M.reset                                     = reset
-M.getSensorData                             = getSensorData
-M.setIsUsingGravity                         = setIsUsingGravity
-M.setIsVisualised                           = setIsVisualised
-M.incrementTimer                            = incrementTimer
+M.update                                                  = update
+M.init                                                    = init
+M.reset                                                   = reset
+M.getSensorData                                           = getSensorData
+M.getLatest                                               = getLatest
+M.setIsUsingGravity                                       = setIsUsingGravity
+M.setIsVisualised                                         = setIsVisualised
+M.incrementTimer                                          = incrementTimer
 
 return M

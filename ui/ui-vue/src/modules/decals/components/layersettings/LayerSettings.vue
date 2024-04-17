@@ -2,7 +2,7 @@
   <div class="layer-settings">
     <div class="settings-header">
       <BngCardHeading>{{ heading }}</BngCardHeading>
-      <bng-button v-if="(showCancelButton && model.type === LayerType.decal) || model.uid" accent="attention" @click="$emit('cancel')">Back</bng-button>
+      <BngButton v-if="(showCancelButton && model.type === LayerType.decal) || model.uid" accent="attention" @click="$emit('cancel')">Back</BngButton>
     </div>
     <div class="content">
       <template v-if="type === LayerType.decal">
@@ -16,8 +16,8 @@
       </template>
     </div>
     <div class="action-buttons" v-if="showActionButtons && !model.uid">
-      <bng-button v-if="showCancelButton && model.type !== LayerType.decal" accent="attention" @click="$emit('cancel')">{{ cancelButtonText }}</bng-button>
-      <bng-button v-if="showSaveButton" @click="onSaveClicked">{{ saveButtonText }}</bng-button>
+      <BngButton v-if="showCancelButton && model.type !== LayerType.decal" accent="attention" @click="$emit('cancel')">{{ cancelButtonText }}</BngButton>
+      <BngButton v-if="showSaveButton" @click="onSaveClicked">{{ saveButtonText }}</BngButton>
     </div>
   </div>
 </template>
@@ -64,7 +64,7 @@ const props = defineProps({
   },
 })
 
-const emits = defineEmits(["valueChanged", "settingClicked", "cancel", "save"])
+const emit = defineEmits(["valueChanged", "settingClicked", "cancel", "save"])
 
 const data = ref(props.model)
 
@@ -73,11 +73,11 @@ const deviceBindingMask = computed(() => isControllerConnected.value ? "xinput" 
 
 const onValueChanged = newValue => {
   data.value = newValue
-  emits("valueChanged", data.value)
+  emit("valueChanged", data.value)
 }
 
 const onSaveClicked = () => {
-  emits("save", data.value)
+  emit("save", data.value)
 }
 
 provide("isControllerConnected", isControllerConnected)

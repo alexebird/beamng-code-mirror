@@ -540,15 +540,17 @@ angular.module('beamng.stuff')
 
 .filter("numShort", function() {
   const units = ["", "K", "M", "B", "T", "Q"];
+  const smallunits = ["", "m", "μ", "n", "p", "f"];
   return function(num, reminder=0) {
     if (!num)
       return "0";
     if (isNaN(parseFloat(num)) || !isFinite(num))
       return "n/a";
-    let power = Math.floor(Math.abs(Math.log(num) / Math.log(1000)));
+    let power = Math.floor(Math.log(Math.abs(num)) / Math.log(1000));
     if (power >= units.length)
       power = units.length - 1;
-    return (num / Math.pow(1000, power)).toFixed(reminder).replace(/\.?0+$/,"") + units[power];
+    let prefix = (power<0)? smallunits[Math.abs(power)] : units[power];
+    return (num / Math.pow(1000, power)).toFixed(reminder).replace(/\.?0+$/,"") + prefix;
   }
 })
 
@@ -684,6 +686,10 @@ angular.module('beamng.stuff')
  * @ngdoc service
  * @description Small utility to convert values from raw input coming from streams to game's metric/imperial units
  */
+
+.filter('beamBucks', [function() {
+  return UiUnits.beamBucks
+}])
 
 
 // little filter to convert units to the user's units

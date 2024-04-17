@@ -67,6 +67,12 @@ local function updateGFX(device, dt)
   end
 end
 
+local function updateSounds(device, dt)
+  for _, consumer in ipairs(device.connectedConsumers) do
+    consumer:updateSounds(dt)
+  end
+end
+
 local function onCouplerAttached(device, nodeId, obj2id, obj2nodeId, attachForce)
   --if the attached node is our supply node (ie the one where WE connect to OUR supply) and we act as consumer
   if device.hydraulicPTOSupplyCouplerNodeLookup[nodeId] then
@@ -181,13 +187,19 @@ local function calculateInertia(device)
 end
 
 local function initSounds(device, jbeamData)
-  -- local pumpLoopEvent = jbeamData.pumpLoopEvent or "event:>Vehicle>Hydraulics>Pump_Big"
-  -- device.pumpSound = obj:createSFXSource2(pumpLoopEvent, "AudioDefaultLoop3D", "pumpSound", 0, 1)
-  -- obj:playSFX(device.pumpSound)
-  -- obj:setVolumePitchCT(device.pumpSound, 1, 1, 0, 0)
+  for _, consumer in ipairs(device.connectedConsumers) do
+    if consumer.initSounds then
+      consumer:initSounds(device.consumerJbeamData[consumer.name])
+    end
+  end
 end
 
 local function resetSounds(device, jbeamData)
+  for _, consumer in ipairs(device.connectedConsumers) do
+    if consumer.resetSounds then
+      consumer:resetSounds(device.consumerJbeamData[consumer.name])
+    end
+  end
 end
 
 local function reset(device, jbeamData)
@@ -223,8 +235,8 @@ local function reset(device, jbeamData)
 
   selectUpdates(device)
 
-  for _, cylinder in ipairs(device.connectedConsumers) do
-    cylinder:reset(jbeamData)
+  for _, consumer in ipairs(device.connectedConsumers) do
+    consumer:reset(device.consumerJbeamData[consumer.name])
   end
 
   return device
@@ -267,6 +279,7 @@ local function new(jbeamData)
     initSounds = initSounds,
     resetSounds = resetSounds,
     updateGFX = updateGFX,
+    updateSounds = updateSounds,
     onCouplerAttached = onCouplerAttached,
     onCouplerDetached = onCouplerDetached,
     torqueDiff = 0
@@ -299,13 +312,16 @@ local function new(jbeamData)
   hydraulicConsumerFactories.hydraulicCylinder = require("powertrain/hydraulicCylinder")
   --hydraulicConsumerFactories.hydraulicRotator = require("powertrain/hydraulicRotator")
 
+  device.consumerJbeamData = {}
   for _, ph in pairs(v.data.powertrainHydros) do
     if ph.connectedPump == device.name then
+      local consumerJbeamData = deepcopy(tableMerge(ph, v.data[ph.name] or {}))
       local consumerType = ph.type
       local factory = hydraulicConsumerFactories[consumerType]
-      local cylinder = factory.new(ph, device)
+      local consumer = factory.new(consumerJbeamData, device)
 
-      table.insert(device.connectedConsumers, cylinder)
+      table.insert(device.connectedConsumers, consumer)
+      device.consumerJbeamData[consumerJbeamData.name] = consumerJbeamData
     end
   end
 

@@ -12,48 +12,46 @@ import logger from '@/services/logger'
 const STORE_NAME = "controls"
 let store
 
-// Device Icons
 const DEVICE_ICONS = {
-  key: 'device/keyboard', // keyboard
-  mou: 'device/mouse/button0', // mouse
-  vin: 'device/phone_android', // vinput
-  whe: 'device/wheel', // wheel
-  gam: 'device/videogame_asset', // gamepad
-  xin: 'device/videogame_asset', // xinput
-  default: 'device/gamepad' // joystick and others
+  key: 'keyboard', // keyboard
+  mou: 'mouseLMB', // mouse
+  vin: 'smartphone2', // vinput
+  whe: 'steeringWheelCommon', // wheel
+  gam: 'gamepadOld', // gamepad
+  xin: 'gamepadOld', // xinput
+  default: 'gamepad' // joystick and others
 }
 
-// Control Icons
 const CONTROL_ICONS = {
   xinput: {
-    btn_a: "device/xbox/btn_a",
-    btn_b: "device/xbox/btn_b",
-    btn_x: "device/xbox/btn_x",
-    btn_y: "device/xbox/btn_y",
-    btn_back: "device/xbox/btn_back",
-    btn_start: "device/xbox/btn_start",
-    btn_l: "device/xbox/btn_lb",
-    triggerl: "device/xbox/btn_lt",
-    btn_r: "device/xbox/btn_rb",
-    triggerr: "device/xbox/btn_rt",
-    dpov: "device/xbox/btn_dpad_down",
-    lpov: "device/xbox/btn_dpad_left",
-    rpov: "device/xbox/btn_dpad_right",
-    upov: "device/xbox/btn_dpad_up",
-    thumblx: "device/xbox/btn_thumb_left_x",
-    thumbly: "device/xbox/btn_thumb_left_y",
-    thumbrx: "device/xbox/btn_thumb_right_x",
-    thumbry: "device/xbox/btn_thumb_right_y",
-    btn_rt: "device/xbox/btn_thumb_right",
-    btn_lt: "device/xbox/btn_thumb_left",
+    btn_a: "xboxA",
+    btn_b: "xboxB",
+    btn_x: "xboxX",
+    btn_y: "xboxY",
+    btn_back: "xboxView",
+    btn_start: "xboxMenu",
+    btn_l: "xboxLB",
+    triggerl: "xboxLT",
+    btn_r: "xboxRB",
+    triggerr: "xboxRT",
+    dpov: "xboxDDown",
+    lpov: "xboxDLeft",
+    rpov: "xboxDRight",
+    upov: "xboxDUp",
+    thumblx: "xboxXAxis",
+    thumbly: "xboxYAxis",
+    thumbrx: "xboxXRot",
+    thumbry: "xboxYRot",
+    btn_rt: "xboxRSButton",
+    btn_lt: "xboxLSButton",
   },
   mouse: {
-    button0: "device/mouse/button0",
-    button1: "device/mouse/button1",
-    button2: "device/mouse/button2",
-    xaxis: "device/mouse/xaxis",
-    yaxis: "device/mouse/yaxis",
-    zaxis: "device/mouse/zaxis"
+    button0: "mouseLMB",
+    button1: "mouseRMB",
+    button2: "mouseMMB",
+    xaxis: "mouseXAxis",
+    yaxis: "mouseYAxis",
+    zaxis: "mouseWheel"
   }
 }
 

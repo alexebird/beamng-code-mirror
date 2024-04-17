@@ -1,56 +1,56 @@
 <template>
     <div style="max-height:100%; width:100%; background:rgba(0, 0, 0, 0.43);color:white;">
         <div layout="row" style="width:100%" layout-align="center center" layout-wrap v-show="controlsEnabled">
-            <bngButton @click="startHotlapping()" v-show="!started && !closed">
+            <BngButton @click="startHotlapping()" v-show="!started && !closed">
                 {{ $t('ui.apps.hotlapping.StartHotlapping') }}
-            </bngButton>
-            <bngButton @click="addCheckPoint()" v-show="started && !closed">
+            </BngButton>
+            <BngButton @click="addCheckPoint()" v-show="started && !closed">
                 {{ $t('ui.apps.hotlapping.AddCheckpoint') }}
-            </bngButton>
-            <bngButton @click="stopTimer()" v-show="started && closed">
+            </BngButton>
+            <BngButton @click="stopTimer()" v-show="started && closed">
                 {{ $t('ui.apps.hotlapping.StopTimer') }}
-            </bngButton>
-            <bngButton @click="clearAllCP()" v-show="!started && closed">
+            </BngButton>
+            <BngButton @click="clearAllCP()" v-show="!started && closed">
                 {{ $t('ui.apps.hotlapping.EndHotlapping') }}
-            </bngButton>
-            <bngButton @click="toggleSettings()" v-show="!showSettings">
+            </BngButton>
+            <BngButton @click="toggleSettings()" v-show="!showSettings">
                 {{ $t('ui.apps.hotlapping.Advanced') }}...
-            </bngButton>
-            <bngButton @click="toggleSettings()" v-show="showSettings">
+            </BngButton>
+            <BngButton @click="toggleSettings()" v-show="showSettings">
                 {{ $t('ui.apps.hotlapping.HideAdvanced') }}
-            </bngButton>
-            <bngButton @click="skip()" :disabled="!(closed && started)">
+            </BngButton>
+            <BngButton @click="skip()" :disabled="!(closed && started)">
                 {{ $t('ui.apps.hotlapping.SkipLap') }}
-            </bngButton>
+            </BngButton>
         </div>
         <div layout="row" style="width:100%" layout-align="center center" layout-wrap
             v-show="showSettings || controlsEnabled">
-            <bngButton @click="clearAllCP()">{{ $t('ui.apps.hotlapping.EndHotlapping') }}</bngButton>
-            <bngButton @click="toggleDetail()">{{ $t('ui.apps.hotlapping.ToggleDetail') }}</bngButton>
+            <BngButton @click="clearAllCP()">{{ $t('ui.apps.hotlapping.EndHotlapping') }}</BngButton>
+            <BngButton @click="toggleDetail()">{{ $t('ui.apps.hotlapping.ToggleDetail') }}</BngButton>
 
             <!-- size changer -->
             <div layout="row" style="width:100%" layout-align="center center" layout-wrap v-show="controlsEnabled">
-                <bngButton @click="sizeDown()">-</bngButton>
-                <bngButton @click="resetSize()">{{ $t('ui.apps.hotlapping.ResetSize') }}</bngButton>
-                <bngButton @click="sizeUp()">+</bngButton>
+                <BngButton @click="sizeDown()">-</BngButton>
+                <BngButton @click="resetSize()">{{ $t('ui.apps.hotlapping.ResetSize') }}</BngButton>
+                <BngButton @click="sizeUp()">+</BngButton>
             </div>
             <!-- other settings -->
             <div layout="row" style="width:100%" layout-align="center center" layout-wrap v-show="controlsEnabled">
-                <bngButton @click="toggleAi()" v-show="activeAi">{{ $t('ui.apps.hotlapping.StopAi') }}</bngButton>
-                <bngButton @click="toggleAi()" v-show="!activeAi">{{ $t('ui.apps.hotlapping.StartAi') }}</bngButton>
-                <bngButton @click="toggleVisibility()" v-show="showMarkers">{{ $t('ui.apps.hotlapping.HideMarkers') }}
-                </bngButton>
-                <bngButton @click="toggleVisibility()" v-show="!showMarkers">{{ $t('ui.apps.hotlapping.ShowMarkers') }}
-                </bngButton>
+                <BngButton @click="toggleAi()" v-show="activeAi">{{ $t('ui.apps.hotlapping.StopAi') }}</BngButton>
+                <BngButton @click="toggleAi()" v-show="!activeAi">{{ $t('ui.apps.hotlapping.StartAi') }}</BngButton>
+                <BngButton @click="toggleVisibility()" v-show="showMarkers">{{ $t('ui.apps.hotlapping.HideMarkers') }}
+                </BngButton>
+                <BngButton @click="toggleVisibility()" v-show="!showMarkers">{{ $t('ui.apps.hotlapping.ShowMarkers') }}
+                </BngButton>
             </div>
             <!-- file selector -->
             <div layout="row" style="width:100%" layout-align="center center" layout-wrap v-show="controlsEnabled">
                 <!-- menu to load the files.-->
                 <md-menu v-show="!renaming" style="padding: 0; padding-left: 8px;">
-                    <bngButton class="md-icon-button bng-no-focus" @click="refreshTracklist(); $mdOpenMenu()">
+                    <BngButton class="md-icon-button bng-no-focus" @click="refreshTracklist(); $mdOpenMenu()">
                         <!-- <md-icon class="material-icons"
                             style="cursor: pointer; color: rgba(255, 255, 255, 0.901961);">folder</md-icon> -->
-                    </bngButton>
+                    </BngButton>
                     <md-menu-content>
                         <md-list-item v-for="file in tracklist" @click="load(file)">
                             {{ file }}
@@ -59,33 +59,33 @@
                 </md-menu>
 
                 <!-- button to cancel renaming.-->
-                <bngButton v-show="renaming" @click="cancelRename()">
+                <BngButton v-show="renaming" @click="cancelRename()">
                     <md-icon class="material-icons" style="cursor: pointer; color: #FD9393;">close</md-icon>
                     <div v-bng-tooltip>{{ $t('ui.apps.hotlapping.Cancelrenaming') }}</div>
-                </bngButton>
+                </BngButton>
 
                 <!-- actual input field.-->
                 <label style="padding-left: 8px; padding-right: 8px" flex>
-                    <bngInput style="width:100%" :disabled="!loadedFile && !renaming" v-model="loadedFile"
-                        @focus="startRenaming()" @mouseenter="hoverRenaming()"></bngInput>
+                    <BngInput style="width:100%" :disabled="!loadedFile && !renaming" v-model="loadedFile"
+                        @focus="startRenaming()" @mouseenter="hoverRenaming()"></BngInput>
                     <div v-bng-tooltip>{{ $t('ui.apps.hotlapping.ClicktoRename') }}</div>
                 </label>
 
                 <!-- button to accept renaming -->
-                <bngButton v-show="renaming" :disabled="!loadedFile"
+                <BngButton v-show="renaming" :disabled="!loadedFile"
                     class="md-primary md-icon-button md-primary bng-no-focus" md-no-ink
                     style="margin: 0; width: auto; padding-right: 8px;" @click="acceptRename(loadedFile)">
                     <md-icon class="material-icons" ng-disabled="!loadedFile"
                         style="cursor: pointer; color: #A8DD73;">done</md-icon>
                     <div v-bng-tooltip>{{ $t('ui.apps.hotlapping.Rename') }}</div>
-                </bngButton>
+                </BngButton>
 
                 <!-- button to save -->
-                <bngButton v-show="!renaming" ng-disabled="!closed || saved" @click="save()">
+                <BngButton v-show="!renaming" ng-disabled="!closed || saved" @click="save()">
                     <md-icon class="material-icons" ng-disabled="!closed || saved"
                         style="cursor: pointer; color: rgba(255, 255, 255, 0.901961);">save</md-icon>
                     <div v-bng-tooltip>{{ $t('ui.apps.hotlapping.Savetrack') }}</div>
-                </bngButton>
+                </BngButton>
 
             </div>
         </div>
@@ -165,7 +165,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useLibStore } from '@/services/libStore'
-import { BngButton, BngInput, BngIcon } from '@/common/components/base'
+import { BngButton, BngInput, BngOldIcon } from '@/common/components/base'
 import { vBngTooltip } from '@/common/directives'
 
 const { $game } = useLibStore()

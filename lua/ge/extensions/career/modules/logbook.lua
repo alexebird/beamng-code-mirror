@@ -26,27 +26,6 @@ local function getLogbook()
     table.insert(ret, e)
   end
 
-  for _, q in ipairs(career_modules_questManager.getUIFormattedQuests()) do
-    if (q.status == "completed" or q.status == "active") and not q.hidden then
-      local formatted = {
-        isNew = q.isNew, -- todo: change isNew to isNew
-        title = q.title,
-        text = q.description,
-        cover = q.logbookFile,
-        type = "quest",
-        cardTypeLabel = "ui.career.poiCard.milestone",
-        entryId = q.id,
-        questId = q.id,
-        progress = q.progress,
-        rewards = q.rewards or {},
-        time = math.max(q.completedTimestamp, q.activateTimestamp),
-        claimable = q.claimable or false,
-        claimed = q.claimed
-      }
-      table.insert(ret, formatted)
-    end
-  end
-
   extensions.hook("onLogbookGetEntries", ret)
 
   table.sort(ret, sortByTimeAndId)
@@ -139,7 +118,7 @@ end
 
 -- called whenever a facility is unlocked
 local function deliveryFacilityUnlocked(id)
-  local fac = career_modules_delivery_logisticDataBaseManager.getFacilityById(id)
+  local fac = career_modules_delivery_generator.getFacilityById(id)
   if not id or not fac then return end
   addNewLogbookEntry({
     type = "progress",
@@ -250,7 +229,7 @@ end
 
 -- this should only be loaded when the career is active
 local function onSaveCurrentSaveSlot(currentSavePath)
-  jsonWriteFile(currentSavePath .. "/career/"..fileName,
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/"..fileName,
     {
       logbook = logbook
     }, true)

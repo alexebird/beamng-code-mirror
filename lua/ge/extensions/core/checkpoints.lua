@@ -108,7 +108,7 @@ end
 
 local function setCheckpoint(playerId)
   -- log('I', logTag, 'setCheckpoint called...'..tostring(playerId))
-  local vehicle = be:getPlayerVehicle(playerId)
+  local vehicle = getPlayerVehicle(playerId)
   if vehicle then
     saveCheckpoint(vehicle:getId(), vehicle:getField('name', ''))
     -- dump(M.state)

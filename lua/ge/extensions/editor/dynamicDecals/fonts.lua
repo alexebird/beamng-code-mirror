@@ -32,30 +32,20 @@ local generatedFontAtlasesCharPtr = nil
 local selectedGlyphId = 1
 local glyphCharPtr = nil
 local fontAtlasData = nil
+local fontAtlasDataMap = {}
 
 local fontPreviewWindowName = logTag .. "_fontPreviewWindow"
 
 -- sdf debugging
 local sdfPadding = 8
+local sdfOnedgeValue = 128
 local sdfPixelDistScale = 8.0
 
 -- M.supportedFontFileFormats = {{"Any files", "*"},{"Font files",{".ttf", ".TTF", ".otf", ".OTF"}}, {"TTF files",{".ttf", ".TTF"}}, {"TTF files",{".otf", ".OTF"}}}
 M.supportedFontFileFormats = {{"Any files", "*"},{"Font files",{".ttf", ".TTF"}}, {"TTF files",{".ttf", ".TTF"}}}
 
-local function browserTabGui()
-  local spaceAvailable = im.GetContentRegionAvail()
-
-  im.BeginChild1("BrowserFontsChild", nil, true)
-  im.TextUnformatted("WIP")
-  im.EndChild()
-end
-
 local function getSelectedFontAtlasName()
   return generatedFontAtlases[fontAtlasPreviewId + 1]
-end
-
-local function getSelectedFontAtlasDir()
-  return string.format("%s%s/", destinationDirectory, getSelectedFontAtlasName())
 end
 
 local tblx = {}
@@ -70,9 +60,76 @@ local function updateGlyphCharPtr()
   end
 end
 
+local function readFontAtlasData(fontName)
+  if fontAtlasDataMap[fontName] then return end
+  fontAtlasDataMap[fontName] = jsonReadFile(string.format("%s%s/%s%s", destinationDirectory, fontName, fontName, fontAtlasJsonExtension))
+end
+
 local function updateFontAtlasData()
   if #generatedFontAtlases > 0 then
-    fontAtlasData = jsonReadFile(getSelectedFontAtlasDir() .. getSelectedFontAtlasName() .. fontAtlasJsonExtension)
+    readFontAtlasData(getSelectedFontAtlasName())
+    fontAtlasData = fontAtlasDataMap[getSelectedFontAtlasName()]
+  end
+end
+
+local function browserTabGui()
+  local spaceAvailable = im.GetContentRegionAvail()
+
+  im.BeginChild1("BrowserFontsChild", im.ImVec2(0, im.GetContentRegionAvail().y - math.ceil(im.GetFontSize()) - im.GetStyle().ItemSpacing.y), true)
+
+  if #generatedFontAtlases == 0 then
+    im.TextColored(editor.color.warning.Value, "No font atlases have been generated yet.")
+    if im.Button("Open fonts section##1st_button") then
+      tool.setSectionOpenState("Fonts", true, true)
+    end
+  end
+
+  for _, fontName in ipairs(generatedFontAtlases) do
+    if im.TreeNode1(string.format("%s##browserTabGui", fontName)) then
+      readFontAtlasData(fontName)
+      local fontData = fontAtlasDataMap[fontName]
+      local previewSize = editor.getPreference('dynamicDecalsTool.textureBrowser.texturePreviewSize')
+      if fontData and fontData.header and fontData.glyphs then
+        local fontAtlasTexObj = editor.getTempTextureObj(string.format("%s%s/%s%s", destinationDirectory, fontName, fontName, "_monospaced.png"))
+        local header = fontData.header
+        local glyphs = fontData.glyphs
+        for key = fontData.header.first_char, (fontData.header.first_char + fontData.header.glyph_count - 1) do
+          local glyph = glyphs[tostring(key)]
+          if glyph and glyph.exists == true then
+            local char = glyphs[tostring(i)]
+            im.ImageButton2(
+              fontAtlasTexObj.texId,
+              im.ImVec2(previewSize, previewSize),
+              im.ImVec2(glyph.monospaced_x / header.atlas_monospaced_width, glyph.monospaced_y / header.atlas_monospaced_height),
+              im.ImVec2((glyph.monospaced_x + header.glyph_pixel_height) / header.atlas_monospaced_width, (glyph.monospaced_y + header.glyph_pixel_height) / header.atlas_monospaced_height)
+            )
+            im.tooltip("Double-click to select character as decal texture")
+            if im.IsItemHovered() and im.IsMouseDoubleClicked(0) then
+              api.setDecalLayerFontPath(fontDirectory .. fontName .. '.ttf')
+              api.setDecalLayerFontCharacter(string.char(key))
+            end
+
+            im.SameLine()
+            if im.GetContentRegionAvailWidth() < previewSize then
+              im.NewLine()
+            end
+          end
+
+          if key == (fontData.header.first_char + fontData.header.glyph_count - 1) then
+            im.NewLine()
+          end
+        end
+      end
+
+      im.TreePop()
+    end
+  end
+  im.EndChild()
+
+  im.TextUnformatted("Check the 'Fonts' section in order to generate more font atlases.")
+  im.SameLine()
+  if im.SmallButton("Open fonts section##2nd_button") then
+    tool.setSectionOpenState("Fonts", true, true)
   end
 end
 
@@ -100,7 +157,7 @@ end
 
 local function createFontBitmap(path)
   path = path or fontPath
-  local res = FontRasterizer.createFontBitmap(path, destinationDirectory, glyphPixelHeight, true, sdfPadding, sdfPixelDistScale)
+  local res = FontRasterizer.createFontBitmap(path, destinationDirectory, glyphPixelHeight, true, sdfPadding, sdfOnedgeValue, sdfPixelDistScale)
   if res == true then
     table.insert(fontGenNotifications, {msg="Font atlas has been generated in '" .. destinationDirectory .. "'", time = 5})
     updateGeneratedFontAtlases()
@@ -115,21 +172,23 @@ end
 local function fontPreviewWindowGui()
   if editor.beginWindow(fontPreviewWindowName, "Dynamic Decals Font - Preview") then
     if im.BeginTabBar("FontPreviewTab") then
+      local header = fontAtlasData["header"]
+      local glyphs = fontAtlasData["glyphs"]
+
       if im.BeginTabItem("Atlas##FontPreviewTab") then
         im.BeginChild1("FontPreviewAtlasChild")
-        helper.imageWidget(string.format("%s%s%s", getSelectedFontAtlasDir(), getSelectedFontAtlasName(), "_monospaced.png"), im.GetContentRegionAvailWidth() - 2 * im.GetStyle().FramePadding.x)
+        helper.imageWidget(string.format("%s%s/%s%s", destinationDirectory, getSelectedFontAtlasName(), getSelectedFontAtlasName(), "_monospaced.png"), im.GetContentRegionAvailWidth() - 2 * im.GetStyle().FramePadding.x)
         im.EndChild()
         im.EndTabItem()
       end
+
       if im.BeginTabItem("Glyphs##FontPreviewTab") then
         if im.Checkbox("Mark missing glyphs", editor.getTempBool_BoolBool(editor.getPreference("dynamicDecalsTool.fonts.markMissingGlyphs"))) then
           editor.setPreference("dynamicDecalsTool.fonts.markMissingGlyphs", editor.getTempBool_BoolBool())
         end
         im.BeginChild1("FontPreviewGlyphsChild")
-        local header = fontAtlasData["header"]
-        local glyphs = fontAtlasData["glyphs"]
         local glyphPreviewSize = editor.getPreference("dynamicDecalsTool.fonts.glyphPreviewSizeInPreviewWindow")
-        local textureObject = editor.getTempTextureObj(string.format("%s%s%s", getSelectedFontAtlasDir(), getSelectedFontAtlasName(), "_monospaced.png"))
+        local textureObject = editor.getTempTextureObj(string.format("%s%s/%s%s", destinationDirectory, getSelectedFontAtlasName(), getSelectedFontAtlasName(), "_monospaced.png"))
         for i = header.first_char, (header.first_char + header.glyph_count - 1), 1 do
           local char = glyphs[tostring(i)]
           im.ImageButton2(
@@ -149,6 +208,41 @@ local function fontPreviewWindowGui()
         im.EndChild()
         im.EndTabItem()
       end
+
+      if header.sdf and im.BeginTabItem("Atlas SDF##FontPreviewTab") then
+        im.BeginChild1("FontPreviewSDFAtlasChild")
+        helper.imageWidget(string.format("%s%s/%s%s", destinationDirectory, getSelectedFontAtlasName(), getSelectedFontAtlasName(), "_sdf_monospaced.png"), im.GetContentRegionAvailWidth() - 2 * im.GetStyle().FramePadding.x)
+        im.EndChild()
+        im.EndTabItem()
+      end
+
+      if header.sdf and im.BeginTabItem("Glyphs SDF##FontPreviewTab") then
+        if im.Checkbox("Mark missing glyphs", editor.getTempBool_BoolBool(editor.getPreference("dynamicDecalsTool.fonts.markMissingGlyphs"))) then
+          editor.setPreference("dynamicDecalsTool.fonts.markMissingGlyphs", editor.getTempBool_BoolBool())
+        end
+        im.BeginChild1("FontPreviewGlyphsChild")
+        local glyphPreviewSize = editor.getPreference("dynamicDecalsTool.fonts.glyphPreviewSizeInPreviewWindow")
+        local textureObject = editor.getTempTextureObj(string.format("%s%s/%s%s", destinationDirectory, getSelectedFontAtlasName(), getSelectedFontAtlasName(), "_sdf_monospaced.png"))
+        for i = header.first_char, (header.first_char + header.glyph_count - 1), 1 do
+          local char = glyphs[tostring(i)]
+          im.ImageButton2(
+            textureObject.texId,
+            im.ImVec2(glyphPreviewSize, glyphPreviewSize),
+            im.ImVec2(char.monospaced_x / header.atlas_monospaced_width, char.monospaced_y / header.atlas_monospaced_height),
+            im.ImVec2((char.monospaced_x + header.glyph_pixel_height) / header.atlas_monospaced_width, (char.monospaced_y + header.glyph_pixel_height) / header.atlas_monospaced_height),
+            0,
+            (editor.getPreference("dynamicDecalsTool.fonts.markMissingGlyphs") and char.exists == false) and im.ImVec4(1, 0, 0, 0.1) or nil
+          )
+          im.tooltip(string.format("%d : %s\nxadvance: %f", i, i == 32 and "space" or string.char(i), char.xadvance))
+          im.SameLine()
+          if im.GetContentRegionAvailWidth() <= (glyphPreviewSize + im.GetStyle().ItemSpacing.x) then
+            im.NewLine()
+          end
+        end
+        im.EndChild()
+        im.EndTabItem()
+      end
+
       im.EndTabBar()
     end
   end
@@ -173,7 +267,7 @@ local function sectionGui(guiId)
   if #generatedFontAtlases == 0 then im.EndDisabled() end
 
   if #generatedFontAtlases > 0 and fontAtlasData then
-    helper.imageTooltip(string.format("%s%s%s", getSelectedFontAtlasDir(), getSelectedFontAtlasName(), "_monospaced.png"), 512)
+    helper.imageTooltip(string.format("%s%s/%s%s", destinationDirectory, getSelectedFontAtlasName(), getSelectedFontAtlasName(), "_monospaced.png"), 512)
 
     local header = fontAtlasData["header"]
     local glyphs = fontAtlasData["glyphs"]
@@ -234,7 +328,7 @@ local function sectionGui(guiId)
 
     im.SetCursorPos(cpos)
     im.Image(
-      editor.getTempTextureObj(string.format("%s%s%s", getSelectedFontAtlasDir(), getSelectedFontAtlasName(), "_monospaced.png")).texId,
+      editor.getTempTextureObj(string.format("%s%s/%s%s", destinationDirectory, getSelectedFontAtlasName(), getSelectedFontAtlasName(), "_monospaced.png")).texId,
       im.ImVec2(glyphPreviewSize, glyphPreviewSize),
       im.ImVec2(char.monospaced_x / header.atlas_monospaced_width, char.monospaced_y / header.atlas_monospaced_height),
       im.ImVec2((char.monospaced_x + header.glyph_pixel_height) / header.atlas_monospaced_width, (char.monospaced_y + header.glyph_pixel_height) / header.atlas_monospaced_height),
@@ -278,6 +372,11 @@ local function sectionGui(guiId)
     sdfPadding = editor.getTempInt_NumberNumber()
   end
 
+  if im.InputInt("sdf onedge value", editor.getTempInt_NumberNumber(sdfOnedgeValue), 1, 2) then
+    local value = math.min(math.max(0, editor.getTempInt_NumberNumber()), 255)
+    sdfOnedgeValue = value
+  end
+
   if im.InputFloat("sdf Pixel Dist Scale", editor.getTempFloat_NumberNumber(sdfPixelDistScale), 0.1, 1) then
     sdfPixelDistScale = editor.getTempFloat_NumberNumber()
   end
@@ -294,7 +393,9 @@ local function sectionGui(guiId)
   for _, notification in ipairs(fontGenNotifications) do
     im.TextColored(notification.color or editor.color.warning.Value, notification.msg)
   end
+end
 
+local function onEditorGui()
   fontPreviewWindowGui()
 end
 
@@ -329,10 +430,11 @@ local function setup(tool_in)
   updateGeneratedFontAtlases()
 
   tool.registerSection("Fonts", sectionGui, 1030, false, {})
-  browser.registerBrowserTab("Fonts", browserTabGui, 30)
+  browser.registerBrowserTab("Fonts", browserTabGui, 40)
 
   editor.registerWindow(fontPreviewWindowName, im.ImVec2(550, 550))
   tool.registerEditorOnUpdateFn("fonts", editModeUpdate)
+  tool.registerOnEditorGuiFn("fonts", onEditorGui)
 
   api.setFontTextureAtlasPath(destinationDirectory)
 end

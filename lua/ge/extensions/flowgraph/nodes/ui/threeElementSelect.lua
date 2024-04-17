@@ -9,8 +9,7 @@ local C = {}
 C.name = 'Three Element Select'
 C.color = ui_flowgraph_editor.nodeColors.ui
 C.icon = ui_flowgraph_editor.nodeIcons.ui
-C.description = "Lets the player pick between 3 elements.."
-C.todo = ""
+C.description = "Lets the player pick between 3 elements."
 C.behaviour = { once = true, singleActive = true}
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'flow', description = 'Inflow for this node.' },

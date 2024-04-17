@@ -69,13 +69,13 @@ local function _workMain(job)
     if not data then
       -- Replace the vehicle
       job.yield()
-      local oldVehicle = be:getPlayerVehicle(0)
+      local oldVehicle = getPlayerVehicle(0)
       core_vehicles.replaceVehicle(vehName, {config = config})
       job.yield()
       local newVehicle = oldVehicle
       while newVehicle == oldVehicle or newVehicle == nil do
         job.yield()
-        newVehicle = be:getPlayerVehicle(0)
+        newVehicle = getPlayerVehicle(0)
       end
 
       newVehicle:setPositionRotation(0, 0, 0.5, 0, 0, 0, 1)

@@ -197,6 +197,32 @@ local function getRootNodeSize(instance)
   return instance.rootNodeSizeCache
 end
 
+local function getIsExpandable(className)
+  local expandableClasses = {"PrefabInstance", "SimGroup", "SimSet"}
+  for i,v in ipairs(expandableClasses) do
+    if v == className then
+      return true
+    end
+  end
+  return false
+end
+
+local function debug_prefab_instance(node)
+  local prefabInstance = scenetree.findObjectById(node.id)
+  if not prefabInstance then
+    log('E','','This is not a prefab instance. Object Id = '..tostring(node.id))
+    return
+  end
+
+  local count = prefabInstance:size() - 1
+  for i = 0, count do
+    local childObj = prefabInstance:at(i)
+    local className = tostring(childObj:getClassName())
+    local internalName = tostring(childObj:getInternalName())
+    log('I','',string.format(" %9s: %9s", className, internalName))
+  end
+end
+
 local function cacheGroupNode(instance, node, addObjectIds, nestingLevel)
   if not node then node = instance.rootNode end
   if not node then return end
@@ -204,13 +230,14 @@ local function cacheGroupNode(instance, node, addObjectIds, nestingLevel)
   if nestingLevel > MaxGroupNestingLevel then
     editor.logError("Scene tree depth too high, probably cyclic group reference")
   end
-  if node.isGroup and addObjectIds then
+  if (node.isGroup or node.isExpandable) and addObjectIds then
     for _, objId in ipairs(addObjectIds) do
       local obj = scenetree.findObjectById(objId)
       if obj and obj.getGroup and obj:getGroup() and obj:getGroup():getID() == node.id then
         local object = obj
         local className = object:getClassName() or ""
         local isGroup = object:isSubClassOf("SimSet") or object:isSubClassOf("SimGroup")
+        local isExpandable = getIsExpandable(className)
         if not object["getID"] then editor.logError(className .. ": not even the SimObject has getID") end
         local id = object:getID()
         local persistentId = obj:getOrCreatePersistentID()
@@ -225,11 +252,12 @@ local function cacheGroupNode(instance, node, addObjectIds, nestingLevel)
           open = false,
           selected = false,
           isGroup = isGroup,
+          isExpandable = isExpandable,
           parent = node }
         table.insert(node.children, child)
         -- also cache this node if its a group
         -- this happens if the newly added group missed the addition of its children objects (in the case of prefab packing for example)
-        if child.isGroup then
+        if child.isGroup or child.isExpandable then
           cacheGroupNode(instance, child, nil, nestingLevel + 1)
         end
       end
@@ -237,32 +265,36 @@ local function cacheGroupNode(instance, node, addObjectIds, nestingLevel)
   end
 
   -- if this is a group and there are no children nodes, fill the array
-  if not node.children and node.isGroup then
+  if not node.children and (node.isGroup or node.isExpandable) then
     node.children = {}
     local object = scenetree.findObjectById(node.id)
     if object then
       local count = object:size() - 1
       for i = 0, count do
-        local object = object:at(i)
-        local className = object:getClassName() or ""
-        local isGroup = object:isSubClassOf("SimSet") or object:isSubClassOf("SimGroup")
-        if not object["getID"] then editor.logError(className .. ": not even the SimObject doesnt have getID") end
-        local id = object:getID()
-        local persistentId = object:getOrCreatePersistentID()
+        local childObj = object:at(i)
+        local className = childObj:getClassName() or ""
+        local isGroup = childObj:isSubClassOf("SimSet") or childObj:isSubClassOf("SimGroup")
+        local isExpandable = getIsExpandable(className)
+        if not childObj["getID"] then editor.logError(className .. ": not even the SimObject doesnt have getID") end
+        local id = childObj:getID()
+        local persistentId = childObj:getOrCreatePersistentID()
         local child = {
           id = id,
           persistentId = persistentId,
           order = i,
-          name = getNodeName(object),
-          displayName = getNodeDisplayName(object),
+          name = getNodeName(childObj),
+          displayName = getNodeDisplayName(childObj),
           className = className,
-          icon = getObjectNodeIcon(className, object),
+          icon = getObjectNodeIcon(className, childObj),
           open = false,
           selected = false,
           isGroup = isGroup,
+          isExpandable = isExpandable,
           parent = node }
         table.insert(node.children, child)
-        if child.isGroup then cacheGroupNode(instance, child, addObjectIds, nestingLevel + 1) end
+        if child.isGroup or child.isExpandable then
+          cacheGroupNode(instance, child, addObjectIds, nestingLevel + 1)
+        end
       end
     end
   else
@@ -579,6 +611,7 @@ local function recacheAllNodes(incomingObjectIds, keepOpenStatus)
         open = true,
         selected = false,
         isGroup = true,
+        isExpandable = true,
         parent = nil,
         name = getNodeName(rootGrp),
         displayName = getNodeDisplayName(rootGrp),
@@ -803,7 +836,7 @@ local function addNewGroupToSceneTreeFromSelection(instance)
 end
 
 local function toggleNode(node)
-  if node.isGroup then
+  if node.isExpandable then
     node.open = not node.open
     editingNodeName = nil
     for index, instance in pairs(guiInstancer.instances) do
@@ -958,8 +991,8 @@ end
 local disableHoverColor
 local drewDragSeparator
 
-local function nodeSelectable(instance, node, icon, iconSize, selectionColor, label, textColor, triggerOnRelease, highlightText)
-  editor.uiIconImage(icon, iconSize, nil)
+local function nodeSelectable(instance, node, icon, iconColor, iconSize, selectionColor, label, textColor, triggerOnRelease, highlightText)
+  editor.uiIconImage(icon, iconSize, iconColor)
   imgui.SameLine()
   imgui.PushStyleColor2(imgui.Col_Header, selectionColor)
   if node.selected or node.dragSelected then
@@ -976,11 +1009,11 @@ local function nodeSelectable(instance, node, icon, iconSize, selectionColor, la
     imgui.PopStyleColor()
   end
   imgui.PopStyleColor()
-  
+
   if imgui.ImGuiTextFilter_IsActive(instance.nameFilter) then
     imgui.tooltip("ID: " .. node.id .. " Parent: " .. (node.parent.name or "<none>"))
   end
-  
+
   imgui.SameLine()
 
   local object = scenetree.findObjectById(node.id)
@@ -1110,9 +1143,31 @@ local lockSelectionClicked = false
 local unlockSelectionClicked = false
 local objectRemoved = false
 
+
+
+local function TEMP_LOOK_FOR_CORRECT_PLACE_replace_group_with_prefab_instance(prefab, parentGroup, instanceName)
+  if not prefab then
+    return nil
+  end
+
+  local pos = vec3(6, 3, 2)
+  local rotation = quatFromEuler(0, 0, 45)
+  local scale = vec3(1, 1, 1)
+  local instance = prefab:spawn(instanceName, pos, rotation, scale)
+
+  if instance then
+    if parentGroup then
+      parentGroup:addObject(instance)
+    end
+  end
+  return instance
+end
+
 local function renderSceneGroup(instance, node, selectMode)
   if not showGroups then return end
   local icon = getGroupNodeIcon(node)
+  local iconColor = node.overrideIconColor or imgui.GetStyleColorVec4(imgui.Col_Text)
+  local textColor = node.overrideTextColor
   local selectionColor = imgui.GetStyleColorVec4(imgui.Col_ButtonActive)
 
   local arrowIcon = node.open and editor.icons.keyboard_arrow_down or editor.icons.keyboard_arrow_right
@@ -1138,20 +1193,28 @@ local function renderSceneGroup(instance, node, selectMode)
   end
 
   if node.selected then
-    if nodeSelectable(instance, node, icon, iconSize, selectionColor, nodeLabel, nil, not onClickSelected, nameFilterText) then
+    if nodeSelectable(instance, node, icon, iconColor, iconSize, selectionColor, nodeLabel, nil, not onClickSelected, nameFilterText) then
       if (onClickSelected or clickedOnNode) and not hasDragDropPayload then
         if tableSize(editor.selection.object) == 1 and not nodeWasDblClicked then
           node.renameRequestTime = socket.gettime()
         end
         -- just reset selection to this one
-        selectNode(instance, node, selectMode)
+        if not editor.editingObjectName then
+          selectNode(instance, node, selectMode)
+        else
+          editor.postNameChangeSelectObjectId = node.id
+        end
         nodeWasDblClicked = nil
       end
     end
   else
-    if nodeSelectable(instance, node, icon, iconSize, selectionColor, nodeLabel, nil, nil, nameFilterText) then
+    if nodeSelectable(instance, node, icon, iconColor, iconSize, selectionColor, nodeLabel, textColor, nil, nameFilterText) then
       onClickSelected = true
-      selectNode(instance, node, selectMode)
+      if not editor.editingObjectName then
+        selectNode(instance, node, selectMode)
+      else
+        editor.postNameChangeSelectObjectId = node.id
+      end
     end
   end
 
@@ -1246,16 +1309,139 @@ local function renderSceneGroup(instance, node, selectMode)
     if imgui.Selectable1("Collapse All Scene Tree") then
       collapseAllSceneTree(instance)
     end
+
     imgui.EndPopup()
   end
 end
 
-local function renderSceneNode(instance, node, selectMode)
+local function renderScenePrefabInstance(instance, node, selectMode)
+  local icon = node.icon
+  local textColor = imgui.GetStyleColorVec4(imgui.Col_Text)
+  local iconColor = imgui.GetStyleColorVec4(imgui.Col_Text)
+  local selectionColor = imgui.GetStyleColorVec4(imgui.Col_ButtonActive)
+
+  local arrowIcon = node.open and editor.icons.keyboard_arrow_down or editor.icons.keyboard_arrow_right
+  imgui.PushStyleColor2(imgui.Col_Button, transparentColor)
+  if editor.uiIconImageButton(arrowIcon, iconSize, nil, nil, nil, nil, selectionColor) then
+    toggleNode(node)
+  end
+  imgui.PopStyleColor()
+  imgui.SameLine()
+
+  local nodeLabel = node.displayName or ""
+
+  if node.filterResult then
+    if bit.band(node.filterResult, searchMatches[2]) ~= 0 and node.name ~= node.displayName then
+      nodeLabel = nodeLabel .. ' [name: ' .. node.name .. ']'
+    end
+    if bit.band(node.filterResult, searchMatches[3]) ~= 0 then
+      nodeLabel = nodeLabel .. ' [id: ' .. tostring(node.id) .. ']'
+    end
+    if bit.band(node.filterResult, searchMatches[4]) ~= 0 then
+      nodeLabel = nodeLabel .. ' [class: ' .. node.className .. ']'
+    end
+  end
+
+  if node.selected then
+    if nodeSelectable(instance, node, node.icon or defaultObjectNodeIcon, iconColor, iconSize, selectionColor, nodeLabel, textColor, not onClickSelected, nameFilterText) then
+      if (onClickSelected or clickedOnNode) and not hasDragDropPayload then
+        if tableSize(editor.selection.object) == 1 and not nodeWasDblClicked then
+          node.renameRequestTime = socket.gettime()
+        end
+        -- just reset selection to this one
+        if not editor.editingObjectName then
+          selectNode(instance, node, selectMode)
+        else
+          editor.postNameChangeSelectObjectId = node.id
+        end
+        nodeWasDblClicked = nil
+      end
+    end
+  else
+    textColor = imgui.ImVec4(0.49, 0.68, 0.96, 1.0)
+    iconColor = imgui.ImVec4(0.49, 0.84, 0.99, 1.0)
+    if nodeSelectable(instance, node, icon, iconColor, iconSize, selectionColor, nodeLabel, textColor, nil, nameFilterText) then
+      onClickSelected = true
+      if not editor.editingObjectName then
+        selectNode(instance, node, selectMode)
+      else
+        editor.postNameChangeSelectObjectId = node.id
+      end
+    end
+  end
+
+  node.textBG = nil
+
+  if imgui.BeginPopup("##sceneItemPopupMenu"..node.id) then
+    if not nodeIsInTheSelection(instance, node) then
+      selectNode(instance, node, editor.SelectMode_New)
+    end
+    if imgui.Selectable1("Duplicate Selection") then
+      editor.duplicate()
+    end
+    if imgui.Selectable1("Delete Selection") then
+      if not tableIsEmpty(instance.selectedNodes) then
+        deleteNodes = true
+      end
+    end
+    imgui.Separator()
+    if imgui.Selectable1("Create New Group") then
+      local grp = addNewGroupToSceneTree(instance)
+      if grp then
+        editor.selectObjectById(grp:getID())
+      else
+        editor.logError("Cannot add new group to scene tree")
+      end
+    end
+    if imgui.Selectable1("Put Into New Group") then
+      local grp = addNewGroupToSceneTreeFromSelection(instance)
+      local grpNode = findNodeByObject(instance, nil, grp)
+      selectNode(instance, grpNode)
+    end
+    if imgui.Selectable1("Collapse Parent Group") then
+      local parentNode = node.parent
+      if parentNode then parentNode.open = false end
+    end
+    imgui.Separator()
+    if imgui.Selectable1("Select Children") then
+      if tableSize(instance.selectedNodes) == 1 then
+        local parentNode = instance.selectedNodes[1]
+        selectChildren(instance, parentNode)
+      end
+    end
+    imgui.Separator()
+    if not tableIsEmpty(instance.selectedNodes) then
+      if imgui.Selectable1("Hide Selection") then
+        hideSelectionClicked = true
+      end
+      if imgui.Selectable1("Show Selection") then
+        showSelectionClicked = true
+      end
+    end
+    if not tableIsEmpty(instance.selectedNodes) then
+      if imgui.Selectable1("Lock Selection") then
+        lockSelectionClicked = true
+      end
+      if imgui.Selectable1("Unlock Selection") then
+        unlockSelectionClicked = true
+      end
+    end
+    imgui.Separator()
+    if imgui.Selectable1("Collapse All Scene Tree") then
+      collapseAllSceneTree(instance)
+    end
+
+    imgui.EndPopup()
+  end
+end
+
+local function renderSceneNode(instance, node, selectMode, overrideTextColor, overrideIconColor)
   if node.hidden then return end
 
+  local iconColor = overrideIconColor or imgui.GetStyleColorVec4(imgui.Col_Text)
   local selectionColor = imgui.GetStyleColorVec4(imgui.Col_ButtonActive)
   local activateOnRelease = node.selected and not onClickSelected
-
+  local textColor = overrideTextColor
   imgui.Spacing()
   imgui.SameLine()
 
@@ -1273,17 +1459,25 @@ local function renderSceneNode(instance, node, selectMode)
     end
   end
 
-  if nodeSelectable(instance, node, node.icon or defaultObjectNodeIcon, iconSize, selectionColor, nodeLabel, nil, activateOnRelease, nameFilterText) then
+  if nodeSelectable(instance, node, node.icon or defaultObjectNodeIcon, iconColor, iconSize, selectionColor, nodeLabel, textColor, activateOnRelease, nameFilterText) then
     if (not activateOnRelease or clickedOnNode) and not hasDragDropPayload then
       if node.selected and not (ctrlDown or shiftDown) then
         if tableSize(editor.selection.object) == 1 and not nodeWasDblClicked then
           node.renameRequestTime = socket.gettime()
         end
-        selectNode(instance, node, selectMode)
+        if not editor.editingObjectName then
+          selectNode(instance, node, selectMode)
+        else
+          editor.postNameChangeSelectObjectId = node.id
+        end
         nodeWasDblClicked = nil
       else
-        selectNode(instance, node, selectMode)
         onClickSelected = true
+        if not editor.editingObjectName then
+          selectNode(instance, node, selectMode)
+        else
+          editor.postNameChangeSelectObjectId = node.id
+        end
       end
       instance.noScrollToSelection = true
     end
@@ -1366,11 +1560,11 @@ local function renderSceneNode(instance, node, selectMode)
     end
     if imgui.IsItemHovered() then imgui.SetTooltip("New Inspector Window for the selected object(s)") end
 
-    imgui.Separator()
     --  Extended menu items generation
     --  Items are "registered" via the `editor.addExtendedSceneTreeObjectMenuItem` method
     --  They are displayed in a "More >" submenu.
     if #extendedSceneTreeObjectMenuItems > 0 then
+      imgui.Separator()
       --  Constructs valid custom items
       local validCustomMenuItems = {}
       for _, item in ipairs(extendedSceneTreeObjectMenuItems) do
@@ -1379,6 +1573,7 @@ local function renderSceneNode(instance, node, selectMode)
           table.insert(validCustomMenuItems, item)
         end
       end
+
       if #validCustomMenuItems > 0 then
         imgui.Separator()
         local generateExtendedSceneTreeObjectMenuItems = function(items)
@@ -1395,11 +1590,12 @@ local function renderSceneNode(instance, node, selectMode)
         end
       end
     end
+
     imgui.EndPopup()
   end
 end
 
-local function renderSceneTreeGui(instance, node, recursiveDisplay)
+local function renderSceneTreeGui(instance, node, recursiveDisplay, overrideIconColor, oveTextColor)
   if not node then return end
   if not node.id then return end
   local selectMode = editor.SelectMode_New
@@ -1438,7 +1634,13 @@ local function renderSceneTreeGui(instance, node, recursiveDisplay)
     end
     if tableIsEmpty(instance.selectionRange) then
       instance.selectionRange = nil
-      editor.selectObjects(instance.objectsToSelect)
+      if not editor.editingObjectName then
+        editor.selectObjects(instance.objectsToSelect)
+      else
+        if instance.objectsToSelect and #instance.objectsToSelect then
+          editor.postNameChangeSelectObjectId = instance.objectsToSelect[1]
+        end
+      end
       instance.objectsToSelect = nil
     end
   end
@@ -1491,11 +1693,16 @@ local function renderSceneTreeGui(instance, node, recursiveDisplay)
       if node.setFocus then
         node.setFocus = nil
       end
-
     elseif node.isGroup and not node.hidden then
       renderSceneGroup(instance, node, selectMode)
+    elseif node.className == "PrefabInstance" and not node.hidden then
+      renderScenePrefabInstance(instance, node, selectMode)
+      if node.className == "PrefabInstance" then
+        node.overrideTextColor = imgui.ImVec4(0.49, 0.68, 0.96, 1.0)
+        node.overrideIconColor = imgui.ImVec4(0.49, 0.84, 0.99, 1.0)
+      end
     else
-      renderSceneNode(instance, node, selectMode)
+      renderSceneNode(instance, node, selectMode, overrideIconColor, overrideTextColor)
     end
 
     if objectRemoved then node = nil objectRemoved = false end
@@ -1524,10 +1731,12 @@ local function renderSceneTreeGui(instance, node, recursiveDisplay)
   end
   end -- end skip root node if
 
-  if recursiveDisplay and node.isGroup and (not showGroups or node.open or node.openOnSearch) then
+  if recursiveDisplay and (node.isGroup or node.isExpandable) and (not showGroups or node.open or node.openOnSearch) then
     if showGroups and node ~= instance.rootNode then imgui.Indent() end
     for _, child in ipairs(node.children) do
-      renderSceneTreeGui(instance, child, recursiveDisplay)
+      child.overrideIconColor =  node.overrideIconColor
+      child.overrideTextColor =  node.overrideTextColor
+      renderSceneTreeGui(instance, child, recursiveDisplay, node.overrideIconColor, node.overrideTextColor)
     end
     if showGroups and node ~= instance.rootNode then imgui.Unindent() end
   end
@@ -1592,195 +1801,194 @@ local function onEditorGui()
     currentSceneTreeInstanceIndex = index
     local wndName = instance.windowName
     imgui.PushStyleColor2(imgui.Col_Button, imgui.ImVec4(0,0,0,0))
-    if editor.beginWindow(wndName, "SceneTree##" .. index) then
-      if not editor.isWindowVisible(wndName) then
-        guiInstancer:removeInstance(index)
-        editor.unregisterWindow(wndName)
-      else
-        -- SceneTree toolbar
-        local filterTypeComboWidth = 100
-        local style = imgui.GetStyle()
-        local searchRangeIconWidth = 24
-        local helpIconWidth = 24
-        local searchFilterWidth = imgui.GetContentRegionAvailWidth() - (filterTypeComboWidth + 2 * (searchRangeIconWidth + helpIconWidth) * imgui.uiscale[0] + 2 * style.ItemSpacing.x)
 
-        if editor.uiIconImageButton(editor.icons.create_new_folder, imgui.ImVec2(24, 24)) then
-          addNewGroupToSceneTree(instance)
-        end
-        if imgui.IsItemHovered() then imgui.SetTooltip("New subgroup (folder) in the selected group") end
-        imgui.SameLine()
-        imgui.PushID1("SceneSearchFilter")
-        if editor.uiInputSearchTextFilter("##nodeNameSearchFilter", instance.nameFilter, searchFilterWidth, nil, nil, editEnded) then
-          if ffi.string(imgui.TextFilter_GetInputBuf(instance.nameFilter)) == "" then
-            imgui.ImGuiTextFilter_Clear(instance.nameFilter)
-            if instance.rootNode then
-              instance.noScrollToSelection = false
-              updateNodeSelection(instance, instance.rootNode)
-            end
+    if not editor.isWindowVisible(wndName) then
+      guiInstancer:removeInstance(index)
+      editor.unregisterWindow(wndName)
+    elseif editor.beginWindow(wndName, "SceneTree##" .. index) then
+      -- SceneTree toolbar
+      local filterTypeComboWidth = 100
+      local style = imgui.GetStyle()
+      local searchRangeIconWidth = 24
+      local helpIconWidth = 24
+      local searchFilterWidth = imgui.GetContentRegionAvailWidth() - (filterTypeComboWidth + 2 * (searchRangeIconWidth + helpIconWidth) * imgui.uiscale[0] + 2 * style.ItemSpacing.x)
+
+      if editor.uiIconImageButton(editor.icons.create_new_folder, imgui.ImVec2(24, 24)) then
+        addNewGroupToSceneTree(instance)
+      end
+      if imgui.IsItemHovered() then imgui.SetTooltip("New subgroup (folder) in the selected group") end
+      imgui.SameLine()
+      imgui.PushID1("SceneSearchFilter")
+      if editor.uiInputSearchTextFilter("##nodeNameSearchFilter", instance.nameFilter, searchFilterWidth, nil, nil, editEnded) then
+        if ffi.string(imgui.TextFilter_GetInputBuf(instance.nameFilter)) == "" then
+          imgui.ImGuiTextFilter_Clear(instance.nameFilter)
+          if instance.rootNode then
+            instance.noScrollToSelection = false
+            updateNodeSelection(instance, instance.rootNode)
           end
-          refreshNodeCache(instance)
         end
-        imgui.PopID()
-        if imgui.IsItemHovered() then imgui.SetTooltip("Search text") end
-        imgui.SameLine()
-        imgui.PushItemWidth(filterTypeComboWidth)
-        comboIndex[0] = searchNodeMode
-        if imgui.Combo1("##filterType", comboIndex, searchTypesComboItems) then
-          searchNodeMode = comboIndex[0]
-        end
-        if imgui.IsItemHovered() then imgui.SetTooltip("Search filter mode") end
-        imgui.PopItemWidth()
+        refreshNodeCache(instance)
+      end
+      imgui.PopID()
+      if imgui.IsItemHovered() then imgui.SetTooltip("Search text") end
+      imgui.SameLine()
+      imgui.PushItemWidth(filterTypeComboWidth)
+      comboIndex[0] = searchNodeMode
+      if imgui.Combo1("##filterType", comboIndex, searchTypesComboItems) then
+        searchNodeMode = comboIndex[0]
+      end
+      if imgui.IsItemHovered() then imgui.SetTooltip("Search filter mode") end
+      imgui.PopItemWidth()
 
-        imgui.SameLine()
+      imgui.SameLine()
 
-        local bgColor = nil
-        if searchRange > 0 then bgColor = imgui.GetStyleColorVec4(imgui.Col_ButtonActive) end
-        if editor.uiIconImageButton(editor.icons.wifi_tethering, imgui.ImVec2(searchRangeIconWidth, searchRangeIconWidth), nil, nil, bgColor) then
-          if searchRange > 0 then
-            searchRange = -1
-          else
-            searchRange = 200
-          end
-          showGroups = searchRange < 0
-          applyFilter(instance, instance.rootNode)
-        end
-        if imgui.IsItemHovered() then imgui.SetTooltip("Only show near objects") end
-
-        imgui.SameLine()
-
-        editor.uiHelpButton("Scene Tree", "world_editor/windows/scenetree/")
-
-        local maxTreeHeight = imgui.GetContentRegionAvail().y - entrySize - (imgui.GetStyle().FramePadding.y * 2 + imgui.GetStyle().ItemInnerSpacing.y + 2 * imgui.GetStyle().ItemSpacing.y) - 5
-
-        if #selectedNodePathNodes == 0 then
-          imgui.Text("<no selection>")
-        end
-        for i = #selectedNodePathNodes, 1, -1 do
-          if imgui.SmallButton(selectedNodePathNodes[i].displayName) then
-            if i > 1 then
-              instance.scrollToNode = selectedNodePathNodes[i].id
-            else
-              instance.scrollToNode = selectedNodePathNodes[i].id
-              selectNode(instance, selectedNodePathNodes[i])
-            end
-          end
-          if i > 1 then imgui.SameLine() imgui.Text(">") imgui.SameLine() end
-        end
-
-        imgui.BeginChild1("Scene Tree Child", imgui.ImVec2(0, searchResultsMode and maxTreeHeight or 0), false)
-        if searchResultsMode then
-          instance.scenetreeSize = #searchResults * entrySize
-          instance.rootNodeSizeCache = instance.scenetreeSize
-          instance.listIndex = 1
+      local bgColor = nil
+      if searchRange > 0 then bgColor = imgui.GetStyleColorVec4(imgui.Col_ButtonActive) end
+      if editor.uiIconImageButton(editor.icons.wifi_tethering, imgui.ImVec2(searchRangeIconWidth, searchRangeIconWidth), nil, nil, bgColor) then
+        if searchRange > 0 then
+          searchRange = -1
         else
-          instance.scenetreeSize = getRootNodeSize(instance) * entrySize
+          searchRange = 200
         end
+        showGroups = searchRange < 0
+        applyFilter(instance, instance.rootNode)
+      end
+      if imgui.IsItemHovered() then imgui.SetTooltip("Only show near objects") end
 
-        -- Renders alternate rows on all window
-        local tableFlags = bit.bor(imgui.TableFlags_ScrollY, imgui.TableFlags_BordersV, imgui.TableFlags_BordersOuterH, imgui.TableFlags_Resizable, imgui.TableFlags_RowBg, imgui.TableFlags_NoBordersInBody)
+      imgui.SameLine()
 
-        local colCount = 2
-        if searchRange > 0 then colCount = colCount + 1 end
+      editor.uiHelpButton("Scene Tree", "world_editor/windows/scenetree/")
 
-        if imgui.BeginTable('##scenetreetable', colCount, tableFlags) then
-          -- The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX is On
-          local textBaseWidth = imgui.CalcTextSize('A').x
-          imgui.TableSetupScrollFreeze(0, 1) -- Make top row always visible
-          imgui.TableSetupColumn('Tree', imgui.TableColumnFlags_NoHide)
-          if searchRange > 0 then
-            imgui.TableSetupColumn('Distance', imgui.TableColumnFlags_WidthFixed, textBaseWidth * 6)
-          end
-          imgui.TableSetupColumn('Controls', imgui.TableColumnFlags_WidthFixed, textBaseWidth * 6)
-          imgui.TableHeadersRow()
+      local maxTreeHeight = imgui.GetContentRegionAvail().y - entrySize - (imgui.GetStyle().FramePadding.y * 2 + imgui.GetStyle().ItemInnerSpacing.y + 2 * imgui.GetStyle().ItemSpacing.y) - 5
 
-          --  SceneTree list
-          if searchResultsMode then
-            -- refreshNodeCache every half second
-            searchRangeTime = searchRangeTime + searchRangeTimer:stopAndReset()
-            if searchRangeTime > 500 then
-              searchRangeTime = math.fmod(searchRangeTime, 500)
-              refreshNodeCache(instance)
-            end
-
-            for li, n in ipairs(searchResults) do
-              n.listIndex = li
-              instance.listIndex = instance.listIndex + 1
-              renderSceneTreeGui(instance, n, false)
-            end
+      if #selectedNodePathNodes == 0 then
+        imgui.Text("<no selection>")
+      end
+      for i = #selectedNodePathNodes, 1, -1 do
+        if imgui.SmallButton(selectedNodePathNodes[i].displayName) then
+          if i > 1 then
+            instance.scrollToNode = selectedNodePathNodes[i].id
           else
-            renderSceneTreeGui(instance, instance.rootNode, true)
-          end
-
-          imgui.EndTable()
-        end
-
-        if imgui.IsMouseClicked(0) and imgui.IsWindowHovered(imgui.HoveredFlags_RootAndChildWindows) then
-          if not clickedOnNode and not editor.keyModifiers.ctrl then
-            editor.clearObjectSelection()
-          end
-          local mousePos = imgui.GetMousePos()
-          if mousePos.x < imgui.GetWindowPos().x + imgui.GetWindowWidth() - 16 then
-            instance.mouseDragStartPos = mousePos
-            instance.mouseDragStartScrollY = imgui.GetScrollY()
+            instance.scrollToNode = selectedNodePathNodes[i].id
+            selectNode(instance, selectedNodePathNodes[i])
           end
         end
+        if i > 1 then imgui.SameLine() imgui.Text(">") imgui.SameLine() end
+      end
 
-        if imgui.IsMouseDragging(0) and instance.mouseDragStartPos and not hasDragDropPayload then
-          if not editor.keyModifiers.ctrl then
-            editor.clearObjectSelection()
-          end
-          local mouseDragEndPos = imgui.GetMousePos()
-          local scrollYDiff = imgui.GetScrollY() - instance.mouseDragStartScrollY
-          mouseDragRange = {min = math.min(instance.mouseDragStartPos.y - scrollYDiff, mouseDragEndPos.y),
-                           max = math.max(instance.mouseDragStartPos.y - scrollYDiff, mouseDragEndPos.y)}
+      imgui.BeginChild1("Scene Tree Child", imgui.ImVec2(0, searchResultsMode and maxTreeHeight or 0), false)
+      if searchResultsMode then
+        instance.scenetreeSize = #searchResults * entrySize
+        instance.rootNodeSizeCache = instance.scenetreeSize
+        instance.listIndex = 1
+      else
+        instance.scenetreeSize = getRootNodeSize(instance) * entrySize
+      end
 
-          local localMouseDragStartPos = imgui.ImVec2(instance.mouseDragStartPos.x, instance.mouseDragStartPos.y - scrollYDiff)
-          local winPos = imgui.GetWindowPos()
-          local winSize = imgui.GetWindowSize()
+      -- Renders alternate rows on all window
+      local tableFlags = bit.bor(imgui.TableFlags_ScrollY, imgui.TableFlags_BordersV, imgui.TableFlags_BordersOuterH, imgui.TableFlags_Resizable, imgui.TableFlags_RowBg, imgui.TableFlags_NoBordersInBody)
 
-          if mouseDragEndPos.y < winPos.y then
-            imgui.SetScrollY(imgui.GetScrollY() - 10)
-          end
-          if mouseDragEndPos.y > winPos.y + winSize.y then
-            imgui.SetScrollY(imgui.GetScrollY() + 10)
-          end
+      local colCount = 2
+      if searchRange > 0 then colCount = colCount + 1 end
 
-          imgui.ImDrawList_AddRect(imgui.GetWindowDrawList(), localMouseDragStartPos, mouseDragEndPos, imgui.GetColorU322(imgui.ImVec4(1, 1, 0, 1)))
+      if imgui.BeginTable('##scenetreetable', colCount, tableFlags) then
+        -- The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX is On
+        local textBaseWidth = imgui.CalcTextSize('A').x
+        imgui.TableSetupScrollFreeze(0, 1) -- Make top row always visible
+        imgui.TableSetupColumn('Tree', imgui.TableColumnFlags_NoHide)
+        if searchRange > 0 then
+          imgui.TableSetupColumn('Distance', imgui.TableColumnFlags_WidthFixed, textBaseWidth * 6)
         end
+        imgui.TableSetupColumn('Controls', imgui.TableColumnFlags_WidthFixed, textBaseWidth * 6)
+        imgui.TableHeadersRow()
 
-        if imgui.IsMouseReleased(0) and instance.mouseDragStartPos then
-          if not hasDragDropPayload then
-            local maxIndex = -1
-            local minIndex = math.huge
-            instance.selectionRange = {}
-            for nodeListIndex, _ in pairs(dragSelectionList) do
-              instance.selectionRange[nodeListIndex] = true
-              if nodeListIndex > maxIndex then maxIndex = nodeListIndex end
-              if nodeListIndex < minIndex then minIndex = nodeListIndex end
-            end
-            if not tableIsEmpty(dragSelectionList) then
-              instance.lastSelectedIndex = minIndex
-              instance.currentListIndex = maxIndex
-            end
-          end
-          instance.noScrollToSelection = true
-          instance.mouseDragStartPos = nil
-          dragSelectionList = {}
-        end
-
-        imgui.EndChild()
-
-        -- footer
+        --  SceneTree list
         if searchResultsMode then
-          editor.uiIconImage(editor.icons.find_in_page, imVec24x24)
-          imgui.SameLine()
-          --imgui.Dummy(imgui.ImVec2(5, imgui.GetStyle().ItemSpacing.y))
-          local label = tostring(#searchResults) .. ' matches'
-          if searchRange > 0 then
-            label = label .. ' in ' .. string.format('%g', searchRange) .. 'm'
+          -- refreshNodeCache every half second
+          searchRangeTime = searchRangeTime + searchRangeTimer:stopAndReset()
+          if searchRangeTime > 500 then
+            searchRangeTime = math.fmod(searchRangeTime, 500)
+            refreshNodeCache(instance)
           end
-          imgui.TextUnformatted(label)
+
+          for li, n in ipairs(searchResults) do
+            n.listIndex = li
+            instance.listIndex = instance.listIndex + 1
+            renderSceneTreeGui(instance, n, false)
+          end
+        else
+          renderSceneTreeGui(instance, instance.rootNode, true)
         end
+
+        imgui.EndTable()
+      end
+
+      if imgui.IsMouseClicked(0) and imgui.IsWindowHovered(imgui.HoveredFlags_RootAndChildWindows) then
+        if not clickedOnNode and not editor.keyModifiers.ctrl then
+          editor.clearObjectSelection()
+        end
+        local mousePos = imgui.GetMousePos()
+        if mousePos.x < imgui.GetWindowPos().x + imgui.GetWindowWidth() - 16 then
+          instance.mouseDragStartPos = mousePos
+          instance.mouseDragStartScrollY = imgui.GetScrollY()
+        end
+      end
+
+      if imgui.IsMouseDragging(0) and instance.mouseDragStartPos and not hasDragDropPayload then
+        if not editor.keyModifiers.ctrl then
+          editor.clearObjectSelection()
+        end
+        local mouseDragEndPos = imgui.GetMousePos()
+        local scrollYDiff = imgui.GetScrollY() - instance.mouseDragStartScrollY
+        mouseDragRange = {min = math.min(instance.mouseDragStartPos.y - scrollYDiff, mouseDragEndPos.y),
+                          max = math.max(instance.mouseDragStartPos.y - scrollYDiff, mouseDragEndPos.y)}
+
+        local localMouseDragStartPos = imgui.ImVec2(instance.mouseDragStartPos.x, instance.mouseDragStartPos.y - scrollYDiff)
+        local winPos = imgui.GetWindowPos()
+        local winSize = imgui.GetWindowSize()
+
+        if mouseDragEndPos.y < winPos.y then
+          imgui.SetScrollY(imgui.GetScrollY() - 10)
+        end
+        if mouseDragEndPos.y > winPos.y + winSize.y then
+          imgui.SetScrollY(imgui.GetScrollY() + 10)
+        end
+
+        imgui.ImDrawList_AddRect(imgui.GetWindowDrawList(), localMouseDragStartPos, mouseDragEndPos, imgui.GetColorU322(imgui.ImVec4(1, 1, 0, 1)))
+      end
+
+      if imgui.IsMouseReleased(0) and instance.mouseDragStartPos then
+        if not hasDragDropPayload then
+          local maxIndex = -1
+          local minIndex = math.huge
+          instance.selectionRange = {}
+          for nodeListIndex, _ in pairs(dragSelectionList) do
+            instance.selectionRange[nodeListIndex] = true
+            if nodeListIndex > maxIndex then maxIndex = nodeListIndex end
+            if nodeListIndex < minIndex then minIndex = nodeListIndex end
+          end
+          if not tableIsEmpty(dragSelectionList) then
+            instance.lastSelectedIndex = minIndex
+            instance.currentListIndex = maxIndex
+          end
+        end
+        instance.noScrollToSelection = true
+        instance.mouseDragStartPos = nil
+        dragSelectionList = {}
+      end
+
+      imgui.EndChild()
+
+      -- footer
+      if searchResultsMode then
+        editor.uiIconImage(editor.icons.find_in_page, imVec24x24)
+        imgui.SameLine()
+        --imgui.Dummy(imgui.ImVec2(5, imgui.GetStyle().ItemSpacing.y))
+        local label = tostring(#searchResults) .. ' matches'
+        if searchRange > 0 then
+          label = label .. ' in ' .. string.format('%g', searchRange) .. 'm'
+        end
+        imgui.TextUnformatted(label)
       end
     end
     editor.endWindow()

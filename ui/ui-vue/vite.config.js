@@ -111,6 +111,7 @@ export default defineConfig({
     },
   },
   build: {
+    sourcemap: "hidden",
     rollupOptions: {
       output: {
         entryFileNames: `[name].js`,

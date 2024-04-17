@@ -1,7 +1,11 @@
 -- This Source Code Form is subject to the terms of the bCDDL, v. 1.1.
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
+
 local M = {}
+
+
+local buffer = require('string.buffer')
 
 -- Vlua ad-hoc request data.
 local requestId = -1                            -- The counter for unique vlua ad-hoc request Id numbers.
@@ -15,13 +19,22 @@ local idealRADARLastRawReadings = {}            -- The most-recently-read ideal 
 local roadsSensorLastRawReadings = {}           -- The most-recently-read roads data (this is a table).
 local isVehicleFeedingComplete = false          -- Marks when the vehicle feeding has finished.
 
+-- Buffers used for fast sensor polling.
+local cameraBufferColors = {}                   -- Camera sensor.
+local cameraBufferAnnotations = {}
+local cameraBufferDepth = {}
+local lidarBufferPoints = {}                    -- LiDAR sensor.
+local lidarBufferColors = {}
+local radarBufferPoints = {}                    -- RADAR sensor.
+local radarBufferPPI = {}
+local radarBufferRangeDoppler = {}
+
 -- Ultrasonic sensor visualisation data/parameters.
 local visualisedUltrasonicSensors = {}
 local pulseWidthDispersion = 0.1                -- The rate of longitudinal growth of the pulse (width). Used for the ultrasonic sensor visualisation.
 local minPulseWidth = 0.1                       -- The minimum possible displayed pulse width. Used for the ultrasonic sensor visualisation.
 local maxPulseWidth = 0.25                      -- The maximum possible displayed pulse width. Used for the ultrasonic sensor visualisation.
 local minAlpha = 0.02                           -- The smallest possible displayed alpha channel value. Used for the ultrasonic sensor visualisation.
-local maxDistance = 6.0                         -- The maximum distance that the animated pulse can travel, before being considered unsuccessful.
 local animationPeriod = 1.50                    -- The animation wave period length (in seconds). Used for the ultrasonic sensor visualisation.
 local animationSpeed = 6.0                      -- The animation wave speed (in m/s). Used for the ultrasonic sensor visualisation.
 
@@ -109,25 +122,7 @@ local function getFullCameraRequest(sensorId)
   AnnotationManager.setInstanceAnnotations(false)
   local semanticData = Research.GpuRequestManager.sendBlockingCameraGpuRequest(sensorId)
   AnnotationManager.setInstanceAnnotations(true)
-  local fcrVehicleColors = {}
-  for k, v in pairs(map.objects) do
-    local veh = scenetree.findObject(k)
-    if fcrVehicleColors[k] == nil then
-      fcrVehicleColors[k] = ColorI(math.ceil(255 * math.random()), math.ceil(255 * math.random()), math.ceil(255 * math.random()), 255)
-    end
-    local meshes = veh:getMeshNames()
-    for i = 1, #meshes do
-      --veh:setMeshAnnotationColor(meshes[i], fcrVehicleColors[k])
-    end
-  end
   local instanceData = Research.GpuRequestManager.sendBlockingCameraGpuRequest(sensorId)
-  for k, v in pairs(map.objects) do
-    local veh = scenetree.findObject(k)
-    local meshes = veh:getMeshNames()
-    for i = 1, #meshes do
-      --veh:setMeshAnnotationColor(meshes[i], ColorI(0, 255, 0, 255))
-    end
-  end
   AnnotationManager.setInstanceAnnotations(false)
   Engine.Annotation.enable(false)
   local out = {}
@@ -295,7 +290,6 @@ end
 
 local function getNodePositions(vid, nodeId)
   local vehicleId = scenetree.findObject(vid):getID();
-  local veh = scenetree.findObject(vehicleId)
   return Research.SensorMatrixManager.getNodePositions(vehicleId)
 end
 
@@ -317,8 +311,29 @@ local function createCameraWithSharedMemory(vid, args)
   return Research.SensorManager.createCameraSensorWithSharedMemory(vid, args)
 end
 
+local function getCameraImage(sensorId)
+  cameraBufferColors[sensorId] = cameraBufferColors[sensorId] or buffer.new()
+  Research.Camera.getLastCameraColorBuffer(sensorId, cameraBufferColors[sensorId])
+  return cameraBufferColors[sensorId]
+end
+
+local function getCameraAnnotations(sensorId)
+  cameraBufferAnnotations[sensorId] = cameraBufferAnnotations[sensorId] or buffer.new()
+  Research.Camera.getLastCameraAnnotationsBuffer(sensorId, cameraBufferAnnotations[sensorId])
+  return cameraBufferAnnotations[sensorId]
+end
+
+local function getCameraDepth(sensorId)
+  cameraBufferDepth[sensorId] = cameraBufferDepth[sensorId] or buffer.new()
+  Research.Camera.getLastCameraDepthBuffer(sensorId, cameraBufferDepth[sensorId])
+  return cameraBufferDepth[sensorId]
+end
+
 local function getCameraData(sensorId)
-  return Research.Camera.getLastCameraData(sensorId)
+  return {
+    colour = getCameraImage(sensorId),
+    annotation = getCameraAnnotations(sensorId),
+    depth = getCameraDepth(sensorId) }
 end
 
 local function getCameraDataShmem(sensorId)
@@ -326,19 +341,21 @@ local function getCameraDataShmem(sensorId)
 end
 
 local function processCameraData(sensorId)
-  local binary = Research.Camera.getLastCameraData(sensorId)
-  local colourData = {}
-  for i=1,#binary['colour'] do
-    table.insert(colourData, binary['colour']:byte(i))
+  local binary = getCameraData(sensorId)
+  local colourData, cData = {}, binary.colour
+  local numCData = #cData
+  for i = 1, numCData do
+    table.insert(colourData, cData:byte(i))
   end
-  local annotationData = {}
-  for i=1,#binary['annotation'] do
-    table.insert(annotationData, binary['annotation']:byte(i))
+  local annotationData, aData = {}, binary.annotation
+  local numAData = #aData
+  for i = 1, numAData do
+    table.insert(annotationData, aData:byte(i))
   end
-  local depthData = {}
-  local dd = binary['depth']
-  for i=1,#dd, 4 do
-    table.insert(depthData, unpack_float(dd:byte(i), dd:byte(i + 1), dd:byte(i + 2), dd:byte(i + 3)))
+  local depthData, dData = {}, binary.depth
+  local numDData = #dData
+  for i = 1, numDData, 4 do
+    table.insert(depthData, unpack_float(dData:byte(i), dData:byte(i + 1), dData:byte(i + 2), dData:byte(i + 3)))
   end
   return { colour = colourData, annotation = annotationData, depth = depthData}
 end
@@ -396,11 +413,34 @@ local function createLidarWithSharedMemory(vid, args)
 end
 
 local function getLidarPointCloud(sensorId)
-  return Research.Lidar.getLastPointCloudData(sensorId)
+  lidarBufferPoints[sensorId] = lidarBufferPoints[sensorId] or buffer.new()
+  Research.Lidar.getLastPointCloudBuffer(sensorId,  lidarBufferPoints[sensorId])
+  return  lidarBufferPoints[sensorId]
 end
 
 local function getLidarColourData(sensorId)
-  return Research.Lidar.getLastColourData(sensorId)
+  lidarBufferColors[sensorId] = lidarBufferColors[sensorId] or buffer.new()
+  Research.Lidar.getLastColourBuffer(sensorId,  lidarBufferColors[sensorId])
+  return  lidarBufferColors[sensorId]
+end
+
+local function getLidarDataPositions(sensorId)
+  local pts = getLidarPointCloud(sensorId)
+  local pointsData = {}
+  local numPts = #pts
+  for i = 1, numPts, 12 do
+    local x = unpack_float(pts:byte(i), pts:byte(i + 1), pts:byte(i + 2), pts:byte(i + 3))
+    local y = unpack_float(pts:byte(i + 4), pts:byte(i + 5), pts:byte(i + 6), pts:byte(i + 7))
+    local z = unpack_float(pts:byte(i + 8), pts:byte(i + 9), pts:byte(i + 10), pts:byte(i + 11))
+    table.insert(pointsData, vec3(x, y, z))
+  end
+  local colourBinary = getLidarColourData(sensorId)
+  local colourData = {}
+  local numColour = #colourBinary
+  for i = 1, numColour do
+    table.insert(colourData, colourBinary:byte(i))
+  end
+  return { pointCloud = pointsData, colour = colourData }
 end
 
 local function getLidarPointCloudShmem(sensorId)
@@ -409,23 +449,6 @@ end
 
 local function getLidarColourDataShmem(sensorId)
   return Research.Lidar.getLastColourDataShmem(sensorId)
-end
-
-local function getLidarDataPositions(sensorId)
-  local pts = Research.Lidar.getLastPointCloudData(sensorId)
-  local pointsData = {}
-  for i=1,#pts, 12 do
-    local x = unpack_float(pts:byte(i), pts:byte(i + 1), pts:byte(i + 2), pts:byte(i + 3))
-    local y = unpack_float(pts:byte(i + 4), pts:byte(i + 5), pts:byte(i + 6), pts:byte(i + 7))
-    local z = unpack_float(pts:byte(i + 8), pts:byte(i + 9), pts:byte(i + 10), pts:byte(i + 11))
-    table.insert(pointsData, vec3(x, y, z))
-  end
-  local colourBinary = Research.Lidar.getLastColourData(sensorId)
-  local colourData = {}
-  for i=1,#colourBinary do
-    table.insert(colourData, colourBinary:byte(i))
-  end
-  return { pointCloud = pointsData, colour = colourData}
 end
 
 local function getActiveLidarSensors()
@@ -442,10 +465,6 @@ end
 
 local function getLidarVerticalResolution(sensorId)
   return Research.Lidar.getVerticalRes(sensorId)
-end
-
-local function getLidarRaysPerSecond(sensorId)
-  return Research.Lidar.getRaysPerSecond(sensorId)
 end
 
 local function getLidarFrequency(sensorId)
@@ -478,10 +497,6 @@ end
 
 local function setLidarVerticalResolution(sensorId, verticalResolution)
   Research.Lidar.setVerticalRes(sensorId, verticalResolution)
-end
-
-local function setLidarRaysPerSecond(sensorId, raysPerSecond)
-  Research.Lidar.setRaysPerSecond(sensorId, raysPerSecond)
 end
 
 local function setLidarFrequency(sensorId, frequency)
@@ -663,19 +678,25 @@ local function createRadar(vid, args)
 end
 
 local function getRadarReadings(sensorId)
-  return Research.Radar.getLastReadings(sensorId)
-end
-
-local function getRadarRangeDopplerData(sensorId)
-  return Research.Radar.getRangeDoppler(sensorId)
+  radarBufferPoints[sensorId] = radarBufferPoints[sensorId] or buffer.new()
+  Research.Radar.getLastReadingsBuffer(sensorId,  radarBufferPoints[sensorId])
+  return radarBufferPoints[sensorId]
 end
 
 local function getRadarPPIData(sensorId)
-  return Research.Radar.getPPIData(sensorId)
+  radarBufferPPI[sensorId] = radarBufferPPI[sensorId] or buffer.new()
+  Research.Radar.getPPIBuffer(sensorId,  radarBufferPPI[sensorId])
+  return radarBufferPPI[sensorId]
+end
+
+local function getRadarRangeDopplerData(sensorId)
+  radarBufferRangeDoppler[sensorId] = radarBufferRangeDoppler[sensorId] or buffer.new()
+  Research.Radar.getRangeDopplerBuffer(sensorId,  radarBufferRangeDoppler[sensorId])
+  return radarBufferRangeDoppler[sensorId]
 end
 
 local function getActiveRadarSensors()
-  return Research.Radar.getActiveUltrasonicSensors()
+  return Research.Radar.getActiveRadarSensors()
 end
 
 local function getRadarMaxPendingGpuRequests(sensorId)
@@ -720,8 +741,8 @@ local function createAdvancedIMU(vid, args)
   if args.GFXUpdateTime == nil then args.GFXUpdateTime = 0.1 end
   if args.isUsingGravity == nil then args.isUsingGravity = false end
   if args.isVisualised == nil then args.isVisualised = true end
-  if args.isSnappingDesired == nil then args.isSnappingDesired = true end
-  if args.isForceInsideTriangle == nil then args.isForceInsideTriangle = true end
+  if args.isSnappingDesired == nil then args.isSnappingDesired = false end
+  if args.isForceInsideTriangle == nil then args.isForceInsideTriangle = false end
   if args.isAllowWheelNodes == nil then args.isAllowWheelNodes = false end
   if args.physicsUpdateTime == nil then args.physicsUpdateTime = 0.015 end
 
@@ -821,8 +842,8 @@ local function createGPS(vid, args)
   args.up = -args.up  -- // we need to flip the up direction vector to get the orientation correct when attaching the sensor.
   if args.GFXUpdateTime == nil then args.GFXUpdateTime = 0.1 end
   if args.isVisualised == nil then args.isVisualised = true end
-  if args.isSnappingDesired == nil then args.isSnappingDesired = true end
-  if args.isForceInsideTriangle == nil then args.isForceInsideTriangle = true end
+  if args.isSnappingDesired == nil then args.isSnappingDesired = false end
+  if args.isForceInsideTriangle == nil then args.isForceInsideTriangle = false end
   if args.isAllowWheelNodes == nil then args.isAllowWheelNodes = false end
   if args.physicsUpdateTime == nil then args.physicsUpdateTime = 0.015 end
   if args.refLon == nil then args.refLon = 0.0 end
@@ -1120,6 +1141,10 @@ local function getRoadGraph()
     normals = normals }
 end
 
+local function resetNavgraph()
+  map.reset()
+end
+
 local function createValidation(vid, testId)
   local args = {}
   args.pos = vec3(0.0, 0.2575, 0.504)
@@ -1178,7 +1203,57 @@ end
 
 local function markVehicleFeedingComplete()
   isVehicleFeedingComplete = true
-  dump('VEHICLE FEEDING MARKED AS COMPLETE **********')
+  dump('Test complete!')
+end
+
+local function createTyreBarrierTest(vid, IMUPos, IMUDir, IMUUp, accelWindow, gyroWindow, initialVel, startPos)
+  local args = {}
+  args.pos = IMUPos or vec3(0, 0, 0)
+  args.dir = IMUDir or vec3(0, -1, 0)
+  args.up = IMUUp or vec3(0, 0, 1)
+  args.GFXUpdateTime = 0.00001
+  args.isUseGravity = true
+  args.isVisualised = true
+  args.isSnappingDesired = false
+  args.isForceInsideTriangle = false
+  args.isAllowWheelNodes = false
+  args.physicsUpdateTime = 0.00001
+  args.accelWindowWidth = accelWindow or 10.0
+  args.gyroWindowWidth = gyroWindow or 2.0
+  args.initialVel = initialVel
+  args.startPos = startPos or vec3(0, 0, 0)
+
+  -- Attach the sensor to the vehicle.
+  local sensorId = Research.SensorManager.getNewSensorId()
+  Research.SensorMatrixManager.attachSensor(sensorId, args.pos, args.dir, args.up, vid, false, args.isSnappingDesired,
+    args.isForceInsideTriangle, args.isAllowWheelNodes)
+  local attachData = Research.SensorMatrixManager.getAttachData(sensorId)
+
+  -- Create the AdvancedIMU in vlua.
+  local data =
+  {
+    sensorId = sensorId,
+    GFXUpdateTime = args.GFXUpdateTime,
+    physicsUpdateTime = args.physicsUpdateTime,
+    isUsingGravity = args.isUseGravity,
+    nodeIndex1 = attachData.nodeIndex1, nodeIndex2 = attachData.nodeIndex2, nodeIndex3 = attachData.nodeIndex3,
+    u = attachData.u, v = attachData.v,
+    signedProjDist = attachData.signedProjDist,
+    triangleSpaceForward = attachData.triangleSpaceForward,
+    triangleSpaceUp = attachData.triangleSpaceUp,
+    isVisualised = args.isVisualised,
+    accelWindowWidth = args.accelWindowWidth, gyroWindowWidth = args.gyroWindowWidth,
+    accelFrequencyCutoff = args.accelFrequencyCutoff, gyroFrequencyCutoff = args.gyroFrequencyCutoff,
+    initVel = args.initialVel,
+    posX = args.startPos.x, posY = args.startPos.y, posZ = args.startPos.z
+  }
+  local serializedData = string.format("extensions.tech_tyreBarrier.create(%q)", lpack.encode(data))
+  be:queueObjectLua(vid, serializedData)
+end
+
+local function removeTyreBarrierTest(vid, sensorId)
+  local vehicleId = scenetree.findObject(vid):getID()
+  be:queueObjectLua(vehicleId, "extensions.tech_tyreBarrier.remove(" .. sensorId .. ")")
 end
 
 local function onUpdate(dtReal, dtSim, dtRaw)
@@ -1188,12 +1263,15 @@ local function onUpdate(dtReal, dtSim, dtRaw)
 end
 
 local function onDeserialized(data)
-  Research.GpuRequestManager.reset()                        -- Upon a Lua reload, we need to re-compute the GPU scheduler, since sensor parameters may have changed.
+  if Research then
+    Research.GpuRequestManager.reset()                      -- Upon a Lua reload, we need to re-compute the GPU scheduler, since sensor parameters may have changed.
+  end
 end
 
 local function onVehicleDestroyed(vid)
   removeAllSensorsFromVehicle(vid)                          -- Removes any sensors attached to the destroyed vehicle.
 end
+
 
 -- Public interface:
 
@@ -1229,7 +1307,7 @@ M.collectPowertrainRequest                  = collectPowertrainRequest
 M.sendIdealRADARRequest                     = sendIdealRADARRequest
 M.collectIdealRADARRequest                  = collectIdealRADARRequest
 M.sendRoadsSensorRequest                    = sendRoadsSensorRequest
-M.collectRoadsSensorRequest                  = collectRoadsSensorRequest
+M.collectRoadsSensorRequest                 = collectRoadsSensorRequest
 M.sendMeshRequest                           = sendMeshRequest
 M.collectMeshRequest                        = collectMeshRequest
 M.isVluaRequestComplete                     = isVluaRequestComplete           -- this query is generic to any request from vlua.
@@ -1251,6 +1329,9 @@ M.getClosestTriangle                        = getClosestTriangle
 -- Camera-specific sensor functions.
 M.createCamera                              = createCamera
 M.createCameraWithSharedMemory              = createCameraWithSharedMemory
+M.getCameraImage                            = getCameraImage
+M.getCameraAnnotations                      = getCameraAnnotations
+M.getCameraDepth                            = getCameraDepth
 M.getCameraData                             = getCameraData                   -- returns a binary string.
 M.getCameraDataShmem                        = getCameraDataShmem
 M.processCameraData                         = processCameraData               -- returns processed data.
@@ -1270,15 +1351,14 @@ M.convertWorldPointToPixel                  = convertWorldPointToPixel
 M.createLidar                               = createLidar
 M.createLidarWithSharedMemory               = createLidarWithSharedMemory
 M.getLidarPointCloud                        = getLidarPointCloud              -- returns a binary string.
-M.getLidarPointCloudShmem                   = getLidarPointCloudShmem
 M.getLidarColourData                        = getLidarColourData              -- returns a binary string.
+M.getLidarPointCloudShmem                   = getLidarPointCloudShmem
 M.getLidarColourDataShmem                   = getLidarColourDataShmem
-M.getLidarDataPositions                     = getLidarDataPositions           -- returns the LiDAR point cloud positions.
+M.getLidarDataPositions                     = getLidarDataPositions           -- returns the LiDAR point cloud positions (processed data).
 M.getActiveLidarSensors                     = getActiveLidarSensors
 M.getLidarSensorPosition                    = getLidarSensorPosition
 M.getLidarSensorDirection                   = getLidarSensorDirection
 M.getLidarVerticalResolution                = getLidarVerticalResolution
-M.getLidarRaysPerSecond                     = getLidarRaysPerSecond
 M.getLidarFrequency                         = getLidarFrequency
 M.getLidarMaxDistance                       = getLidarMaxDistance
 M.getLidarIsVisualised                      = getLidarIsVisualised
@@ -1287,7 +1367,6 @@ M.getLidarMaxPendingGpuRequests             = getLidarMaxPendingGpuRequests
 M.getLidarRequestedUpdateTime               = getLidarRequestedUpdateTime
 M.getLidarUpdatePriority                    = getLidarUpdatePriority
 M.setLidarVerticalResolution                = setLidarVerticalResolution
-M.setLidarRaysPerSecond                     = setLidarRaysPerSecond
 M.setLidarFrequency                         = setLidarFrequency
 M.setLidarMaxDistance                       = setLidarMaxDistance
 M.setLidarIsVisualised                      = setLidarIsVisualised
@@ -1378,12 +1457,15 @@ M.setMeshUpdateTime                         = setMeshUpdateTime
 
 -- Road-related functions.
 M.getRoadGraph                              = getRoadGraph
+M.resetNavgraph                             = resetNavgraph
 
--- Validation tools.
+-- Test/validation tools.
 M.createValidation                          = createValidation
 M.removeValidation                          = removeValidation
 M.markVehicleFeedingComplete                = markVehicleFeedingComplete
 M.isTimeEvolutionComplete                   = isTimeEvolutionComplete
+M.createTyreBarrierTest                     = createTyreBarrierTest
+M.removeTyreBarrierTest                     = removeTyreBarrierTest
 
 -- Functions triggered by hooks.
 M.onUpdate                                  = onUpdate

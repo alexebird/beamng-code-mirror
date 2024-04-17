@@ -32,6 +32,8 @@ local function getGameCamera() return scenetree.findObject("gameCamera") end
 local function setGameCamera()
   core_camera.setGlobalCameraByName(nil)
 end
+
+-- function used by C++ side, if you rename or move, you need to edit C++ side too
 local function setFreeCamera()
   core_camera.setByName(0, 'free')
   core_camera.setPosition(0, core_camera.getPosition())
@@ -64,7 +66,7 @@ local function onNodegrabStop(usingPlayerVehicle)
 end
 
 local function dropCameraAtPlayer()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then return end
   setFreeCamera()
   core_camera.setPosition(0, playerVehicle:getPosition())
@@ -73,7 +75,7 @@ local function dropCameraAtPlayer()
 end
 
 local function dropPlayerAtCamera()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then return end
   local pos = core_camera.getPosition()
   local camDir = core_camera.getForward()
@@ -89,7 +91,7 @@ local function dropPlayerAtCamera()
 end
 
 local function dropPlayerAtCameraNoReset()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then return end
   local pos = core_camera.getPosition()
   local camDir = core_camera.getForward()
@@ -140,12 +142,6 @@ local function setFreeCameraTransformJson(json)
 
   core_camera.setPosRot(0, json[1], json[2], json[3], json[4], json[5], json[6], json[7])
 end
-
-local function onSettingsChanged()
-  if not isFreeCamera() then return end
-  core_camera.setSmoothedCam(0, settings.getValue('cameraFreeSmoothMovement'))
-end
-
 
 -- global functions for backwards compatibility
 local deprecationWarningDone = {}
@@ -199,7 +195,7 @@ M.getCamera = getGameCamera -- retrocompat
 M.getGame = getGame -- retrocompat
 M.onNodegrabStart = onNodegrabStart
 M.onNodegrabStop = onNodegrabStop
-M.setFreeCamera = setFreeCamera
+M.setFreeCamera = setFreeCamera -- function used by C++ side, if you rename or move, you need to edit C++ side too
 M.setGameCamera = setGameCamera
 M.setCameraFree = setFreeCamera -- retrocompat
 M.setCameraPlayer = setGameCamera -- retrocompat

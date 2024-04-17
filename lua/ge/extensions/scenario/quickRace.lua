@@ -149,7 +149,7 @@ local function onScenarioLoaded(sc)
   if not sc.track then return end
   --dump(sc.track.tod .. " = TOD")
   if sc.track.tod == 0 or sc.track.tod == 1 or sc.track.tod == 8 then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle then
       playerVehicle:queueLuaCommand("electrics.set_fog_lights(1) ; electrics.setLightsState(2)")
     end
@@ -231,7 +231,7 @@ end
 
 -- callback for the UI: called when it finishes counting down
 local function onCountdownEnded()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     playerVehicle:queueLuaCommand('controller.setFreeze(0)')
   else
@@ -274,7 +274,7 @@ local function onRaceWaypointReached( wpInfo )
     --dump(wpInfo)
     --dump(times)
     local scenario = scenario_scenarios.getScenario()
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     local record = {
       playerName = core_vehicles.getVehicleLicenseText(playerVehicle),
       vehicleBrand = scenario.vehicle.file.Brand,
@@ -324,7 +324,7 @@ end
 local function onRaceResult(final)
   if not scenario_scenarios.getScenario().isQuickRace then return end
   local scenario = scenario_scenarios.getScenario()
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
 
   --highscores.setScenarioHighscores(,M.getVehicleName(),core_vehicles.getVehicleLicenseText(vehicle),scenario.map,scenario.scenarioName,M.getConfigKey(),0)
 

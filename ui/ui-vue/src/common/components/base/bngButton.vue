@@ -3,11 +3,11 @@
   <button
     ref="btnDOMElRef"
     :accent="accent"
-    :class="{ 'show-hold': showHold, 'bng-button': true, empty: !slots.default, 'l-icon': iconLeft || icon, 'r-icon': iconRight }"
-  >
-    <bng-icon v-if="iconLeft || icon" :type="iconLeft || icon" />
+    :class="{ 'show-hold': showHold, 'bng-button': true, empty: !slots.default && !label, 'l-icon': iconLeft || icon, 'r-icon': iconRight }">
+    <BngOldIcon v-if="useOldIcons && (iconLeft || icon)" :type="iconLeft || icon" />
+    <BngIcon class="icon" v-else-if="!useOldIcons && (iconLeft || icon)" :type="iconLeft || icon" />
     <template v-if="isPlainTextSlot">
-      <span class="label"> 
+      <span class="label">
         <slot />
       </span>
     </template>
@@ -16,33 +16,31 @@
     </template>
     <span v-if="label && !isPlainTextSlot" class="label">{{ label }}</span>
     <span v-if="uiNavEvent">{{ uiNavEvent }}</span>
-    <bng-icon span v-if="iconRight" :type="iconRight" />
+    <BngOldIcon span v-if="useOldIcons && iconRight" :type="iconRight" />
+    <BngIcon class="icon" v-else-if="!useOldIcons && iconRight" :type="iconRight" />
   </button>
 </template>
 
 <script>
-const accents = ["main", "secondary", "outlined", "text", "attention"]
+const ACCENTS = ["main", "secondary", "outlined", "text", "attention"]
 </script>
 
 <script setup>
 import { useSlots, watch, ref, useAttrs, computed } from "vue"
-import { BngIcon } from "@/common/components/base"
+import { BngOldIcon, BngIcon } from "@/common/components/base"
 import { watchUINavEventChange } from "@/services/uiNav"
-import useControls from "@/services/controls"
-import { UIUnits } from "@/bridge/libs"
 
-const Controls = useControls()
 const slots = useSlots()
-const value = computed(() => UIUnits.test(props.text))
 
 const uiNavEvent = ref()
 const btnDOMElRef = ref()
 
 const attrs = useAttrs()
+const useOldIcons = computed(() => "oldIcons" in attrs)
 
 const unwatch = watchUINavEventChange(btnDOMElRef, ({ eventName, action }) => {})
 
-const isPlainTextSlot = ref(false);
+const isPlainTextSlot = ref(false)
 // This function will check if the slot is a single text node
 function checkIfPlainText() {
   const slotContent = slots.default ? slots.default() : []
@@ -57,15 +55,14 @@ const props = defineProps({
   accent: {
     type: String,
     default: "main",
-    validator: v => accents.includes(v) || v === "",
+    validator: v => ACCENTS.includes(v) || v === "",
   },
-  iconLeft: String,
-  iconRight: String,
+  iconLeft: [Object, String],
+  iconRight: [Object, String],
   label: String,
-  icon: String,
+  icon: [Object, String], // string is used if oldIcons attribute is specified
   showHold: Boolean,
 })
-
 </script>
 
 <style lang="scss" scoped>
@@ -84,7 +81,7 @@ $button-attention-active: var(--bng-add-red-800);
 $button-attention-hover: var(--bng-add-red-500);
 $button-attention-disabled: var(--bng-add-red-800);
 
-$button-text-enabled: var(--bng-black-o2);
+$button-text-enabled: var(--bng-black-o4);
 $button-text-active: var(--bng-black-o6);
 $button-text-hover: var(--bng-orange-700);
 $button-text-disabled: var(--bng-black-o2);
@@ -100,15 +97,53 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
 
 @import "@/styles/modules/mixins";
 
-/* TODO - make show-hold much better, and take into account button type */
-.show-hold {
-  background: linear-gradient(
-    to right,
-    rgba(var(--bng-orange-300-rgb), 0.6) 0%,
-    rgba(var(--bng-orange-300-rgb), 1) var(--hold-completion),
-    rgba(0, 0, 0, 0) var(--hold-completion),
-    rgba(0, 0, 0, 0)
+$hold-preroll: 0.3; // starting value (when changing this, check on different button widths)
+$hold-preroll-shift: calc($hold-preroll / 2); // how much should it rotate for a preroll (CCW)
+$hold-width: 0.25em;
+
+.show-hold::after {
+  content: "";
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: $border-rad-1;
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 100%,
+    0% 100%,
+    0% 0%,
+    calc(0% + $hold-width) calc(0% + $hold-width),
+    calc(0% + $hold-width) calc(100% - $hold-width),
+    calc(100% - $hold-width) calc(100% - $hold-width),
+    calc(100% - $hold-width) calc(0% + $hold-width),
+    calc(0% + $hold-width) calc(0% + $hold-width)
   );
+  background-color: #fff0;
+  --hold-val: calc(#{$hold-preroll} + var(--hold-completion, 0) * #{1 - $hold-preroll});
+  background-image: conic-gradient(
+    from calc(-#{$hold-preroll-shift}turn + var(--hold-completion, 0) * #{$hold-preroll-shift}turn),
+    #fff0 0turn,
+    #fff calc(var(--hold-val) * 1turn),
+    transparent calc(var(--hold-val) * 1turn) 1turn
+  );
+}
+.show-hold:focus:not(:active):not(.hold-active)::after {
+  transition: opacity 1.5s, background-color 1.5s;
+}
+.show-hold:active,
+.show-hold.hold-active {
+  &::after {
+    opacity: 1;
+    background-color: #fff6;
+    transition: background-color 400ms;
+  }
 }
 
 .bng-button {
@@ -118,22 +153,57 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
   color: white;
   background-color: $button-main-enabled;
   box-sizing: border-box;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: 1.25em;
-  min-height: 2em;
-  padding: 0.25em 0.5em;
+  font-family: var(--fnt-defs);
+  font-size: 1rem; // default value to be overriden with the parent component's styles
+  line-height: 1.5rem; // default value to be overriden with the parent component's styles
+  // min-height: 2em; Button size should be driven by the line-height. If you need it to be taller - override the line-height
+  padding: 0.5em;
+  padding-top: 0.3em;
+  padding-bottom: 0.45em; // move the text up a little to compensate for lowercase alignment
   border: 0;
-  border-radius: $rad;
+  border-radius: $rad; // Focus frame radius uses this variable to adjust, keep it
   overflow: visible;
-  // border: 0.125rem solid transparent;
+  // border: 0.125rem solid transparent; // Avoid using borders here as they mess with sizing
   box-shadow: inset 0 0 0 0.125rem transparent;
   display: inline-flex;
-  align-items: center;
+  flex-flow: row nowrap;
+  // display: grid;
+  // grid-template-rows: 1fr;
+  align-items: baseline;
   justify-content: center;
   position: relative;
   flex: 0 0 auto;
-  // text-align: center;
+  .icon {
+    align-self: baseline;
+    font-size: 1.5em;
+    transform: translateY(0.0625em);
+    font-style: normal;
+    font-weight: 500;
+  }
+  &.allcaps {
+    text-transform: uppercase;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    & > .label {
+      padding-left: 0.125rem;
+      padding-right: 0.125rem;
+    }
+    .icon {
+      transform: none;
+    }
+  }
+  &.large {
+    font-family: "Overpass", var(--fnt-defs);
+    font-size: 1.5rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    font-style: italic;
+    padding-top: 0.35em;
+    padding-bottom: 0.4em;
+    .icon {
+      font-weight: 500;
+    }
+  }
   & > .label {
     display: inline-block;
     flex: 1 1 auto;
@@ -155,14 +225,25 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
     min-height: 1.5em;
   }
 
-  &.l-icon:not(.empty) .bngicon {
-    margin-right: 0.2em;
+  &.l-icon:not(.empty) {
+    text-align: left;
+    .icon {
+      padding-right: 0.2em;
+    }
+    .bngicon {
+      margin-right: 0.2em;
+    }
   }
-  &.r-icon:not(.empty) .bngicon {
-    margin-left: 0.2em;
+  &.r-icon:not(.empty) {
+    .icon {
+      padding-left: 0.2em;
+    }
+    .bngicon {
+      margin-left: 0.2em;
+    }
   }
 
-  @include modify-focus($rad, $f-offset);
+  @include modify-focus($rad, $f-offset); // Focus frame offset is set here, with this mixin
 
   &:focus {
     box-shadow: none;
@@ -172,7 +253,8 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
     background-color: $button-main-hover;
   }
 
-  &:active {
+  &:active,
+  &.hold-active {
     background-color: $button-main-active;
   }
 
@@ -189,7 +271,8 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
       background-color: $button-secondary-hover;
     }
 
-    &:active {
+    &:active,
+    &.hold-active {
       background-color: $button-secondary-active;
     }
 
@@ -207,7 +290,8 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
       background-color: $button-attention-hover;
     }
 
-    &:active {
+    &:active,
+    &.hold-active {
       background-color: $button-attention-active;
     }
 
@@ -227,7 +311,8 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
       box-shadow: inset 0 0 0 0.125rem $button-outlined-border-hover;
     }
 
-    &:active {
+    &:active,
+    &.hold-active {
       background-color: $button-outlined-active;
       box-shadow: inset 0 0 0 0.125rem $button-outlined-border-active;
     }
@@ -246,7 +331,8 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
       background-color: $button-text-hover;
     }
 
-    &:active {
+    &:active,
+    &.hold-active {
       background-color: $button-text-active;
     }
 
@@ -262,6 +348,10 @@ $button-outlined-border-disabled: rgba(var(--bng-cool-gray-800-rgb), 0.8);
   margin-right: 0.25rem;
 }
 :deep(span[ui-event]) {
-  padding-right:5px;
+  padding-right: 5px;
+}
+/* HACK ALERT: fixes button highlight z order error */
+:focus::before {
+  z-index: auto !important;
 }
 </style>

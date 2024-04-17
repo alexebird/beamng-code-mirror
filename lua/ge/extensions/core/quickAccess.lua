@@ -183,13 +183,13 @@ local function registerDefaultMenus()
       local e = {title = 'ui.radialmenu2.Manage.Select', icon = 'material_directions_car',  onSelect = function() guihooks.trigger('ChangeState', {state = 'menu.vehicles'}) ; return {'hideMeOnly'} end}
       table.insert(entries, e)
     end
-    if be:getPlayerVehicle(0) then
+    if getPlayerVehicle(0) then
       if not core_input_actionFilter.isActionBlocked("loadHome") then
-        local e = {title = 'ui.radialmenu2.Manage.Home', icon = 'radial_home', priority = 80, onSelect = function() extensions.hook('trackVehReset') be:getPlayerVehicle(0):queueLuaCommand("recovery.loadHome()") return {'hide'} end}
+        local e = {title = 'ui.radialmenu2.Manage.Home', icon = 'radial_home', priority = 80, onSelect = function() extensions.hook('trackVehReset') getPlayerVehicle(0):queueLuaCommand("recovery.loadHome()") return {'hide'} end}
         table.insert(entries, e)
       end
       if not core_input_actionFilter.isActionBlocked("saveHome") then
-        local e = {title = 'ui.radialmenu2.Manage.Set_home', icon = 'radial_set_home', priority = 81, onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("recovery.saveHome()") return {'hide'} end}
+        local e = {title = 'ui.radialmenu2.Manage.Set_home', icon = 'radial_set_home', priority = 81, onSelect = function() getPlayerVehicle(0):queueLuaCommand("recovery.saveHome()") return {'hide'} end}
         table.insert(entries, e)
       end
     end
@@ -202,27 +202,27 @@ local function registerDefaultMenus()
       table.insert(entries, e)
     end
     if not core_input_actionFilter.isActionBlocked("funBreak") then
-      local e = {title = "ui.radialmenu2.funstuff.Break", icon = 'radial_break', onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("beamstate.breakAllBreakgroups()") return {"hide"} end}
+      local e = {title = "ui.radialmenu2.funstuff.Break", icon = 'radial_break', onSelect = function() getPlayerVehicle(0):queueLuaCommand("beamstate.breakAllBreakgroups()") return {"hide"} end}
       table.insert(entries, e)
     end
     if not core_input_actionFilter.isActionBlocked("funHinges") then
-      local e = {title = "ui.radialmenu2.funstuff.Hinges", icon = 'radial_hinges', onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("beamstate.breakHinges()") return {"hide"} end}
+      local e = {title = "ui.radialmenu2.funstuff.Hinges", icon = 'radial_hinges', onSelect = function() getPlayerVehicle(0):queueLuaCommand("beamstate.breakHinges()") return {"hide"} end}
       table.insert(entries, e)
     end
     if not core_input_actionFilter.isActionBlocked("funTires") then
-      local e = {title = "ui.radialmenu2.funstuff.Tires", icon = 'garage_wheels', onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("beamstate.deflateTires()") return {"hide"} end}
+      local e = {title = "ui.radialmenu2.funstuff.Tires", icon = 'garage_wheels', onSelect = function() getPlayerVehicle(0):queueLuaCommand("beamstate.deflateTires()") return {"hide"} end}
       table.insert(entries, e)
     end
     if not core_input_actionFilter.isActionBlocked("funFire") then
-      local e = {title = "ui.radialmenu2.funstuff.Fire", icon = 'radial_fire', onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("fire.igniteVehicle()") return {"hide"} end}
+      local e = {title = "ui.radialmenu2.funstuff.Fire", icon = 'radial_fire', onSelect = function() getPlayerVehicle(0):queueLuaCommand("fire.igniteVehicle()") return {"hide"} end}
       table.insert(entries, e)
     end
     if not core_input_actionFilter.isActionBlocked("funExtinguish") then
-      local e = {title = "ui.radialmenu2.funstuff.Extinguish", icon = 'radial_estinguish', onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("fire.extinguishVehicle()") return {"hide"} end}
+      local e = {title = "ui.radialmenu2.funstuff.Extinguish", icon = 'radial_estinguish', onSelect = function() getPlayerVehicle(0):queueLuaCommand("fire.extinguishVehicle()") return {"hide"} end}
       table.insert(entries, e)
     end
     if not core_input_actionFilter.isActionBlocked("funBoom") then
-      local e = {title = "ui.radialmenu2.funstuff.Boom", icon = 'radial_boom', onSelect = function() be:getPlayerVehicle(0):queueLuaCommand("fire.explodeVehicle()") return {"hide"} end}
+      local e = {title = "ui.radialmenu2.funstuff.Boom", icon = 'radial_boom', onSelect = function() getPlayerVehicle(0):queueLuaCommand("fire.explodeVehicle()") return {"hide"} end}
       table.insert(entries, e)
     end
   end})
@@ -244,7 +244,7 @@ local function registerDefaultMenus()
     {
       level = "/ai/",
       generator = function(entries)
-        if not core_input_actionFilter.isActionBlocked("toggleAITraffic") and be:getPlayerVehicle(0) and be:getObjectCount() > 1 then -- more vehicles than the player exist
+        if not core_input_actionFilter.isActionBlocked("toggleAITraffic") and getPlayerVehicle(0) and be:getObjectCount() > 1 then -- more vehicles than the player exist
           table.insert(
             entries,
             {
@@ -252,7 +252,7 @@ local function registerDefaultMenus()
               priority = 61,
               icon = "radial_stop",
               onSelect = function()
-                core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setOtherVehiclesAIMode', "stop")
+                core_vehicleBridge.executeAction(getPlayerVehicle(0),'setOtherVehiclesAIMode', "stop")
                 return {"hide"}
               end
             }
@@ -264,7 +264,7 @@ local function registerDefaultMenus()
               priority = 62,
               icon = "radial_random",
               onSelect = function()
-                core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setOtherVehiclesAIMode', "random")
+                core_vehicleBridge.executeAction(getPlayerVehicle(0),'setOtherVehiclesAIMode', "random")
                 return {"hide"}
               end
             }
@@ -276,7 +276,7 @@ local function registerDefaultMenus()
               priority = 64,
               icon = "radial_flee",
               onSelect = function()
-                core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setOtherVehiclesAIMode', "flee")
+                core_vehicleBridge.executeAction(getPlayerVehicle(0),'setOtherVehiclesAIMode', "flee")
                 return {"hide"}
               end
             }
@@ -288,7 +288,7 @@ local function registerDefaultMenus()
               priority = 65,
               icon = "radial_chase_me",
               onSelect = function()
-                core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setOtherVehiclesAIMode', "chase")
+                core_vehicleBridge.executeAction(getPlayerVehicle(0),'setOtherVehiclesAIMode', "chase")
                 return {"hide"}
               end
             }
@@ -300,7 +300,7 @@ local function registerDefaultMenus()
               priority = 66,
               icon = "radial_followme",
               onSelect = function()
-                core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setOtherVehiclesAIMode', "follow")
+                core_vehicleBridge.executeAction(getPlayerVehicle(0),'setOtherVehiclesAIMode', "follow")
                 return {"hide"}
               end
             }
@@ -449,7 +449,7 @@ local function show(level)
   end
 
   -- now ask the active vehicle for any items
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if vehicle then
     --print(">>>>> REQUESTING ITEMS from ID: " .. tostring(veh:getId()))
     vehicle:queueLuaCommand('extensions.core_quickAccess.requestItems("' .. tostring(currentLevel) .. '")')

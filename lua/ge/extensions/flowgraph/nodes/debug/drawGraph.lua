@@ -4,7 +4,6 @@
 
 local im  = ui_imgui
 
-
 local C = {}
 
 C.name = 'Multi Graph'
@@ -13,22 +12,19 @@ C.icon = ui_flowgraph_editor.nodeIcons.debug
 C.description = "Draws multiple lines in the same graph."
 C.category = 'repeat_instant'
 
-C.todo = "Automatic pin add/remove sometimes bugs. Number of used values could be changed to be a property"
-C.pinSchema = {
-  { dir = 'in', type = 'number', name = 'value 1', description = 'Value 1 to display.' },
-}
+C.pinSchema = {}
 
-C.tags = {'util','draw'}
+C.tags = {'util', 'draw'}
 
 function C:init()
-  self.inputPinCount = 0
   self.inputLabels = {}
   self.inputColors = {}
   self.graphData = {}
   self.graphDataCount = 400
+  self.valueCount = 0
+  self.data.count = 1
   self.data.scaleMin = 0
   self.data.scaleMax = 1
-
 end
 
 function C:work()
@@ -47,54 +43,76 @@ function C:work()
   end
 end
 
-function C:resetgraphData()
-  self.inputPinCount = tableSize(self.pinIn)
+function C:resetGraphData()
   self.inputLabels = {}
   self.inputColors = {}
   self.graphData = {}
   local i = 0
-  for _, pin in pairs(self.pinIn) do
-    table.insert(self.inputLabels, pin.name)
-    local c = rainbowColor(self.inputPinCount, i, 255)
-    table.insert(self.inputColors, im.ImColorByRGB(c[1], c[2], c[3], 255))
-    table.insert(self.graphData, {})
-    i = i + 1
+  for _, pin in pairs(self.pinInLocal) do
+    if pin.type == "number" then
+      table.insert(self.inputLabels, pin.name)
+      local c = rainbowColor(self.data.count, i, 255)
+      table.insert(self.inputColors, im.ImColorByRGB(c[1], c[2], c[3], 255))
+      table.insert(self.graphData, {})
+      i = i + 1
+    end
   end
+  self.valueCount = i
 end
 
-function C:onLinkDeleted(link)
-  self:resetgraphData()
-end
+function C:updatePins(old, new)
+  new = math.max(0, math.ceil(new))
+  self.data.count = new
 
-function C:onLink(link)
-  local numEmptyPins = 0
-  for _, pin in ipairs(self.pinList) do
-    if pin.direction == "in" and pin.type ~= "flow" then
-      if not pin:isUsed() then
-        numEmptyPins = numEmptyPins + 1
+  if new < old then
+    for i = old, new + 1, -1 do
+      for _, link in pairs(self.graph.links) do
+        if link.targetPin == self.pinInLocal['value'..i]then
+          self.graph:deleteLink(link)
+        end
       end
+      self:removePin(self.pinInLocal['value'..i])
+    end
+  else
+    for i = old + 1, new do
+      -- direction, type, name, default, description, autoNumber
+      self:createPin('in', 'number', 'value'..i, 'Data value #'..i)
     end
   end
 
-  if numEmptyPins < 1 then
-    self:createPin('in', "number", 'value ' .. tableSize(self.pinIn) + 1, 0, 'Value ' .. (tableSize(self.pinIn) + 1) .. ' to display.')
-  end
-
-  self:resetgraphData()
+  self:resetGraphData()
 end
 
-function C:onUnlink(link)
-  self:resetgraphData()
+function C:onLinkDeleted()
+  self:resetGraphData()
 end
 
+function C:onLink()
+  self:resetGraphData()
+end
+
+function C:onUnlink()
+  self:resetGraphData()
+end
+
+function C:_onSerialize(res)
+end
+
+function C:_onDeserialized(data)
+  self:updatePins(0, self.data.count)
+end
 
 function C:drawMiddle(builder, style)
+  if not self.updatePins then return end
+
+  local pinCount = tableSize(self.pinInLocal) - 1
+  if pinCount ~= self.data.count then
+    self:updatePins(pinCount, self.data.count)
+  end
+
   builder:Middle()
-  --print('self.inputPinCount = ' .. dumps(self.inputPinCount))
-  --print('self.inputLabels = ' .. dumps(self.inputLabels))
-  --print('self.inputColors = ' .. dumps(self.inputColors))
-  if self.inputPinCount > 0 then
-    im.PlotMultiLines("", self.inputPinCount, self.inputLabels, self.inputColors, self.graphData, self.graphDataCount, "", self.data.scaleMin, self.data.scaleMax, im.ImVec2(400,300))
+  if self.valueCount > 0 then
+    im.PlotMultiLines("", self.valueCount, self.inputLabels, self.inputColors, self.graphData, self.graphDataCount, "", self.data.scaleMin, self.data.scaleMax, im.ImVec2(400,300))
     -- im.PlotMultiLines("", self.inputPinCount, self.inputLabels, self.inputColors, self.graphData, self.graphDataCount, "", im.Float(3.402823466E38), im.Float(3.402823466E38), im.ImVec2(600,400))
   end
 end

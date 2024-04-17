@@ -218,7 +218,7 @@ function C:reset()
 end
 
 function C:setMaxDistance(d)
-  self.camMaxDist = d
+  self.camMaxDist = d or math.huge
 end
 
 function C:update(data)

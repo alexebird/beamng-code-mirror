@@ -16,7 +16,7 @@ local colors = {D = im.ImVec4(0.12,0.75,1,1), I = im.ImVec4(0.3,1,0.3,1), W = im
 local iconColors = {D = im.ImColorByRGB(32,196,255,255), I = im.ImColorByRGB(96,255,96,255), W = im.ImColorByRGB(255,255,0,255), E = im.ImColorByRGB(255,64,64,255)}
 local iconButtonBgColor = im.ImColorByRGB(0, 0, 0, 0)
 local iconButtonFgColor = im.ImColorByRGB(255, 255, 255, 255)
-local iconButtonNoColor = im.ImColorByRGB(64, 64, 64, 255)
+local iconButtonNoColor = im.ImColorByRGB(8, 8, 8, 255)
 
 local rollAvgUpdate = {}
 local rollAvgAdd = {}
@@ -40,6 +40,7 @@ local inputCallbackC = nil
 local comboCurrentItem = im.IntPtr(0)
 local fontConsoleFact = im.FloatPtr(0.95)
 local fullscreen = true
+local tooltipOnLongTxt = im.BoolPtr(false)
 local winstate = {}
 local winBgAlpha = {im.FloatPtr(0.9), im.FloatPtr(0.8)}
 local loopHistory = im.BoolPtr(false)
@@ -96,6 +97,7 @@ local function settingsSave()
    winBgAlpha = {winBgAlpha[1][0],winBgAlpha[2][0]},
    enableVehicleControls = enableVehicleControls,
    tableBgLines = tableBgLines[0],
+   tooltipOnLongTxt = tooltipOnLongTxt[0]
  }
  jsonWriteFile(settingsPath, s, true)
 
@@ -127,6 +129,7 @@ local function settingsLoad()
       winBgAlpha[2][0] = 0.8
     end
     enableVehicleControls = unDefDefault(s.enableVehicleControls, true)
+    tooltipOnLongTxt[0] = unDefDefault(s.tooltipOnLongTxt, false)
   end
 end
 
@@ -201,6 +204,7 @@ local function menuToolbar(uiScale)
       changedParam = changedParam or im.MenuItem2("Loop History", "", loopHistory)
       changedParam = changedParam or im.MenuItem2("Sandbox GE Commands", "", sandboxCmd)
       changedParam = changedParam or im.MenuItem2("Focus on Show", "", focusOnShow)
+      changedParam = changedParam or im.MenuItem2("Tooltip on long text", "", tooltipOnLongTxt)
       if changedParam then
         settingsSave()
       end
@@ -542,6 +546,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
         enableVehicleControls = false
       end
       setVehicleControlActive(enableVehicleControls)
+      settingsSave()
     end
     im.tooltip("Enable Vehicle control while Console window is open")
     im.SameLine()
@@ -810,9 +815,13 @@ local function onUpdate(dtReal, dtSim, dtRaw)
                     chunk = chunk.."\n...\nToo long to display, check the log file"
                     --chunk = chunk.."\nlsize="..tostring(v):len()
                   end
-                  im.tooltip(chunk)
+                  if tooltipOnLongTxt[0] then
+                    im.tooltip(chunk)
+                  end
                 else
-                  im.tooltip(tostring(v))
+                  if tooltipOnLongTxt[0] then
+                    im.tooltip(tostring(v))
+                  end
                 end
               else
                 im.TextColored(lcol,"%s",tostring(v))
@@ -1070,7 +1079,7 @@ local function refreshCombo()
   local vehCount = be:getObjectCount()
   vehIds = {}
   if vehCount > 0  then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if playerVehicle and playerVehicle:getActive() then
       comboCtxTxt = comboCtxTxt.."BeamNG - Current Vehicle "..vehStrInfo(playerVehicle)
       vehIds = {be:getPlayerVehicleID(0)}

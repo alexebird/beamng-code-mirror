@@ -5,9 +5,8 @@
 local M = {}
 local saveRoot = 'settings/cloud/saves/'
 local infoFile = 'info.json'
-local saveSystemVersion = 32
-local numberOfAutosaves = 1
-local saveDateOfCurrentAutoSave
+local saveSystemVersion = 36
+local numberOfAutosaves = 3
 local creationDateOfCurrentSaveSlot
 
 local currentSaveSlot
@@ -41,8 +40,13 @@ local function getAutosave(path, oldest)
   else
     for i = 1, tableSize(folders) do
       local data = jsonReadFile(folders[i] .. "/info.json")
-      if data then
-        if (oldest and (data.date < resultDate)) or (not oldest and (data.date > resultDate)) then
+      if oldest then
+        if not data or not data.date or data.date < resultDate or data.corrupted then
+          resultSave = folders[i]
+          resultDate = (data and not data.corrupted) and data.date or "0"
+        end
+      else
+        if data and data.date and data.date > resultDate and not data.corrupted then
           resultSave = folders[i]
           resultDate = data.date
         end
@@ -72,7 +76,7 @@ local function setSaveSlot(slotName, specificAutosave)
 
   local data = jsonReadFile(savePath .. "/info.json")
   if data then
-    if M.getSaveSystemVersion() > data.version then
+    if not data.version or M.getSaveSystemVersion() > data.version then
       return false
     end
     creationDateOfCurrentSaveSlot = data.creationDate
@@ -146,23 +150,84 @@ local function getCurrentSaveSlot()
   return currentSaveSlot, currentSavePath
 end
 
+local syncSaveExtensionsDone
+local asyncSaveExtensions = {}
+local infoData
+local saveDate
+local oldestSave, oldSaveDate
+
+local function saveFailed()
+  infoData = nil
+end
+
+local function jsonWriteFileSafe(filename, obj, pretty, numberPrecision, tempFileName)
+  tempFileName = tempFileName or filename..".tmp"
+  if jsonWriteFile(tempFileName, obj, pretty, numberPrecision) then
+    if FS:renameFile(tempFileName, filename) == 0 then
+      return true
+    else
+      log("E", "save", "failed to copy temporary json!")
+    end
+  else
+    log("E", "save", "failed to write json!")
+  end
+  saveFailed()
+  return false
+end
+
+local function saveCompleted()
+  if infoData then
+    infoData.corrupted = nil
+    infoData.date = saveDate
+    if jsonWriteFileSafe(oldestSave .. "/info.json", infoData, true) then
+      local legalParking = career_modules_playerDriving and career_modules_playerDriving.getPlayerData() and career_modules_playerDriving.getPlayerData().isParked
+      guihooks.trigger("toastrMsg", {type="success", title="Game Saved", msg=legalParking and "Vehicle parked legally." or ""})
+      log("I", "Saved to " .. oldestSave)
+      currentSavePath = oldestSave -- update the currentSavePath
+      return
+    end
+  end
+
+  guihooks.trigger("toastrMsg", {type="error", title="Game Save failed", msg= "Saving failed!"})
+  log("E", "Saving to " .. oldestSave ..  " failed!")
+end
+
+local function registerAsyncSaveExtension(extName)
+  asyncSaveExtensions[extName] = true
+end
+
+local function asyncSaveExtensionFinished(extName)
+  asyncSaveExtensions[extName] = nil
+  if syncSaveExtensionsDone and tableIsEmpty(asyncSaveExtensions) then
+    saveCompleted()
+  end
+end
+
 local function saveCurrent(forceSyncSave)
   if not currentSaveSlot or career_modules_linearTutorial.isLinearTutorialActive() then return end
-  local oldestSave, saveDate = getAutosave(saveRoot .. currentSaveSlot, true) -- get oldest autosave to overwrite
+  oldestSave, oldSaveDate = getAutosave(saveRoot .. currentSaveSlot, true) -- get oldest autosave to overwrite
+  saveDate = os.date("!%Y-%m-%dT%XZ") -- UTC time
 
-  local infoData = {}
+  infoData = {}
   infoData.version = saveSystemVersion
-  infoData.date = os.date("!%Y-%m-%dT%XZ") -- UTC time
-  creationDateOfCurrentSaveSlot = creationDateOfCurrentSaveSlot or infoData.date
+  infoData.date = "0"
+  creationDateOfCurrentSaveSlot = creationDateOfCurrentSaveSlot or saveDate
   infoData.creationDate = creationDateOfCurrentSaveSlot
+  infoData.corrupted = true
 
-  jsonWriteFile(oldestSave .. "/info.json", infoData, true)
-  currentSavePath = oldestSave -- update the currentSavePath
-  saveDateOfCurrentAutoSave = infoData.date
-  extensions.hook("onSaveCurrentSaveSlot", oldestSave, saveDate, forceSyncSave)
-  local legalParking = career_modules_playerDriving and career_modules_playerDriving.getPlayerData() and career_modules_playerDriving.getPlayerData().isParked
-  guihooks.trigger("toastrMsg", {type="success", title="Game Saved", msg=legalParking and "Vehicle parked legally." or ""})
-  log("I", "Saved to " .. oldestSave)
+  if not jsonWriteFileSafe(oldestSave .. "/info.json", infoData, true) then
+    saveFailed()
+    saveCompleted()
+    return
+  end
+
+  syncSaveExtensionsDone = false
+  extensions.hook("onSaveCurrentSaveSlotAsyncStart")
+  extensions.hook("onSaveCurrentSaveSlot", oldestSave, oldSaveDate, forceSyncSave)
+  syncSaveExtensionsDone = true
+  if tableIsEmpty(asyncSaveExtensions) then
+    saveCompleted()
+  end
 end
 
 local function getAllSaveSlots()
@@ -173,10 +238,6 @@ local function getAllSaveSlots()
     table.insert(res, filename)
   end
   return res
-end
-
-local function getSaveDateOfCurrentAutoSave()
-  return saveDateOfCurrentAutoSave
 end
 
 local function onExtensionLoaded()
@@ -191,7 +252,6 @@ local function onSerialize()
   data.currentSaveSlot = currentSaveSlot
   data.currentSavePath = currentSavePath
   data.creationDateOfCurrentSaveSlot = creationDateOfCurrentSaveSlot
-  data.saveDateOfCurrentAutoSave = saveDateOfCurrentAutoSave
   return data
 end
 
@@ -199,7 +259,6 @@ local function onDeserialized(v)
   currentSaveSlot = v.currentSaveSlot
   currentSavePath = v.currentSavePath
   creationDateOfCurrentSaveSlot = v.creationDateOfCurrentSaveSlot
-  saveDateOfCurrentAutoSave = v.saveDateOfCurrentAutoSave
 end
 
 local function getSaveSystemVersion()
@@ -212,11 +271,14 @@ M.renameSaveSlot = renameSaveSlot
 M.getCurrentSaveSlot = getCurrentSaveSlot
 M.saveCurrent = saveCurrent
 M.getAllSaveSlots = getAllSaveSlots
-M.getSaveDateOfCurrentAutoSave = getSaveDateOfCurrentAutoSave
 M.getSaveRootDirectory = getSaveRootDirectory
 M.getAutosave = getAutosave
 M.getAllAutosaves = getAllAutosaves
 M.getSaveSystemVersion = getSaveSystemVersion
+M.saveFailed = saveFailed
+M.registerAsyncSaveExtension = registerAsyncSaveExtension
+M.asyncSaveExtensionFinished = asyncSaveExtensionFinished
+M.jsonWriteFileSafe = jsonWriteFileSafe
 
 M.onExtensionLoaded = onExtensionLoaded
 M.onSerialize = onSerialize

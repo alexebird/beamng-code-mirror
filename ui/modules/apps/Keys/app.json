@@ -15,5 +15,6 @@
   },
   "author": "beamng",
   "version": "0.2",
-  "directive": "keyList"
+  "directive": "keyList",
+  "vue":false
 }

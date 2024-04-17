@@ -616,7 +616,7 @@ local initDB = extensions.core_jobsystem.wrap(function(job)
   -- TODO deprecated: some modScripts are used to load extensions, added backward compatibility
   local old_loadModule = extensions.load
   extensions.load = function(module)
-    log('E', 'initDB.modScript', 'extensions.luaModule(m) is deprecated for this case, please use setExtensionUnloadMode(m, "manual")', module)
+    log('E', 'initDB.modScript', 'extensions.luaModule(m) is deprecated for this case, please use setExtensionUnloadMode(m, "manual")')
     old_loadModule(module)
     setExtensionUnloadMode(module, "manual")
   end

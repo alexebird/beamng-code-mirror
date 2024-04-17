@@ -14,17 +14,18 @@ C.todo = "Tweak driftCleanliness, Make the raycast cleaner"
 C.category = 'repeat_instant'
 
 C.pinSchema = {
-  { dir = 'in', type = 'flow', impulse = true, name = 'resetTotalAngle', description = "Reset the total drift angle." },
-
   { dir = 'out', type = 'flow', name = 'drifting', description = "Outflow for this node." },
   { dir = 'out', type = 'flow', name = 'notDrifting', hidden = true, description = "Outflow for this node." },
 
+  { dir = 'out', type = 'flow', name = 'spinout', impulse = true, description = "When the player spins out" },
   { dir = 'out', type = 'flow', name = 'tapped', impulse = true, description = "Emits signal when the vehicle taps a wall." },
   { dir = 'out', type = 'flow', name = 'crashed', impulse = true, description = "Emits signal when the vehicle bumps too hard into a wall." },
   { dir = 'out', type = 'flow', name = 'donutDetected', hidden = true, impulse = true, description = "Emits signal when a donut is detected" },
   { dir = 'out', type = 'flow', name = 'tightDriftDetected', hidden = true, impulse = true, description = "Emits signal when a tightDrift is detected" },
   { dir = 'out', type = 'flow', name = 'driftCompleted', impulse = true, description = "Emits signal when the drift has been completed." },
-  { dir = 'out', type = 'number', name = 'driftCompletedScore', description = "The cached score when done with the drift" },
+  { dir = 'out', type = 'number', name = 'driftCompletedAddedScore', description = "The added score when done with the drift" },
+  { dir = 'out', type = 'number', name = 'driftCompletedCachedScore', description = "The cached score when done with the drift" },
+  { dir = 'out', type = 'number', name = 'driftCompletedCombo', description = "The combo when done with the drift" },
 
   { dir = 'out', type = 'number', name = 'closestWallDistance', description = "Distance from the closest wall" },
   { dir = 'out', type = 'number', name = 'driftAngle', description = "Current drift angle" },
@@ -44,19 +45,18 @@ local driftData
 local callbacks
 
 function C:work()
-  driftData = self.mgr.modules.drift:getActiveDriftData()
+  driftData = self.mgr.modules.drift:getDriftActiveData()
   callbacks = self.mgr.modules.drift:getCallBacks()
 
-  if self.pinIn.resetTotalAngle.value then
-    self.mgr.modules.drift:resetDonut()
-  end
-
-  self.pinOut.tapped.value = callbacks.tap
-  self.pinOut.crashed.value = callbacks.crash
-  self.pinOut.donutDetected.value = callbacks.donut
-  self.pinOut.tightDriftDetected.value = callbacks.tight
-  self.pinOut.driftCompleted.value = callbacks.complete
-  self.pinOut.driftCompletedScore.value = callbacks.complete or 0
+  self.pinOut.tapped.value = callbacks.tap.ttl > 0
+  self.pinOut.crashed.value = callbacks.crash.ttl > 0
+  self.pinOut.donutDetected.value = callbacks.donut.ttl > 0
+  self.pinOut.tightDriftDetected.value = callbacks.tight.ttl > 0
+  self.pinOut.driftCompleted.value = callbacks.scored.ttl > 0
+  self.pinOut.driftCompletedAddedScore.value = callbacks.scored.ttl > 0 and callbacks.scored.data.addedScore or 0
+  self.pinOut.driftCompletedCachedScore.value = callbacks.scored.ttl > 0 and callbacks.scored.data.cachedScore or 0
+  self.pinOut.driftCompletedCombo.value = callbacks.scored.ttl > 0 and callbacks.scored.data.combo or 0
+  self.pinOut.spinout.value = callbacks.spinout.ttl > 0
 
   if driftData then
     self.pinOut.drifting.value = true

@@ -13,8 +13,7 @@
           :rgbaColor="tileColor"
           class="texture-type"
           @click="$emit('settingClicked', 'decalType')"
-          tabindex="0"
-        />
+          tabindex="0" />
         <BngColorPicker class="color-picker" v-model="paint" view="simple" @change="onColorChanged" />
       </div>
     </div>
@@ -30,7 +29,7 @@
         <BngBinding v-if="!isControllerConnected" action="decreaseDecalScaleY" />
 
         <div class="scale-lock" :class="{ locked: data.decalScaleLock }" tabindex="0" @click="toggleScaleLock">
-          <BngIcon :type="data.decalScaleLock ? icons.decals.general.lock : icons.decals.general.unlock" />
+          <BngOldIcon :type="data.decalScaleLock ? icons.decals.general.lock : icons.decals.general.unlock" />
         </div>
       </div>
     </div>
@@ -49,7 +48,7 @@
           <div>
             <BngBinding :action="isControllerConnected ? 'scaleDecalY' : 'increaseDecalScaleY'" :deviceMask="deviceBindingMask" />
             <BngInput v-model="data.decalSkew.y" class="prefixed-input" type="number" :prefix="'y'" :min="0" :step="SKEW_STEP"></BngInput>
-            <BngBinding v-if="!isControllerConnected" action="increaseDecalScaleY" />
+            <BngBinding v-if="!isControllerConnected" action="decreaseDecalScaleY" />
           </div>
         </div>
       </div>
@@ -60,8 +59,7 @@
         <BngBinding
           :action="isControllerConnected ? undefined : 'rotateDecalLeft'"
           :ui-event="isControllerConnected ? 'tab_l' : undefined"
-          :deviceMask="deviceBindingMask"
-        />
+          :deviceMask="deviceBindingMask" />
         <BngInput
           v-model="data.decalRotation"
           bng-nav-item
@@ -70,13 +68,11 @@
           :prefix="'deg'"
           :min="0"
           :max="360"
-          :step="ROTATION_STEP"
-        ></BngInput>
+          :step="ROTATION_STEP"></BngInput>
         <BngBinding
           :action="isControllerConnected ? undefined : 'rotateDecalRight'"
           :ui-event="isControllerConnected ? 'tab_r' : undefined"
-          :deviceMask="deviceBindingMask"
-        />
+          :deviceMask="deviceBindingMask" />
       </div>
     </div>
     <div class="apply-multiple" v-if="!data.uid">
@@ -102,19 +98,17 @@ const SCALE_STEP = 0.1,
 
 <script setup>
 import { ref, reactive, watch, onBeforeMount, computed, inject } from "vue"
-import { BngInput, BngColorPicker, BngSwitch, BngIcon, BngBinding } from "@/common/components/base"
+import { BngInput, BngColorPicker, BngSwitch, BngOldIcon, BngBinding } from "@/common/components/base"
 import { vBngTooltip, vBngOnUiNav } from "@/common/directives"
 import { icons } from "@/assets/icons"
 import Paint from "@/utils/paint"
 import LayerTile from "../LayerTile.vue"
 
 const props = defineProps({
-  model: {
-    type: Object,
-  },
+  model: Object,
 })
 
-const emits = defineEmits(["valueChanged", "settingClicked"])
+const emit = defineEmits(["valueChanged", "settingClicked"])
 
 const isControllerConnected = inject("isControllerConnected", false)
 const deviceBindingMask = inject("deviceBindingMask", undefined)
@@ -148,13 +142,13 @@ const onChangeScaleY = element => {
 const onChangeRotationLeft = element => {
   const direction = element.detail.value
 
-  if (direction === 1) data.value.decalRotation -= direction
+  if (direction === 1) data.value.decalRotation -= direction * 5
 }
 
 const onChangeRotationRight = element => {
   const direction = element.detail.value
 
-  if (direction === 1) data.value.decalRotation += direction
+  if (direction === 1) data.value.decalRotation += direction * 5
 }
 
 const onChangeSkewX = element => {
@@ -176,7 +170,7 @@ const onChangeSkewY = element => {
 watch(
   data,
   () => {
-    emits("valueChanged", data.value)
+    emit("valueChanged", data.value)
   },
   { deep: true }
 )
@@ -202,10 +196,10 @@ onBeforeMount(() => {
   }
 
   .texture-color-settings {
-    :deep(.color-picker) span {
-      font-size: 0.8rem;
-      padding: 0.5rem 0;
-    }
+    // :deep(.color-picker) span {
+    //   font-size: 0.8rem;
+    //   padding: 0.5rem 0;
+    // }
 
     .texture-type {
       width: 6rem;

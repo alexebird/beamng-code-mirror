@@ -60,7 +60,7 @@ local function getAssignedPlayers(devices, logEnabled, seatPlayers)
     end
     -- count amount of seats used on each vehicle
     for player=0, players-1 do
-      local veh = be:getPlayerVehicle(player)
+      local veh = getPlayerVehicle(player)
       if veh then
         local id = veh:getId()
         usedVehicles[id] = usedVehicles[id] + 1
@@ -71,7 +71,7 @@ local function getAssignedPlayers(devices, logEnabled, seatPlayers)
       if player > players-1 then
         be:exitVehicle(player)
       else
-        local veh = be:getPlayerVehicle(player)
+        local veh = getPlayerVehicle(player)
         if not veh then -- player has no vehicle, is on foot
           -- locate least occupied vehicle
           local leastUsedId = nil
@@ -106,7 +106,7 @@ end
 
 local function enterNextVehicle(player, step)
   step = step or 0
-  local curVehicle = be:getPlayerVehicle(player)
+  local curVehicle = getPlayerVehicle(player)
   local curId = curVehicle and curVehicle:getID()
   local vehicles = getActiveVehicles()
   if player ~= 0 then

@@ -9,6 +9,8 @@ M.dependencies = {
 local logTag = "editor_dynamicDecals_notification"
 local im = ui_imgui
 
+local dynamicDecal_notification_windowName = "Dynamic Decals Tool - Notifications"
+
 -- reference to the editor tool, set in setup()
 local tool = nil
 -- reference to the dynamics decal api
@@ -25,13 +27,15 @@ local colors = {
   [3] = im.ImColorByRGB(255,0,0,255), -- error
 }
 
-local popupTitle = "Dynamic Decals Notifications"
+local popupTitle = "Dynamic Decals - Notifications"
 local notifications = {}
 local dirty = false
 
 local function onGui()
-  if im.BeginPopupModal(popupTitle, nil, im.WindowFlags_AlwaysAutoResize) then
+  if editor.beginWindow(dynamicDecal_notification_windowName, "Dynamic Decals - Notifications") then
     if tableSize(notifications) > 0 then
+      local style = im.GetStyle()
+      im.BeginChild1("DynamicDecals_Notification_NotificationsChild", im.ImVec2(0, im.GetContentRegionAvail().y - (math.ceil(im.GetFontSize()) + 2*style.ItemSpacing.y)), true)
       for sectionName, sectionData in pairs(notifications) do
 
         if im.CollapsingHeader1(string.format("%s##NotificationSection", sectionName), im.TreeNodeFlags_DefaultOpen) then
@@ -42,28 +46,35 @@ local function onGui()
             end
             im.tooltip("Remove notification")
             im.SameLine()
-            im.TextColored(colors[notification.level].Value, string.format("%s - %s", notification.title, notification.msg))
+            local msgtype = type(notification.msg)
+            if msgtype == 'string' then
+              im.TextColored(colors[notification.level].Value, string.format("%s - %s", notification.title, notification.msg))
+            elseif msgtype == 'function' then
+              notification.msg()
+            end
           end
         end
       end
+      im.EndChild()
 
-      im.Separator()
       if im.Button("Remove all") then
         notifications = {}
       end
       im.SameLine()
       if im.Button("Close") then
-        im.CloseCurrentPopup()
+        editor.hideWindow(dynamicDecal_notification_windowName)
       end
     else
-      im.CloseCurrentPopup()
+      editor.hideWindow(dynamicDecal_notification_windowName)
     end
-    im.EndPopup()
   end
+  editor.endWindow()
 
   if dirty then
-    dirty = false
-    im.OpenPopup(popupTitle)
+    editor.showWindow(dynamicDecal_notification_windowName)
+    if editor.isWindowVisible(dynamicDecal_notification_windowName) then
+      dirty = false
+    end
   end
 end
 
@@ -82,6 +93,8 @@ local function setup(tool_in)
   api = extensions.editor_api_dynamicDecals
 
   tool.registerOnEditorGuiFn("notification", onGui)
+
+  editor.registerWindow(dynamicDecal_notification_windowName, im.ImVec2(450, 650), nil, nil, nil, true)
 end
 
 local function add(section, title, msg, level)

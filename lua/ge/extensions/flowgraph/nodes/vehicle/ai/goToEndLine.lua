@@ -47,7 +47,7 @@ function C:findVehicle()
     source = scenetree.findObjectById(self.pinIn.aiVehId.value)
     self.previousVehicle = self.pinIn.aiVehId.value
   else
-    source = be:getPlayerVehicle(0)
+    source = getPlayerVehicle(0)
     self.previousVehicle = -1
   end
   return source

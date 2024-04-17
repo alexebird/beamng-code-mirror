@@ -1,7 +1,14 @@
 <template>
   <div>
     <h5>Default values</h5>
-    <bng-progress-bar ref="defaultProgressBarRef" :value="10" :max="100" :min="0" :header-left="'Specialized'" :header-right="'lvl. 12'"></bng-progress-bar>
+    <BngProgressBar
+      :showValueLabel="showLabels"
+      ref="defaultProgressBarRef"
+      :value="10"
+      :max="100"
+      :min="0"
+      :header-left="'Specialized'"
+      :header-right="'lvl. 12'" />
     <div class="buttons">
       <button @click="defaultProgressBarRef.decreaseValueBy(10)">Decrease</button>
       <button @click="defaultProgressBarRef.increaseValueBy(10)">Increase</button>
@@ -11,19 +18,21 @@
   </div>
   <div>
     <h5>Negative values</h5>
-    <bng-progress-bar
+    <BngProgressBar
       ref="negativeValueProgressBarRef"
       :value="-50"
       :max="100"
       :min="-100"
       :header-left="'Specialized'"
       :header-right="'lvl. 12'"
-    ></bng-progress-bar>
+      :showValueLabel="showLabels"
+      valueLabelFormat="Value Label:&nbsp;&nbsp;&nbsp; #value#" />
     <div class="buttons">
       <button @click="negativeValueProgressBarRef.decreaseValueBy(10)">Decrease</button>
       <button @click="negativeValueProgressBarRef.increaseValueBy(10)">Increase</button>
       <input v-model="negativeProgressBarInput" type="number" />
-      <button @click="negativeValueProgressBarRef.setValue(negativeProgressBarInput)">Set Value</button>
+      <button @click="negativeValueProgressBarRef.setValue(negativeProgressBarInput)">Set Value</button><br /><br />
+      <label>Show value labels?<input type="checkbox" v-model="showLabels" /></label>
     </div>
   </div>
 </template>
@@ -35,6 +44,5 @@ const defaultProgressBarRef = ref(null),
   negativeValueProgressBarRef = ref(null)
 const defaultProgressBarInput = ref(null),
   negativeProgressBarInput = ref(null)
+const showLabels = ref(true)
 </script>
-
-<style scoped lang="scss"></style>

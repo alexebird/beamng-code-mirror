@@ -1,9 +1,9 @@
 <template>
   <div class="task-message">
-    <div class="title">
-      <slot v-if="slots.title" name="title"></slot>
-      <template v-else-if="title">
-        <DynamicComponent :template="titleParsed" />
+    <div class="label">
+      <slot v-if="slots.label" name="label"></slot>
+      <template v-else-if="label">
+        <DynamicComponent :template="labelParsed" />
       </template>
     </div>
     <div class="description">
@@ -21,13 +21,13 @@ import { $content, $translate } from "@/services"
 import { DynamicComponent } from "@/common/components/utility"
 
 const props = defineProps({
-  title: String,
+  label: String,
   description: String,
 })
 
 const slots = useSlots()
 
-const titleParsed = computed(() => $content.bbcode.parse($translate.contextTranslate(props.title, true)))
+const labelParsed = computed(() => $content.bbcode.parse($translate.contextTranslate(props.label, true)))
 const descriptionParsed = computed(() => $content.bbcode.parse($translate.contextTranslate(props.description)))
 </script>
 
@@ -56,7 +56,7 @@ const descriptionParsed = computed(() => $content.bbcode.parse($translate.contex
     background: #ff6600;
   }
 
-  > .title {
+  > .label {
     font-size: 1.12em;
     line-height: 1.2em;
     font-weight: 500;

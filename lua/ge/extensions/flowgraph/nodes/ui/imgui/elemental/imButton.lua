@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Displays a Button in an imgui window."
 C.category = 'repeat_instant'
 
-C.todo = ""
 C.pinSchema = {
     { dir = 'out', type = 'flow', name = 'down', description = 'When button is clicked.', impulse = true },
     { dir = 'out', type = 'flow', name = 'hold', hidden = true, description = 'When button is down.' },

@@ -262,7 +262,7 @@ local function getIndeterminateFlagsForFieldValues(fieldInfo, value1, value2)
   local fieldType = fieldInfo.type
   local valTbl1 = stringToTable(value1)
   local valTbl2 = stringToTable(value2)
-  
+
   if fieldType == "Point2F" or fieldType == "vec2" or fieldType == "Point2I" then
     elementCount = 2
   elseif fieldType == "Point3F" or fieldType == "vec3" or fieldType == "MatrixPosition" or fieldType == "EulerRotation" then
@@ -276,7 +276,7 @@ local function getIndeterminateFlagsForFieldValues(fieldInfo, value1, value2)
       flags = bit.bor(flags, bit.lshift(1, i - 1))
     end
   end
-  
+
   return flags
 end
 
@@ -1274,10 +1274,12 @@ local function onEditorGui()
   if guiInstancer.instances then
     for key, inspectorInfo in pairs(guiInstancer.instances) do
       local wndName = inspectorWindowNamePrefix .. key
+
+      if not editor.isWindowVisible(wndName) then
+        editor.closeInspectorInstance(key)
+      end
+
       if editor.beginWindow(wndName, "Inspector##" .. key, imgui.WindowFlags_AlwaysVerticalScrollbar) then
-        if not editor.isWindowVisible(wndName) then
-          editor.closeInspectorInstance(key)
-        end
         if inspectorInfo.selection then
           if editor.uiIconImageButton(editor.icons.lock, imgui.ImVec2(24, 24)) then
             inspectorInfo.selection = nil

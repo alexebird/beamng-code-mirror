@@ -33,7 +33,7 @@ function C:work()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     source = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    --source = be:getPlayerVehicle(0)
+    --source = getPlayerVehicle(0)
   end
   self.pinOut['true'].value = source.playerUsable
   self.pinOut['false'].value = not self.pinOut['true'].value

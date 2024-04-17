@@ -2,13 +2,13 @@
   <div class="milestone-main">
     <div class="status-bar">
       <div class="status-info user-info">
-        <bng-icon class="user-icon" :type="icons.drive.m_c"></bng-icon>
+        <BngOldIcon class="user-icon" :type="icons.drive.m_c" />
         <span class="username">Username</span>
       </div>
-      <bng-progress-bar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info"></bng-progress-bar>
-      <bng-progress-bar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info"></bng-progress-bar>
-      <bng-progress-bar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info"></bng-progress-bar>
-      <bng-progress-bar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info"></bng-progress-bar>
+      <BngProgressBar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info" />
+      <BngProgressBar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info" />
+      <BngProgressBar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info" />
+      <BngProgressBar :value="1234" :max="6789" :header-left="'Specialized'" :header-right="'lvl. 12'" class="status-info" />
     </div>
     <div class="content-container">
       <div class="content" :class="[milestone.currentComponent]">
@@ -24,12 +24,18 @@
       </div>
     </div>
   </div>
+  <div class="debug-window">
+    <BngButton @click="milestone.setCurrentComponent('bigCard')">Big card</BngButton>
+    <BngButton @click="milestone.setCurrentComponent('info')">Info</BngButton>
+    <BngButton @click="milestone.setCurrentComponent('branches')">Branches</BngButton>
+    <BngButton @click="milestone.setCurrentComponent('score')">score</BngButton>
+    <BngButton @click="milestone.setCurrentComponent('animatedBackground')">Animated BG(Testing)</BngButton>
+  </div>
 </template>
 
 <script setup>
-import BngProgressBar from "@/common/components/base/bngProgressBar"
-import { BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngButton, BngOldIcon, BngProgressBar } from "@/common/components/base"
+import { icons } from "@/assets/icons"
 import MilestoneHeader from "../components/MilestoneHeader.vue"
 import { useMilestoneStore } from "../milestoneStore"
 
@@ -113,5 +119,18 @@ $status-background-color: var(--bng-ter-blue-gray-600);
       }
     }
   }
+}
+
+.debug-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  top: calc(50%);
+  left: 0.5rem;
+  background: rgba(0, 0, 0, 0.5);
 }
 </style>

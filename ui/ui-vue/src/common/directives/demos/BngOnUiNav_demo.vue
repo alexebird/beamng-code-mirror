@@ -1,10 +1,10 @@
 <!-- BNGOnUiNav Directive Demo -->
 <template>
   <div bng-ui-scope="test" v-bng-on-ui-nav:*.modified='testing'>
-    <bng-button accent="secondary" tabindex="1" v-bng-on-ui-nav:back="() => handleClick('back')" @click="() => handleClick('click 1')">Click 1 (back)</bng-button>&nbsp;
-    <bng-button accent="secondary" v-bng-on-ui-nav:menu,back="() => handleClick('menu')" tabindex="2" @click="() => handleClick('click 2')">Click 2 (menu)</bng-button>
+    <BngButton accent="secondary" tabindex="1" v-bng-on-ui-nav:back="() => handleClick('back')" @click="() => handleClick('click 1')">Click 1 (back)</BngButton>&nbsp;
+    <BngButton accent="secondary" v-bng-on-ui-nav:menu,back="() => handleClick('menu')" tabindex="2" @click="() => handleClick('click 2')">Click 2 (menu)</BngButton>
   </div>
-  <bng-button @click=toggleBlock>{{ block ? "Unfilter" : "Filter"}}</bng-button>
+  <BngButton @click=toggleBlock>{{ block ? "Unfilter" : "Filter"}}</BngButton>
 </template>
 
 <style scoped>

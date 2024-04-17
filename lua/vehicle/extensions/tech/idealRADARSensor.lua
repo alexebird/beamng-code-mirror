@@ -3,8 +3,10 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 local M = {}
 
+
 local idealRADARs = {}          -- The collection of active ideal radar sensors.
 local latestReadings = {}       -- The collection of latest readings for each ideal radar sensor
+
 
 -- Send the ideal RADAR readings to ge lua.
 local function updateIdealRADARsGFXStep(dtSim, sensorId, isAdHocRequest, adHocRequestId)
@@ -53,13 +55,9 @@ local function remove(sensorId)
   idealRADARs[sensorId] = nil
 end
 
-local function setUpdateTime(sensorId, GFXUpdateTime)
-  idealRADARs[sensorId].GFXUpdateTime = GFXUpdateTime
-end
+local function setUpdateTime(sensorId, GFXUpdateTime) idealRADARs[sensorId].GFXUpdateTime = GFXUpdateTime end
 
-local function adHocRequest(sensorId, requestId)
-  updateIdealRADARsGFXStep(0.0, sensorId, true, requestId)
-end
+local function adHocRequest(sensorId, requestId) updateIdealRADARsGFXStep(0.0, sensorId, true, requestId) end
 
 local function cacheLatestReading(sensorId, latestReading)
   if sensorId ~= nil then
@@ -67,9 +65,9 @@ local function cacheLatestReading(sensorId, latestReading)
   end
 end
 
-local function getIdealRADARReading(sensorId)
-  return latestReadings[sensorId]
-end
+local function getIdealRADARReading(sensorId) return latestReadings[sensorId] end
+
+local function getLatest(sensorId) return idealRADARs[sensorId].controller.getLatest() end
 
 local function updateGFX(dtSim)
   for sensorId, _ in pairs(idealRADARs) do
@@ -86,20 +84,16 @@ local function onVehicleDestroyed(vid)
   end
 end
 
+
 -- Public interface:
-
--- Ideal RADAR sensor core API functions.
-M.create                                    = create
-M.remove                                    = remove
-M.adHocRequest                              = adHocRequest
-M.cacheLatestReading                        = cacheLatestReading
-M.getIdealRADARReading                      = getIdealRADARReading
-
--- Ideal RADAR sensor property setters.
-M.setUpdateTime                             = setUpdateTime
-
--- Functions triggered by hooks.
-M.updateGFX                                 = updateGFX
-M.onVehicleDestroyed                        = onVehicleDestroyed
+M.create                                                  = create
+M.remove                                                  = remove
+M.adHocRequest                                            = adHocRequest
+M.cacheLatestReading                                      = cacheLatestReading
+M.getIdealRADARReading                                    = getIdealRADARReading
+M.getLatest                                               = getLatest
+M.setUpdateTime                                           = setUpdateTime
+M.updateGFX                                               = updateGFX
+M.onVehicleDestroyed                                      = onVehicleDestroyed
 
 return M

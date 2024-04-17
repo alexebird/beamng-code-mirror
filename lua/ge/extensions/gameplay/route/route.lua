@@ -33,6 +33,32 @@ local function fixStartEnd(p, a, b)
   profilerPopEvent()
 end
 
+function C:stepAhead(stepDist, reset) -- returns data from a distance along the route (and also saves the last position, to optimize for looping)
+  if not self.lastDist or reset then
+    self.lastIndexAtDist = 1
+    self.lastDist = 0
+  end
+  if not self.path[2] then return end
+
+  local pathCount = #self.path
+  stepDist = stepDist + self.lastDist
+  for i = self.lastIndexAtDist, pathCount - 1 do
+    local v1, v2 = self.path[i], self.path[i + 1]
+    local length = v1.distToTarget - v2.distToTarget
+
+    if stepDist > length then
+      stepDist = stepDist - length
+    else
+      self.lastDist = stepDist
+      self.lastIndexAtDist = i
+      local xnorm = clamp(stepDist / (length + 1e-30), 0, 1)
+      return {n1 = v1.wp, n2 = v2.wp, idx = i, pos = linePointFromXnorm(v1.pos, v2.pos, xnorm), xnorm = xnorm}
+    end
+  end
+
+  return {n1 = self.path[pathCount - 1].wp, n2 = self.path[pathCount].wp, idx = pathCount - 1, pos = self.path[pathCount].pos, xnorm = 1}
+end
+
 function C:setupPath(fromPos, toPos)
   self:setupPathMulti({fromPos, toPos})
 end
@@ -108,6 +134,12 @@ end
 
 function C:clear()
   table.clear(self.path)
+end
+
+function C:getNextFixedWP()
+  for _, wp in ipairs(self.path) do
+    if wp.fixed then return wp.pos end
+  end
 end
 
 function C:recalculateRoute(startPos)

@@ -15,38 +15,25 @@ export const useComputerStore = defineStore("computer", () => {
   })
 
   const generalComputerFunctions = computed(() => {
-    if (computerData.value.computerFunctions === null || computerData.value.computerFunctions === undefined) {
-      return []
-    }
+    if (!computerData.value.computerFunctions) return []
     let result = []
-    for (const [id, computerFunction] of Object.entries(computerData.value.computerFunctions.general)) {
-      result.push(computerFunction)
-    }
-    result.sort((a, b) => {
-      return a.label < b.label ? -1 : 1
-    })
+    result = Object.values(computerData.value.computerFunctions.general)
+    result.sort((a, b) => (a.label < b.label ? -1 : 1))
     return result
   })
 
   const vehicleSpecificComputerFunctions = computed(() => {
-    if (computerData.value.computerFunctions === null || computerData.value.computerFunctions === undefined) {
-      return {}
-    }
+    if (!computerData.value.computerFunctions) return {}
     let result = {}
     for (const [inventoryId, computerFunctions] of Object.entries(computerData.value.computerFunctions.vehicleSpecific)) {
-      let sortedFunctions = []
-      for (const [id, computerFunction] of Object.entries(computerFunctions)) {
-        sortedFunctions.push(computerFunction)
-      }
-      sortedFunctions.sort((a, b) => {
-        return a.label < b.label ? -1 : 1
-      })
+      let sortedFunctions = Object.values(computerFunctions)
+      sortedFunctions.sort((a, b) => (a.label < b.label ? -1 : 1))
       result[inventoryId] = sortedFunctions
     }
     return result
   })
 
-  const setComputerData = (data) => {
+  const setComputerData = data => {
     computerData.value = data
     if (computerData.value.vehicles && computerData.value.vehicles.length <= activeVehicleIndex.value) {
       activeVehicleIndex.value = 0
@@ -66,12 +53,8 @@ export const useComputerStore = defineStore("computer", () => {
     lua.career_modules_computer.onMenuClosed()
   }
 
-  const switchActiveVehicle = (offset) => {
-    if (activeVehicleIndex.value + offset == -1) {
-      activeVehicleIndex.value = computerData.value.vehicles.length - 1
-    } else {
-      activeVehicleIndex.value = (activeVehicleIndex.value + offset) % computerData.value.vehicles.length
-    }
+  const switchActiveVehicle = offset => {
+    activeVehicleIndex.value = (activeVehicleIndex.value + offset + computerData.value.vehicles.length) % computerData.value.vehicles.length
   }
 
   return {
@@ -83,6 +66,6 @@ export const useComputerStore = defineStore("computer", () => {
     requestComputerData,
     computerButtonCallback,
     switchActiveVehicle,
-    onMenuClosed
+    onMenuClosed,
   }
 })

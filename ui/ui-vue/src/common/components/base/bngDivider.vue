@@ -1,6 +1,6 @@
 <!-- bngDivider - a simple vertical divider for text (breadcrumbs etc) -->
 <template>
-  <div class="divider"></div>
+  <div class="divider vertical-divider"></div>
 </template>
 
 <style lang="scss" scoped>

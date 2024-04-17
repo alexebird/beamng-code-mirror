@@ -309,16 +309,25 @@
   <p>{{:: 'ui.options.graphics.openXRfreeCenter' | translate}}</p>
   <md-checkbox ng-model="options.data.values.openXRfreeCenter" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
 </md-list-item>
+
+<!-- VR controllers -->
 <md-list-item layout md-no-ink>
-  <p flex="60">{{:: 'ui.options.graphics.openXRhandPoseDirectionDegrees'|translate}}</p>
-  <md-slider min="-45" max="45" step="5" aria-label="_" flex ng-model="options.data.values.openXRhandPoseDirectionDegrees" ng-change="options.applyOpenXRState()"></md-slider>
-  <p flex="0">{{options.data.values.openXRhandPoseDirectionDegrees|number: 0}}</p>
+<p>{{:: 'ui.options.graphics.openXRuseControllers' | translate}}</p>
+<md-checkbox ng-model="options.data.values.openXRuseControllers" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
 </md-list-item>
-<md-list-item layout md-no-ink>
-  <p flex="60">{{:: 'ui.options.graphics.openXRhandPoseMultiplier'|translate}}</p>
-  <md-slider min="1" max="3" step="0.25" aria-label="_" flex ng-model="options.data.values.openXRhandPoseMultiplier" ng-change="options.applyOpenXRState()"></md-slider>
-  <p flex="0">{{options.data.values.openXRhandPoseMultiplier|number: 2}}x</p>
-</md-list-item>
+<div style="margin: 0px 16px 0px 16px; border: 1px solid rgba(0,0,0,0.12);" ng-style="!options.data.values.openXRuseControllers && {'opacity':'0.4'} || {}" ng-disabled="!options.data.values.openXRuseControllers">
+  <md-list-item layout md-no-ink>
+    <p flex="60">{{:: 'ui.options.graphics.openXRhandPoseDirectionDegrees'|translate}}</p>
+    <md-slider min="-45" max="45" step="5" aria-label="_" flex ng-model="options.data.values.openXRhandPoseDirectionDegrees" ng-change="options.applyOpenXRState()" ng-disabled="!options.data.values.openXRuseControllers"></md-slider>
+    <p flex="0">{{options.data.values.openXRhandPoseDirectionDegrees|number: 0}}</p>
+  </md-list-item>
+  <md-list-item layout md-no-ink>
+    <p flex="60">{{:: 'ui.options.graphics.openXRhandPoseMultiplier'|translate}}</p>
+    <md-slider min="1" max="3" step="0.25" aria-label="_" flex ng-model="options.data.values.openXRhandPoseMultiplier" ng-change="options.applyOpenXRState()" ng-disabled="!options.data.values.openXRuseControllers"></md-slider>
+    <p flex="0">{{options.data.values.openXRhandPoseMultiplier|number: 2}}x</p>
+  </md-list-item>
+</div>
+
 <md-list-item layout md-no-ink>
   <p>{{:: 'ui.options.graphics.openXRuiEnabled' | translate}}</p>
   <md-checkbox ng-model="options.data.values.openXRuiEnabled" ng-change="options.applyOpenXRState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
@@ -355,11 +364,6 @@
     <p flex="0">{{options.data.values.openXRuiHeight |number: 2}}</p>
   </md-list-item>
 </div>
-<md-list-item layout class="md-padding">
-  <p flex="30">{{:: 'ui.options.graphics.openXRnearPlaneDist'|translate}}</p>
-  <md-slider min="0.05" max="10" step="0.01" aria-label="_" flex ng-model="options.data.values.openXRnearPlaneDist" ng-change="options.applyOpenXRState()"></md-slider>
-  <p flex="0">{{options.data.values.openXRnearPlaneDist |number: 2}}m</p>
-</md-list-item>
 <md-list-item layout class="bng-short-select-item">
   <p flex="30">{{:: 'ui.options.graphics.openXRwindowViewMode' | translate}}</p>
   <md-select flex ng-model="options.data.values.openXRwindowViewMode" ng-change="options.applyOpenXRState()" aria-label="_">

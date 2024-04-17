@@ -7,7 +7,7 @@
 				<hr />
 				<button @click="components" v-if="showComponents">Show Components</button>
 				<button @click="menu" v-if="showComponents">Main Menu</button><br /><br />
-				<select multiple @input="selectRoute">
+				<select multiple @input="selectRoute" style="height:10em; width:100%;">
 					<option v-for="route in routes" :key="route">{{ route }}</option>
 				</select>
 			</div>
@@ -28,7 +28,7 @@ const routes = router
 	.getRoutes()
 	.map(r => r.name)
 	.filter(n => n!=='routelist')
-	.sort()
+	.sort((a,b) => a.localeCompare(b))
 
 const route = useRoute(),
 	hash = ref(location.hash.split("#")[1]),

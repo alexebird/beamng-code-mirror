@@ -9,22 +9,22 @@ export const rainbow = (numOfSteps, step) => {
   var q = 1 - f
   switch (i % 6) {
     case 0:
-      [r, g, b] = [1, f, 0]
+      ;[r, g, b] = [1, f, 0]
       break
     case 1:
-      [r, g, b] = [q, 1, 0]
+      ;[r, g, b] = [q, 1, 0]
       break
     case 2:
-      [r, g, b] = [0, 1, f]
+      ;[r, g, b] = [0, 1, f]
       break
     case 3:
-      [r, g, b] = [0, q, 1]
+      ;[r, g, b] = [0, q, 1]
       break
     case 4:
-      [r, g, b] = [f, 0, 1]
+      ;[r, g, b] = [f, 0, 1]
       break
     case 5:
-      [r, g, b] = [1, 0, q]
+      ;[r, g, b] = [1, 0, q]
       break
   }
   //var c = "#" + ("00" + (~ ~(r * 255)).toString(16)).slice(-2) + ("00" + (~ ~(g * 255)).toString(16)).slice(-2) + ("00" + (~ ~(b * 255)).toString(16)).slice(-2)
@@ -75,3 +75,12 @@ export const RGBToHSL = (r, g, b) => {
 
   return [h, s, l]
 }
+
+// always rgb6
+export const RGBToHex = rgb => rgb.reduce((s, c) => s + (c < 16 / 255 ? "0" : "") + (~~(c * 255)).toString(16), "") || "000"
+// auto choose rgb3 or rgb6
+export const RGBToHex3 = rgb =>
+  rgb
+    .reduce((a, c) => [...a, ...((c < 16 / 255 ? "0" : "") + (~~(c * 255)).toString(16))], [])
+    .reduce((s, c, i, a) => [s[0] + (i % 2 === 1 && a[i - 1] === c ? "" : c), s[1] + c], ["", ""])
+    .find(c => c.length % 3 === 0) || "000"

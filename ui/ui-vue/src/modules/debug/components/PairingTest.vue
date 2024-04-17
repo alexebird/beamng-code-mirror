@@ -1,11 +1,14 @@
 <template>
   <div>
-    <div>
+    <div class="test-row">
+      Component pair:
       <BngDropdown
         v-for="(sel, idx) in view" :key="`list_${idx}`"
         v-model="view[idx]"
         :items="components"
-      />
+      >
+        <template #display>{{ view[idx].label }}</template>
+      </BngDropdown>
     </div>
     <div class="layout-test">
       <span class="layout-baseline">View:</span>
@@ -20,8 +23,7 @@
       Props:
       <BngPillCheckbox
         v-for="(prop, key) in allProps" :key="`prop_${key}`"
-        :marked="prop.enabled"
-        @click="prop.enabled = !prop.enabled"
+        v-model="prop.enabled"
       >{{ key }}</BngPillCheckbox>
     </div>
   </div>
@@ -36,7 +38,7 @@ const components = Object.keys(BaseComponentExports)
   .filter(name => !name.endsWith("Demo"))
   .map(name => ({ label: name, value: BaseComponentExports[name] }))
 
-const view = ref(["BngIcon", "BngButton"])
+const view = ref(["BngInput", "BngButton"])
 for (let i in view.value)
   view.value[i] = components.find(itm => itm.label === view.value[i])
 
@@ -58,5 +60,7 @@ const allProps = reactive({
 </script>
 
 <style lang="scss" scoped>
-
+.test-row > :deep(.bng-dropdown) {
+  display: inline-flex;
+}
 </style>

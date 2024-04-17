@@ -24,7 +24,7 @@ local function getVehicleByID(id)
 end
 
 local function getPlayerUnicycle(veh)
-  veh = veh or be:getPlayerVehicle(0)
+  veh = veh or getPlayerVehicle(0)
   if veh and veh:getJBeamFilename() == "unicycle" then
     return veh
   end
@@ -139,7 +139,7 @@ local function setWalkingMode(enabled, pos, rot)
   if enabled then
     if not getPlayerUnicycle() then
       extensions.hook("onBeforeWalkingModeToggled", enabled)
-      getOutOfVehicle(be:getPlayerVehicle(0), pos, rot)
+      getOutOfVehicle(getPlayerVehicle(0), pos, rot)
     end
   else
     if vehicleInFront then
@@ -182,55 +182,76 @@ local function setAtParkingSpeed(veh, dtSim)
   end
 end
 
+local p1, p2, p3, p4, p5, p6, p7, p8 = vec3(), vec3(), vec3(), vec3(), vec3(), vec3(), vec3(), vec3()
 local bbPoints = {}
-local function boundingBoxDistance(p, bb)
-  for i = 0, 7 do
-    bbPoints[i+1] = bb:getPoint(i)
-  end
+local function getBBPoints(bbCenter, bbAxis0, bbAxis1, bbAxis2)
+  p1:set(bbCenter) p1:setAdd(bbAxis0) p1:setAdd(bbAxis1) p1:setSub(bbAxis2)
+  p2:set(bbCenter) p2:setAdd(bbAxis0) p2:setAdd(bbAxis1) p2:setAdd(bbAxis2)
+  p3:set(bbCenter) p3:setSub(bbAxis0) p3:setAdd(bbAxis1) p3:setAdd(bbAxis2)
+  p4:set(bbCenter) p4:setSub(bbAxis0) p4:setAdd(bbAxis1) p4:setSub(bbAxis2)
+  p5:set(bbCenter) p5:setAdd(bbAxis0) p5:setSub(bbAxis1) p5:setSub(bbAxis2)
+  p6:set(bbCenter) p6:setAdd(bbAxis0) p6:setSub(bbAxis1) p6:setAdd(bbAxis2)
+  p7:set(bbCenter) p7:setSub(bbAxis0) p7:setSub(bbAxis1) p7:setAdd(bbAxis2)
+  p8:set(bbCenter) p8:setSub(bbAxis0) p8:setSub(bbAxis1) p8:setSub(bbAxis2)
+  bbPoints[1] = p1; bbPoints[2] = p2; bbPoints[3] = p3; bbPoints[4] = p4;
+  bbPoints[5] = p5; bbPoints[6] = p6; bbPoints[7] = p7; bbPoints[8] = p8;
+  return bbPoints
+end
+
+
+local function boundingBoxDistance(pos, otherBBCenter, otherBBAxis0, otherBBAxis1, otherBBAxis2)
+  local bbPoints = getBBPoints(otherBBCenter, otherBBAxis0, otherBBAxis1, otherBBAxis2)
 
   -- 1,2,3,4 front
   -- 5,6,7,8 back
   local minDist = math.huge
   -- lower bbPoints
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[1], bbPoints[4]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[4], bbPoints[8]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[8], bbPoints[5]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[5], bbPoints[1]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[1], bbPoints[4]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[4], bbPoints[8]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[8], bbPoints[5]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[5], bbPoints[1]))
 
   -- upper bbPoints
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[2], bbPoints[3]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[3], bbPoints[7]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[7], bbPoints[6]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[6], bbPoints[2]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[2], bbPoints[3]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[3], bbPoints[7]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[7], bbPoints[6]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[6], bbPoints[2]))
 
   -- left
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[1], bbPoints[6]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[2], bbPoints[5]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[1], bbPoints[6]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[2], bbPoints[5]))
   -- front
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[1], bbPoints[3]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[2], bbPoints[4]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[1], bbPoints[3]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[2], bbPoints[4]))
   -- right
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[3], bbPoints[8]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[4], bbPoints[7]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[3], bbPoints[8]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[4], bbPoints[7]))
   -- back
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[5], bbPoints[7]))
-  minDist = math.min(minDist, p:distanceToLineSegment(bbPoints[6], bbPoints[8]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[5], bbPoints[7]))
+  minDist = math.min(minDist, pos:distanceToLineSegment(bbPoints[6], bbPoints[8]))
   return minDist
 end
 
+local otherBBCenter, otherBBAxis0, otherBBAxis1, otherBBAxis2 = vec3(), vec3(), vec3(), vec3()
+local vehPos = vec3()
 local function onUpdate(dtReal, dtSim)
   local showMessage = false
 
   if active then
     local unicycle = getPlayerUnicycle()
-    local vehPos = unicycle:getPosition()
+    vehPos:set(unicycle:getPositionXYZ())
     local closestHit = 2
     vehicleInFront = nil
-    for vehId, veh in activeVehiclesIterator() do
-      if veh:getJBeamFilename() ~= "unicycle" and not vehicleBlacklist[vehId] and veh.playerUsable ~= false then
-        local otherBB = veh:getSpawnWorldOOBB()
-        if otherBB:isInitialized() then
-          local dist = boundingBoxDistance(vehPos, otherBB)
+    for _, veh in ipairs(getAllVehicles()) do
+      local vehId = veh:getID()
+      if not vehicleBlacklist[vehId] and veh.playerUsable ~= false and veh:getActive() and veh:getJBeamFilename() ~= "unicycle" then
+        otherBBCenter:set(be:getObjectOOBBCenterXYZ(vehId))
+        otherBBAxis0:set(be:getObjectOOBBHalfAxisXYZ(vehId, 0))
+        otherBBAxis1:set(be:getObjectOOBBHalfAxisXYZ(vehId, 1))
+        otherBBAxis2:set(be:getObjectOOBBHalfAxisXYZ(vehId, 2))
+
+        if be:getObjectOOBBIsInitialized(vehId) then
+          local dist = boundingBoxDistance(vehPos, otherBBCenter, otherBBAxis0, otherBBAxis1, otherBBAxis2)
           if dist < closestHit then
             vehicleInFront = veh
             closestHit = dist
@@ -238,6 +259,7 @@ local function onUpdate(dtReal, dtSim)
         end
       end
     end
+
     if vehicleInFront then
       setAtParkingSpeed(vehicleInFront, dtSim)
       if atParkingSpeed and togglingEnabled then
@@ -258,7 +280,7 @@ local function onUpdate(dtReal, dtSim)
 
     unicycle:setMeshAlpha(alpha, "", false)
   else
-    setAtParkingSpeed(be:getPlayerVehicle(0), dtSim)
+    setAtParkingSpeed(getPlayerVehicle(0), dtSim)
   end
 
   if showMessage ~= showMessageLastFrame then

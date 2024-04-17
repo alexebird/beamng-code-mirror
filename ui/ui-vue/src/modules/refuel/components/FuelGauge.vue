@@ -19,7 +19,7 @@
       <path class="gauge-level blur" d="M50,210 A110,110 0 1,1 244,210" :style="gaugeLevelStyle" />
       <path class="gauge-level" d="M50,210 A110,110 0 1,1 244,210" :style="gaugeLevelStyle" />
     </svg>
-    <bng-icon class="icon" :type="GAUGE_DEFAULTS[type].icon" />
+    <BngIcon asImage="mask" class="icon" :type="GAUGE_DEFAULTS[type].icon" color="#fff" />
     <div class="gauge-label">
       <span>{{ minLabel }}</span>
       <span class="info">{{ label || "&nbsp;" }}</span>
@@ -29,7 +29,8 @@
 </template>
 
 <script>
-import { icons } from "@/assets/icons"
+import { iconsByTag } from "@/common/components/base"
+
 const DASH_ARR_LENGTH = 455
 const GAUGE_TYPES = ["refuel", "recharge"]
 
@@ -37,13 +38,13 @@ const GAUGE_DEFAULTS = {
   refuel: {
     cssColour: "var(--bng-orange-b400)",
     gradientColour: `${0xff},${0x66},${0x00}`, // #ff6600
-    icon: icons.general.refuel,
+    icon: iconsByTag.fuel.fuelPumpFilling
   },
   recharge: {
     cssColour: "var(--bng-add-blue-600)",
     gradientColour: `${0x5f},${0x9d},${0xf9}`, // #5f9df9
-    icon: icons.general.recharge,
-  },
+    icon: iconsByTag.fuel.charging
+  }
 }
 </script>
 

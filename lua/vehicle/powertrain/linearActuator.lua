@@ -12,7 +12,7 @@ local avToRPM = 9.549296596425384
 local abs = math.abs
 
 local function updateVelocity(device, dt)
-  device.inputAV = device.linearVelocity * device.invLeadRadian * device.gearRatio
+  device.inputAV = device.velocity * device.invLeadRadian * device.gearRatio
   --print(device.inputAV)
   device.parent[device.parentOutputAVName] = device.inputAV
   device[device.outputAVName] = 0
@@ -23,36 +23,25 @@ local function updateTorque(device)
   local actuatorForce = inputTorque / device.screwDiameter
 
   local invCidCount = device.invActuatorBeamCount
+
   local velocity = 0
-
-  --idea 1: static friction that fades out with increasing RPM
-  --idea 2: cut to 0 for the low input torques
-  --idea 3: set beam friction really high with movement intention is to not move
-  --idea 4: remove clutch, make motor and actuator a single device
-
-  local frictionForce = device.frictionForce
-  --if abs(electrics.values.table or 0) == 0 then
-  --actuatorForce = 0
-  --frictionForce = device.frictionForce * 10000
-  --end
-
+  local currentExtend = 0
   for _, cid in ipairs(device.actuatorBeams) do
-    --actuateBeam(int outId, float force, float speedLimit, float slipForce, float frictionForce, float slipSpeedLimit, float minExtend, float maxExtend)
-    --screwBeam(int outId, float torqueForce, float speedLimit, float slipForce, float helixAngleCos, float face1Cos, float face2Cos, float frictionForceStick, float frictionCoef, float slipSpeedLimit, float minExtend, float maxExtend)
-    velocity = velocity + obj:screwBeam(cid, actuatorForce * invCidCount, device.speedLimit, math.huge, math.cos(device.leadAngle), 1, 1, frictionForce, 0.1, 0, device.minExtend, device.maxExtend)
+    --screwBeam(int  outId, float torqueForce,    float speedLimit,  float slipForce, float helixAngleCos, float face1Cos, float face2Cos, float frictionForceStick, float frictionCoef, float slipSpeedLimit, float minExtend, float maxExtend)
+    velocity = velocity + obj:screwBeam(cid, actuatorForce * invCidCount, device.speedLimit, math.huge, math.cos(device.leadAngle), 1, 1, device.frictionForce, 0.0, 0, device.minExtend, device.maxExtend)
+    currentExtend = currentExtend + obj:getBeamLength(cid)
   end
-  --if abs(electrics.values.table or 0) == 0 then
-  --velocity = 0
-  --frictionForce = device.frictionForceBackDriven
-  --end
-  --print(velocity)
-  -- if abs(electrics.values.table or 0) == 0 then
-  --   velocity = 0
-  -- end
-  device.linearVelocity = velocity * invCidCount
 
-  device[device.outputTorqueName] = 0
-  guihooks.graph({"Input Torque", inputTorque, 5, "", true}, {"Actuator Force", actuatorForce, 5000, "", true}, {"Velocity", device.linearVelocity, 1, "", true}, {"RPM", device.inputAV * avToRPM, 500, "", true})
+  if device.movementIntentElectricsName and electrics.values[device.movementIntentElectricsName] and abs(electrics.values[device.movementIntentElectricsName]) == 0 then
+    velocity = 0
+  end
+  device.velocity = velocity * invCidCount
+  device.currentExtend = currentExtend * invCidCount
+  device.currentExtendPercent = linearScale(device.currentExtend, device.minExtend, device.maxExtend, 0, 1)
+
+  --local screwAV = device.velocity * device.invLeadRadian
+
+  --guihooks.graph({"Input Torque", inputTorque / device.gearRatio, 20, "Nm", true}, {"Gearbox Torque", inputTorque, 300, "Nm", true}, {"Actuator Torque Force", actuatorForce, 10000, "N", true}, {"Linear Velocity", device.velocity, 1, "m/s", true}, {"Screw RPM", screwAV * avToRPM, 300, "", true}, {"Input RPM", device.inputAV * avToRPM, 5000, "", true})
 end
 
 local function selectUpdates(device)
@@ -120,7 +109,9 @@ local function reset(device, jbeamData)
   device.maxCumulativeGearRatio = 1
 
   device.inputAV = 0
-  device.linearVelocity = 0
+  device.velocity = 0
+  device.currentExtend = 0
+  device.currentExtendPercent = 0
 
   device.isBroken = false
   device.wearFrictionCoef = 1
@@ -156,12 +147,15 @@ local function new(jbeamData)
     isPhysicallyDisconnected = true,
     electricsName = jbeamData.electricsName,
     inputAV = 0,
-    linearVelocity = 0,
+    velocity = 0,
     minExtend = jbeamData.minExtend or 1,
     maxExtend = jbeamData.maxExtend or 2,
     frictionForce = jbeamData.frictionForce or 1,
     speedLimit = jbeamData.speedLimit or 100,
+    movementIntentElectricsName = jbeamData.movementIntentElectricsName,
     isBroken = false,
+    currentExtend = 0,
+    currentExtendPercent = 0,
     nodeCid = jbeamData.node,
     reset = reset,
     onBreak = onBreak,
@@ -173,9 +167,14 @@ local function new(jbeamData)
   }
 
   device.screwDiameter = jbeamData.screwDiameter or 0.05
-  device.leadDegree = jbeamData.leadMillimeterPerRevolution / 1000
-  device.leadRadian = device.leadDegree / (math.pi / 180) --convert from one revolution (aka degree) to radian
-  device.leadAngle = math.atan(device.leadDegree / (device.screwDiameter * math.pi))
+  --device.leadDegree = jbeamData.leadMillimeterPerRevolution / 1000
+  local leadMeterPerRevolution = jbeamData.leadMillimeterPerRevolution / 1000
+  local leadMeterPerRadian = leadMeterPerRevolution / twoPi
+  --print(leadMeterPerRevolution)
+  --print(leadMeterPerRadian)
+  --device.leadRadian = leadMeterPerRevolution / (math.pi / 180) --convert from one revolution (aka degree) to radian
+  device.invLeadRadian = 1 / leadMeterPerRadian
+  device.leadAngle = math.atan(leadMeterPerRevolution / (device.screwDiameter * math.pi))
 
   device.outputTorqueName = "outputTorque1"
   device.outputAVName = "outputAV1"
@@ -194,8 +193,6 @@ local function new(jbeamData)
   end
   device.actuatorBeamCount = #device.actuatorBeams
   device.invActuatorBeamCount = 1 / device.actuatorBeamCount
-
-  device.invLeadRadian = 1 / device.leadRadian
 
   device.breakTriggerBeam = jbeamData.breakTriggerBeam
   if device.breakTriggerBeam and device.breakTriggerBeam == "" then

@@ -924,7 +924,7 @@ M.handleSpawnVehicle = function(request)
   if replace then
     local replaceVid = request['replace_vid']
     if replaceVid then
-      local cur = be:getPlayerVehicle(0)
+      local cur = getPlayerVehicle(0)
       veh = scenetree.findObject(replaceVid)
       if not veh then
         request:sendBNGError('Vehicle \'' .. replaceVid .. '\' to be replaced was not found.')
@@ -938,7 +938,7 @@ M.handleSpawnVehicle = function(request)
       veh = core_vehicles.replaceVehicle(model, options)
       be:enterVehicle(0, cur)
     else
-      local cur = be:getPlayerVehicle(0)
+      local cur = getPlayerVehicle(0)
       cur:setField('name', '', options.vehicleName)
       veh = core_vehicles.replaceVehicle(model, options)
     end
@@ -1121,9 +1121,6 @@ M.handleOpenCamera = function(request)
   args.pos = vec3(request['pos'][1], request['pos'][2], request['pos'][3])
   args.dir = vec3(request['dir'][1], request['dir'][2], request['dir'][3])
   args.up = vec3(request['up'][1], request['up'][2], request['up'][3])
-  -- args.pos = Point3F(request['pos'][1], request['pos'][2], request['pos'][3])
-  -- args.dir = Point3F(request['dir'][1], request['dir'][2], request['dir'][3])
-  -- args.up = Point3F(request['up'][1], request['up'][2], request['up'][3])
   args.colourShmemHandle = request['colourShmemName']
   args.colourShmemSize = request['colourShmemSize']
   args.annotationShmemHandle = request['annotationShmemName']
@@ -1187,11 +1184,11 @@ M.handlePollCamera = function(request)
       request:sendResponse(resp)
     else
       -- Shared memory is not being used, so the data is the response.
-      local cameraData = Research.Camera.getLastCameraData(sensorId)
+      local cameraData = extensions.tech_sensors.getCameraData(sensorId)
       local resp = {type = 'PollCamera', data = {
-        colour = cameraData['colour'],
-        annotation = cameraData['annotation'],
-        depth = cameraData['depth'] } }
+        colour = cameraData.colour,
+        annotation = cameraData.annotation,
+        depth = cameraData.depth } }
       request:sendResponse(resp)
     end
   else
@@ -1330,15 +1327,13 @@ M.handleOpenLidar = function(request)
   args.pos = vec3(request['pos'][1], request['pos'][2], request['pos'][3])
   args.dir = vec3(request['dir'][1], request['dir'][2], request['dir'][3])
   args.up = vec3(request['up'][1], request['up'][2], request['up'][3])
-  -- args.pos = Point3F(request['pos'][1], request['pos'][2], request['pos'][3])
-  -- args.dir = Point3F(request['dir'][1], request['dir'][2], request['dir'][3])
-  -- args.up = Point3F(request['up'][1], request['up'][2], request['up'][3])
   args.verticalResolution = request['vRes']
   args.verticalAngle = request['vAngle']
-  args.raysPerSecond = request['rps']
   args.frequency = request['hz']
   args.horizontalAngle = request['hAngle']
   args.maxDistance = request['maxDist']
+  args.isRotate = request['isRotate']
+  args.is360 = request['is360']
   args.isVisualised = request['isVisualised']
   args.isStreaming = request['isStreaming']
   args.isAnnotated = request['isAnnotated']
@@ -1385,8 +1380,8 @@ M.handlePollLidar = function(request)
       request:sendResponse(resp)
     else
       -- Shared memory is not being used, so the point cloud and colour data goes in the response.
-      local pointCloud = Research.Lidar.getLastPointCloudData(sensorId)       -- get the LiDAR point cloud data.
-      local colours = Research.Lidar.getLastColourData(sensorId)              -- get the LiDAR colour data.
+      local pointCloud = extensions.tech_sensors.getLidarPointCloud(sensorId)           -- get the LiDAR point cloud data.
+      local colours = extensions.tech_sensors.getLidarColourData(sensorId)              -- get the LiDAR colour data.
       local resp = {type = 'PollLidar', data = { pointCloud = pointCloud, colours = colours } }
       request:sendResponse(resp)
     end
@@ -1452,12 +1447,6 @@ M.handleGetLidarVerticalResolution = function(request)
   request:sendResponse(resp)
 end
 
-M.handleGetLidarRaysPerSecond = function(request)
-  local rps = extensions.tech_sensors.getLidarRaysPerSecond(lidars[request['name']])
-  local resp = {type = 'raysPerSecond', data = rps}
-  request:sendResponse(resp)
-end
-
 M.handleGetLidarFrequency = function(request)
   local freq = extensions.tech_sensors.getLidarFrequency(lidars[request['name']])
   local resp = {type = 'frequency', data = freq}
@@ -1485,11 +1474,6 @@ end
 M.handleSetLidarVerticalResolution = function(request)
   extensions.tech_sensors.setLidarVerticalResolution(lidars[request['name']], request['verticalResolution'])
   request:sendACK('CompletedSetLidarVerticalResolution')
-end
-
-M.handleSetLidarRaysPerSecond = function(request)
-  extensions.tech_sensors.setLidarRaysPerSecond(lidars[request['name']], request['raysPerSecond'])
-  request:sendACK('CompletedSetLidarRaysPerSecond')
 end
 
 M.handleSetLidarFrequency = function(request)
@@ -1557,9 +1541,6 @@ M.handleOpenUltrasonic = function(request)
   args.pos = vec3(request['pos'][1], request['pos'][2], request['pos'][3])
   args.dir = vec3(request['dir'][1], request['dir'][2], request['dir'][3])
   args.up = vec3(request['up'][1], request['up'][2], request['up'][3])
-  -- args.pos = Point3F(request['pos'][1], request['pos'][2], request['pos'][3])
-  -- args.dir = Point3F(request['dir'][1], request['dir'][2], request['dir'][3])
-  -- args.up = Point3F(request['up'][1], request['up'][2], request['up'][3])
   args.isVisualised = request['isVisualised']
   args.isStreaming = request['isStreaming']
   args.isStatic = request['isStatic']
@@ -1705,9 +1686,6 @@ M.handleOpenRadar = function(request)
   args.pos = vec3(request['pos'][1], request['pos'][2], request['pos'][3])
   args.dir = vec3(request['dir'][1], request['dir'][2], request['dir'][3])
   args.up = vec3(request['up'][1], request['up'][2], request['up'][3])
-  -- args.pos = Point3F(request['pos'][1], request['pos'][2], request['pos'][3])
-  -- args.dir = Point3F(request['dir'][1], request['dir'][2], request['dir'][3])
-  -- args.up = Point3F(request['up'][1], request['up'][2], request['up'][3])
   args.rangeBins = request['range_bins']
   args.azimuthBins = request['azimuth_bins']
   args.velBins = request['vel_bins']
@@ -1747,7 +1725,7 @@ M.handlePollRadar = function(request)
   local name = request['name']
   local sensorId = radars[name]
   if sensorId ~= nil then
-    local readings = Research.Radar.getLastReadings(sensorId)
+    local readings = extensions.tech_sensors.getRadarReadings(sensorId)
     local resp = {type = 'PollRadar', data = readings}
     request:sendResponse(resp)
   else
@@ -1762,7 +1740,7 @@ M.handleGetPPIRadar = function(request)
   local name = request['name']
   local sensorId = radars[name]
   if sensorId ~= nil then
-    local dataSize = Research.Radar.getPPI(sensorId)
+    local dataSize = extensions.tech_sensors.getRadarPPIData(sensorId)
     local resp = {type = 'GetPPIRadar', data = dataSize}
     request:sendResponse(resp)
   else
@@ -1777,7 +1755,7 @@ M.handleGetRangeDopplerRadar = function(request)
   local name = request['name']
   local sensorId = radars[name]
   if sensorId ~= nil then
-    local dataSize = Research.Radar.getRangeDoppler(sensorId)
+    local dataSize = extensions.tech_sensors.getRadarRangeDopplerData(sensorId)
     local resp = {type = 'GetRangeDopplerRadar', data = dataSize}
     request:sendResponse(resp)
   else
@@ -1863,9 +1841,6 @@ M.handleOpenAdvancedIMU = function(request)
   args.pos = vec3(request['pos'][1], request['pos'][2], request['pos'][3])
   args.dir = vec3(request['dir'][1], request['dir'][2], request['dir'][3])
   args.up = vec3(request['up'][1], request['up'][2], request['up'][3])
-  -- args.pos = Point3F(request['pos'][1], request['pos'][2], request['pos'][3])
-  -- args.dir = Point3F(request['dir'][1], request['dir'][2], request['dir'][3])
-  -- args.up = Point3F(request['up'][1], request['up'][2], request['up'][3])
   args.accelWindowWidth = request['accelWindowWidth']
   args.accelFrequencyCutoff = request['accelFrequencyCutoff']
   args.gyroWindowWidth = request['gyroWindowWidth']
@@ -1959,7 +1934,6 @@ M.handleOpenGPS = function(request)
   args.GFXUpdateTime = request['GFXUpdateTime']
   args.physicsUpdateTime = request['physicsUpdateTime']
   args.pos = vec3(request['pos'][1], request['pos'][2], request['pos'][3])
-  -- args.pos = Point3F(request['pos'][1], request['pos'][2], request['pos'][3])
   args.refLon = request['refLon']
   args.refLat = request['refLat']
   args.isSendImmediately = request['isSendImmediately']
@@ -2352,6 +2326,12 @@ M.handleGetRoadGraph = function(request)
   request:sendResponse(resp)
 end
 
+M.handleResetNavgraph = function(request)
+  extensions.tech_sensors.resetNavgraph()
+  local resp = {type = 'ResetNavgraph', data = nil}
+  request:sendResponse(resp)
+end
+
 M.handleGetBeamData = function(request)
   local data = extensions.tech_sensors.getBeamData(request['vid'])
   local resp = {type = 'GetBeamData', data = data}
@@ -2704,7 +2684,7 @@ end
 M.handleSetRelativeCam = function(request)
   core_camera.setByName(0, 'relative', false, {})
 
-  local vid = be:getPlayerVehicle(0):getID()
+  local vid = getPlayerVehicle(0):getID()
   local pos = request['pos']
   local dir = request['dir']
   local func = function()
@@ -3018,11 +2998,11 @@ M.handleGameStateRequest = function(request)
 end
 
 M.handleGetPlayerVehicleID = function(request)
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if not vehicle then
     request:sendBNGError('There is no vehicle')
   else
-    local vehicle = be:getPlayerVehicle(0)
+    local vehicle = getPlayerVehicle(0)
     local id = vehicle:getID()
     local vid = vehicle:getName()
     local resp = {type = 'getPlayerVehicleID', vid= vid, id=id}
@@ -3047,7 +3027,7 @@ M.handleGetCurrentVehicles = function(request)
     end
 
     if request['include_config'] then
-      local playerVeh = be:getPlayerVehicle(0)
+      local playerVeh = getPlayerVehicle(0)
       local currentId = playerVeh and playerVeh:getID() or nil
       be:enterVehicle(0, veh)
       info['config'] = core_vehicle_partmgmt.getConfig()
@@ -3269,7 +3249,7 @@ end
 M.handleGetPartConfig = function(request)
   local vid = request['vid']
   local veh = scenetree.findObject(vid)
-  local cur = be:getPlayerVehicle(0)
+  local cur = getPlayerVehicle(0)
   if cur ~= nil then
     cur = cur:getID()
   end
@@ -3289,7 +3269,7 @@ end
 M.handleGetPartOptions = function(request)
   local vid = request['vid']
   local veh = scenetree.findObject(vid)
-  local cur = be:getPlayerVehicle(0):getID()
+  local cur = getPlayerVehicle(0):getID()
   be:enterVehicle(0, veh)
   local data = core_vehicle_manager.getPlayerVehicleData()
   local slotMap = jbeamIO.getAvailableSlotMap(data.ioCtx)
@@ -3302,7 +3282,7 @@ end
 M.handleSetPartConfig = function(request)
   local vid = request['vid']
   local veh = scenetree.findObject(vid)
-  local cur = be:getPlayerVehicle(0):getID()
+  local cur = getPlayerVehicle(0):getID()
   be:enterVehicle(0, veh)
   local cfg = request['config']
   core_vehicle_partmgmt.setConfig(cfg)
@@ -3409,6 +3389,44 @@ M.handleImportHeightmap = function(request)
   extensions.tech_terrainImporter.importHeightmap(request.data, request.w, request.h, request.scale, request.zMin, request.zMax, request.isYFlipped)
   log('I', logTag, 'Heightmap imported')
   request:sendACK('CompletedImportHeightmap')
+end
+
+-- Compute the vehicle space position of a sensor, given the local reference frame coefficients.
+local function coeffs2PosVS(c, veh)
+  local fwd, up = veh:getDirectionVector(), veh:getDirectionVectorUp()
+  fwd:normalize()
+  up:normalize()
+  local right = fwd:cross(up)
+  return c.x * fwd + c.y * right + c.z * up
+end
+
+-- Compute the vehicle space/world space frame of a sensor, given the local reference frame.
+local function sensor2VS(dirLoc, upLoc, veh)
+  local fwd, up = veh:getDirectionVector(), veh:getDirectionVectorUp()
+  fwd:normalize()
+  up:normalize()
+  local right = fwd:cross(up)
+  return vec3(fwd:dot(dirLoc), right:dot(dirLoc), up:dot(dirLoc)), vec3(fwd:dot(upLoc), right:dot(upLoc), up:dot(upLoc))
+end
+
+M.handleUnpackVehicleSensorConfiguration = function(request)
+  local filepath, vid, configName = request.filepath, request.vid, request.name
+  local veh = scenetree.findObject(vid)
+  local loadedJson = jsonReadFile(filepath)
+  local sData = lpack.decode(loadedJson.data).sensors
+  local numSensors = #sData
+  for i = 1, numSensors do
+    sData[i].pos = coeffs2PosVS(sData[i].pos, veh)
+    sData[i].dir, sData[i].up = sensor2VS(sData[i].dir, sData[i].up, veh)
+  end
+  request:sendResponse({ type = 'UnpackVehicleSensorConfiguration', data = sData })
+end
+
+M.handleUnpackMapSensorConfiguration = function(request)
+  local filepath, configName = request.filepath, request.name
+  local loadedJson = jsonReadFile(filepath)
+  local sData = lpack.decode(loadedJson.data)
+  request:sendResponse({ type = 'UnpackMapSensorConfiguration', data = sData })
 end
 
 return M

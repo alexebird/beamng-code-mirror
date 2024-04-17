@@ -2,15 +2,12 @@
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
---require('/lua/vehicle/controller')
-
 local C = {}
 
 C.name = 'Bus Controls Detection'
 C.color = ui_flowgraph_editor.nodeColors.vehicle
 C.icon = 'directions_bus'
 C.description = 'Gets the bus door and kneel status. Use with Register Bus Data node..'
-C.todo = ""
 C.category = 'repeat_instant'
 
 C.pinSchema = {

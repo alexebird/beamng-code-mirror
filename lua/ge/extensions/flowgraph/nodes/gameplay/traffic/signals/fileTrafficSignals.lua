@@ -14,6 +14,7 @@ C.icon = ui_flowgraph_editor.nodeIcons.traffic
 
 C.pinSchema = {
   {dir = 'in', type = 'string', name = 'file', description = 'File of the traffic signals.'},
+
   {dir = 'out', type = 'table', name = 'signalsData', tableType = 'signalsData', description = 'Traffic signals data, to be used with other nodes.'}
 }
 
@@ -22,7 +23,7 @@ C.dependencies = {'core_trafficSignals'}
 
 function C:init()
   self.signalsData = nil
-  self.data.useDefault = false
+  self.data.useDefaultFileFromLevel = true
 end
 
 function C:postInit()
@@ -37,42 +38,31 @@ function C:drawCustomProperties()
       editor_trafficSignalsEditor.onWindowMenuItem()
     end
   end
-
-  local var = im.BoolPtr(self.data.useDefault)
-  if im.Checkbox('Use Default Signals File From Map', var) then
-    self.data.useDefault = var[0]
-  end
 end
 
 function C:onNodeReset()
-  self.signalsData = nil
+  self.pinOut.signalsData.value = nil
 end
 
 function C:_executionStopped()
-  self.signalsData = nil
+  self.pinOut.signalsData.value = nil
   if core_trafficSignals then
     core_trafficSignals.loadSignals() -- reload default signals file for the map
   end
 end
 
 function C:work()
-  if not self.signalsData then
+  if not self.pinOut.signalsData.value then
     local file = self.pinIn.file.value
-    if self.data.useDefault then
-      core_trafficSignals.loadSignals()
-    elseif file then
+    if file then
       core_trafficSignals.loadSignals(file)
+    elseif self.data.useDefaultFileFromLevel then
+      core_trafficSignals.loadSignals()
     end
 
-    if core_trafficSignals.getValues().loaded then
-      self.signalsData = {
-        intersections = core_trafficSignals.getIntersections(),
-        controllers = core_trafficSignals.getControllers(),
-        signalMetadata = core_trafficSignals.getSignalMetadata()
-      }
-      self.pinOut.signalsData.value = self.signalsData
-    else
-      self:__setNodeError('signals', 'signals data loading failed')
+    self.pinOut.signalsData.value = core_trafficSignals.getData()
+    if not self.pinOut.signalsData.value.loaded then
+      self:__setNodeError('signals', 'signals loading failed')
     end
   end
 end

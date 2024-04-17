@@ -126,7 +126,6 @@ end
 local function selectMarker(markerIndex)
   currentMarkerIndex = markerIndex
   if currentMarkerIndex then
-
     -- Setup for debug markers
     ctrlPoints = {currentMarkerIndex}
     camTs = {M.currentPath.markers[ctrlPoints[1]].time}
@@ -142,6 +141,12 @@ local function selectMarker(markerIndex)
         table.insert(camTs, M.currentPath.markers[ctrlPoints[2]].time)
       end
     end
+
+    if #M.currentPath.markers then
+      editor.currentCamPathMarker = M.currentPath.markers[currentMarkerIndex]
+    end
+  else
+    editor.currentCamPathMarker = nil
   end
 end
 
@@ -593,6 +598,8 @@ local function simulatePathCamera(markers, playerPosition, path, focusPos)
       displayViewBig(marker, 3, movingFrustumColor, movingFrustumColorI)
       --debugDrawer:clearTargetRenderView()
 
+      editor.currentCamPathLocation = {pos = pos, rot = rot, fov = fov}
+
       -- restarting when reached the end
       if ctrlPoints[i] == lastMarker and (camTs[i] >= nextTime) then
         lastCtrlPointsR2[i] = nil
@@ -623,7 +630,7 @@ local function drawDebugPath(path, focusPos)
     end
   end
 
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   local playerPosition = nil
   if playerVehicle then
     playerPosition = playerVehicle:getPosition()
@@ -1221,7 +1228,7 @@ local function onEditorGui()
       im.Text('Path Controls')
       local avail = im.GetContentRegionAvail()
 
-      local playerVehicle = be:getPlayerVehicle(0)
+      local playerVehicle = getPlayerVehicle(0)
       if not playerVehicle then
         im.BeginDisabled()
       end

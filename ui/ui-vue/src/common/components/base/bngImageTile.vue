@@ -1,52 +1,59 @@
 <!-- bngImageTile - a tile with a large image/icon (optionally labelled) -->
 <template>
   <div class="tile">
-    <AspectRatio class="image" :ratio="ratio">
-      <BngIcon v-if="icon" class="icon" :type="icon" span></BngIcon>
-      <BngIcon v-if="glyph" class="glyph" :glyph="glyph" />
-      <img v-else-if="src" class="icon" :src="assetURL" />
+    <AspectRatio class="image" :ratio="ratio" :image="image" imageSize="contain">
+      <BngOldIcon v-if="oldIcon" class="icon" :type="oldIcon" span />
+      <BngIcon v-if="icon" class="glyph" :type="icon" />
+      <img v-else-if="src || externalSrc" class="icon" :src="assetURL" />
     </AspectRatio>
     <div class="label" v-if="label">{{ label }}</div>
-    <slot class="contents" />
+    <div v-if="hasDefaultSlot" class="contents">
+      <slot />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { BngIcon } from "@/common/components/base"
+import { BngOldIcon, BngIcon } from "@/common/components/base"
 import { getAssetURL } from "@/utils"
 import { computed, useSlots } from "vue"
-import { AspectRatio } from "../utility";
+import { AspectRatio } from "../utility"
 
 const props = defineProps({
-  icon: String,
+  oldIcon: String,
   src: String,
+  externalSrc: String, // src for assets external to Vue projects
   label: String,
-  glyph: String,
+  image: String, // background-image that takes the full available frame
+  icon: [Object, String],
   ratio: {
     type: String,
-    default: "4:3"
+    default: "4:3",
   }
 })
 
-const assetURL = computed(() => props.src && !props.src.startsWith("/") ? getAssetURL(props.src) : props.src)
+const slots = useSlots();
+const hasDefaultSlot = computed(() => !!slots.default);
+
+// const assetURL = computed(() => props.src && !props.src.startsWith("/") ? getAssetURL(props.src) : props.src)
+const assetURL = computed(() => (props.externalSrc ? props.externalSrc : getAssetURL(props.src)))
 </script>
 
 <style lang="scss" scoped>
 $text-color: white;
-$highlight-color: var(--bng-orange-500);
 @import "@/styles/modules/mixins";
 
 .tile {
   // Setting round corners and focus frame offset for focusable tile
   $f-offset: 0.25rem;
   $rad: $border-rad-1;
-  
+
   position: relative;
   width: 8rem;
   display: flex;
   flex-direction: column;
   min-width: 6rem;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: stretch;
   background-color: rgba(0, 0, 0, 0.6);
   border-radius: $rad;
@@ -66,12 +73,22 @@ $highlight-color: var(--bng-orange-500);
     margin-right: 0.2em;
   }
 
-  &:focus, &:hover {
+  &:focus,
+  &:hover {
     background-color: rgba(var(--bng-cool-gray-700-rgb), 0.8);
+  }
+
+  &[disabled="disabled"] {
+    pointer-events: none;
+    opacity: 0.5;
   }
 
   &.active {
     background-color: rgba(var(--bng-cool-gray-800-rgb), 0.6);
+  }
+
+  &:active {
+    background-color: rgba(var(--bng-cool-gray-700-rgb), 0.6);
   }
 
   .icon {
@@ -92,6 +109,10 @@ $highlight-color: var(--bng-orange-500);
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
+    padding: 0.5rem 0 0.25rem;
+  }
+  > .contents {
     padding: 0.5rem 0 0.25rem;
   }
 }

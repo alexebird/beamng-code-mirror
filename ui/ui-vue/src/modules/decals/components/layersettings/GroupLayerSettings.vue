@@ -2,7 +2,7 @@
   <div class="group-layer-settings">
     <div class="settings-group color-settings">
       <div class="settings-group-items">
-        <bng-input v-model="data.name" :prefix="'Group Name'" />
+        <BngInput v-model="data.name" :prefix="'Group Name'" />
       </div>
     </div>
   </div>
@@ -20,12 +20,12 @@ const props = defineProps({
 
 const data = ref(props.model)
 
-const emits = defineEmits(["valueChanged"])
+const emit = defineEmits(["valueChanged"])
 
 watch(
   () => data,
   () => {
-    emits("valueChanged", data.value)
+    emit("valueChanged", data.value)
   },
   { deep: true }
 )

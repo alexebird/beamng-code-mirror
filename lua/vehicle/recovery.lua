@@ -109,7 +109,7 @@ end
 local lastRecoveryPoint
 local camPos
 local camRot
-local function setRecoveryPoint(recPoint, resetVehicle)
+local function setRecoveryPoint(recPoint, resetVehicle, moveTraffic)
   lastRecoveryPoint = recPoint
   -- if the angle limits (in degrees) are surpassed, car is reset to upright position, maintaining the recpoint heading
   local dirFront = vec3(recPoint.dirFront)
@@ -118,7 +118,7 @@ local function setRecoveryPoint(recPoint, resetVehicle)
   if resetVehicle then
     if useSmartSpawn then
       local rot = quatFromDir(dirFront, dirUp)
-      obj:queueGameEngineLua("spawn.safeTeleport(be:getObjectByID("..obj:getId().."), vec3("..recPoint.pos.x..","..recPoint.pos.y..","..recPoint.pos.z.."), quat("..rot.x..","..rot.y..","..rot.z..","..rot.w.."))")
+      obj:queueGameEngineLua("spawn.safeTeleport(be:getObjectByID("..obj:getId().."), vec3("..recPoint.pos.x..","..recPoint.pos.y..","..recPoint.pos.z.."), quat("..rot.x..","..rot.y..","..rot.z..","..rot.w.."), nil, nil, " .. tostring(moveTraffic) ..  ")")
     else
       -- Dont use autoplace when not using smart spawn
       -- if the angle limits (in degrees) are surpassed, car is reset to upright position, maintaining the recpoint heading
@@ -143,11 +143,11 @@ local function saveHome(point)
   end
 end
 
-local function loadHome()
+local function loadHome(moveTraffic)
   if M.homePoint == nil then return end
   obj:requestReset(RESET_PHYSICS)     -- fix vehicle + reset velocity
   obj:queueGameEngineLua('be:getObjectByID('..tostring(obj:getId())..'):resetBrokenFlexMesh()')
-  setRecoveryPoint(M.homePoint, true)
+  setRecoveryPoint(M.homePoint, true, moveTraffic)
   guihooks.message("vehicle.recovery.loadHome", 5, "recovery")
 end
 

@@ -136,7 +136,7 @@ local function onUpdate()
       local dev = virtualDevices[ip]
 
       -- ask the vehicle to send the UI data to the target
-      local vehicle = assignedPlayers[dev.deviceInst] and be:getPlayerVehicle(assignedPlayers[dev.deviceInst]) or nil
+      local vehicle = assignedPlayers[dev.deviceInst] and getPlayerVehicle(assignedPlayers[dev.deviceInst]) or nil
       if vehicle then
         -- we reuse the outgauge extension for updating the user interface of the app
         vehicle:queueLuaCommand('if outgauge then outgauge.sendPackage("' .. ip .. '", ' .. appPort .. ', ' .. orientation.w .. ') end')

@@ -86,15 +86,15 @@ end
 --- Open an existing level from disk. Will remove any unsaved changes made to the current level.
 -- @param path the level folder, relative to game root
 local function openLevel(path)
+  worldEditorCppApi.disableSimSetAndSimObjectSignals()
   editor.newLevel()
   extensions.hook("onEditorBeforeOpenLevel")
-
   if path ~= "" then
     editor.shutdown()
+    editor.active = true -- force active true, because shutdown set it to false, we need it so, when onClientMissionStart called, need to reactivate editor
     core_levels.startLevel(path)
   end
-
-  extensions.hook("onEditorAfterOpenLevel")
+  -- after this function the level assets (textures, shaders) load and compile async
 end
 
 local function saveLevelBackup()
@@ -113,13 +113,22 @@ end
 --- Save the current level data. There must be a level opened. This function will call the Save As if the level is unnamed.
 local function saveLevel()
   extensions.hook("onEditorBeforeSaveLevel")
-  -- delete existent /main folder because some objects do not exist anymore and will remain rogue
-  --TODO: must delete all files one by one, FS:directoryRemove will not delete non emtpy folders
-  -- it should be done selectively, since deleting all might affect repository commits
-  FS:directoryRemove(editor.levelPath .. "/main")
-  editor.log("Saving level: " .. editor.levelPath .. "/main")
+  editor.log("Saving level: " .. editor.levelPath .. "main")
   -- only the mission group is saved to drive
-  Sim.serializeObjectToDirectories("MissionGroup", editor.levelPath .. "/main", editor.orderTable)
+  local serializeWasOk = (0 == Sim.serializeObjectToDirectories("MissionGroup", editor.levelPath .. "__main", editor.orderTable))
+
+  if serializeWasOk then
+    -- delete existent /main folder because some objects do not exist anymore and will remain rogue
+    --TODO: must delete all files one by one, FS:directoryRemove will not delete non emtpy folders (?)
+    -- it should be done selectively, since deleting all might affect repository commits
+    FS:directoryRemove(editor.levelPath .. "main")
+    FS:directoryCreate(editor.levelPath .. "main", true)
+    copyDirectory(editor.levelPath .. "__main", editor.levelPath .. "main")
+    FS:directoryRemove(editor.levelPath .. "__main")
+  else
+      editor.log("FATAL ERROR: could not serialize level objects to json staging folder: " .. editor.levelPath .. "__main")
+  end
+
   extensions.hook("onEditorAfterSaveLevel")
   editor.newLevelCreated = false
   editor.resetDirty()

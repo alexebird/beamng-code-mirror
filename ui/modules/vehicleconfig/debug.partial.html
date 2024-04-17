@@ -51,6 +51,16 @@
       </md-checkbox>
     </md-list-item>
 
+    <!-- Beam Text select -->
+    <md-list-item class="bng-short-select-item" layout>
+      <p flex>{{:: 'ui.debug.vehicle.beamText' | translate}}</p>
+      <md-select ng-model="vehConf_debug.state.vehicle.beamTextMode"
+                ng-change="vehConf_debug.applyState()"
+                class="bng-select-fullwidth" flex="45">
+        <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.beamTextModes" ng-value="$index + 1">{{ 'vehicle.bdebug.beamTextMode.' + mode.name | translate }}</md-option>
+      </md-select>
+    </md-list-item>
+
     <!-- Beam Visualization Mode select -->
     <md-list-item class="bng-short-select-item" layout>
       <p flex>{{:: 'ui.debug.vehicle.beamVis' | translate}}</p>
@@ -59,6 +69,26 @@
                 class="bng-select-fullwidth" flex="45">
         <md-option ng-repeat="mode in ::vehConf_debug.state.vehicle.beamVisModes" ng-value="$index + 1">{{ 'vehicle.bdebug.beamVisMode.' + mode.name | translate }}</md-option>
       </md-select>
+    </md-list-item>
+
+    <!-- Beam Visualization Custom sliders -->
+    <md-list-item layout ng-show="vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['usesSliders']"
+      ng-repeat="slider in vehConf_debug.state.vehicle.beamVisModes[vehConf_debug.state.vehicle.beamVisMode - 1]['sliders']">
+      <p flex style="text-indent: 30px;">{{slider.name}}</p>
+      <md-slider ng-model="slider.val"
+                min="{{slider.minVal}}"
+                max="{{slider.maxVal}}"
+                step="{{(slider.maxVal - slider.minVal) / 100}}"
+                ng-change="vehConf_debug.applyState()"
+                style="margin: 0 15px" flex >
+      </md-slider>
+      <input ng-model="slider.val"
+            min="{{slider.minVal}}"
+            max="{{slider.maxVal}}"
+            step="{{(slider.maxVal - slider.minVal) / 1000}}"
+            type="number"
+            ng-click="vehConf_debug.applyState()"
+            ng-blur="vehConf_debug.applyState()">
     </md-list-item>
 
     <!-- Beam Visualization Min Range slider -->

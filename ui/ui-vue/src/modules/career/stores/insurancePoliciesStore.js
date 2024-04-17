@@ -33,6 +33,7 @@ export const useInsurancePoliciesStore = defineStore("insurancePolicies", () => 
   }
 
   return {
+    dispose,
     policiesData,
     requestInitialData,
     closeMenu,

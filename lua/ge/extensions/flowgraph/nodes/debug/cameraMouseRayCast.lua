@@ -15,6 +15,7 @@ C.todo = "Might not be needed anymore, since we have mouse tool node."
 
 C.pinSchema = {
     { dir = 'out', type = 'flow', name = 'clicking', description = 'Puts out flow, if mouse is clicked.', impulse = true },
+    { dir = 'out', type = 'flow', name = 'hold', description = 'Puts out flow, if mouse is held.' },
     { dir = 'out', type = 'number', name = 'objID', description = 'Id of object that was hit.' },
     { dir = 'out', type = 'string', name = 'objName', description = 'Name of object that was hit.' },
     { dir = 'out', type = 'number', name = 'distance', hidden = true, description = 'Distance to object that was hit.' },
@@ -35,6 +36,7 @@ function C:work()
       self.pinOut.objName.value = hit.object and hit.object:getName() or nil
       self.pinOut.pos.value = {hit.pos.x,hit.pos.y,hit.pos.z}
       self.pinOut.clicking.value = im.IsMouseClicked(0) and not im.GetIO().WantCaptureMouse
+      self.pinOut.hold.value = im.IsMouseDown(0) and not im.GetIO().WantCaptureMouse
     else
       self.pinOut.distance.value = nil
       self.pinOut.face.value = nil
@@ -43,6 +45,7 @@ function C:work()
       self.pinOut.objName.value = nil
       self.pinOut.pos.value = nil
       self.pinOut.clicking.value = false
+      self.pinOut.hold.value = false
     end
 end
 

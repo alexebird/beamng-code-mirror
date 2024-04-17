@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Ends an imgui window. Make sure to begin it with im Begin."
 C.category = 'repeat_instant'
 
-C.todo = ""
 C.pinSchema = {}
 
 function C:work()

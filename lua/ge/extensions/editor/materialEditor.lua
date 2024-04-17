@@ -1184,13 +1184,17 @@ local function createCubemapWindowGui()
 
     if im.BeginChild1("CreateCubemapsLeftChild", nil, true) then
       for index, cubemap in ipairs(cubemaps) do
-        im.PushStyleColor2(im.Col_Button, (selectedCubemapObj:getName() == cubemap) and im.GetStyleColorVec4(im.Col_ButtonActive) or im.ImVec4(1,1,1,0))
+        if selectedCubemapObj then
+          im.PushStyleColor2(im.Col_Button, (selectedCubemapObj:getName() == cubemap) and im.GetStyleColorVec4(im.Col_ButtonActive) or im.ImVec4(1,1,1,0))
+        end
         im.PushItemWidth(im.GetContentRegionAvailWidth() - 10)
         if im.Button(cubemap) then
           selectCubemap(index)
         end
         im.PopItemWidth()
-        im.PopStyleColor()
+        if selectedCubemapObj then
+          im.PopStyleColor()
+        end
       end
     end
     im.EndChild()
@@ -1204,30 +1208,32 @@ local function createCubemapWindowGui()
     -- local childSize = im.ImVec2(0, )
     cubemapFaceThumbnailSize = (im.GetContentRegionAvailWidth() - (3 * v.style.ItemSpacing.x) - 8) / 4 -- -8 = remove 4 times the ImageButton border size (2px)
 
-    -- -Y Back[2]
-    im.SetCursorPosX(im.GetCursorPosX() + cubemapFaceThumbnailSize + v.style.ItemSpacing.x + 2) -- +2 = ImageButton border
-    cubemapFaceImageButton(2, "-Y Back[2]")
-    -- -X Left[1] / +Z Top[4] / +X Right[0] / -Z Bottom[5]
-    cubemapFaceImageButton(1, "-X Left[1]")
-    im.SameLine()
-    cubemapFaceImageButton(4, "+Z Top[4]")
-    im.SameLine()
-    cubemapFaceImageButton(0, "+X Right[0]")
-    im.SameLine()
-    cubemapFaceImageButton(5, "-Z Bottom[5]")
-    -- +Y Front[3]
-    im.SetCursorPosX(im.GetCursorPosX() + cubemapFaceThumbnailSize + v.style.ItemSpacing.x + 2) -- +2 = ImageButton border
-    cubemapFaceImageButton(3, "+Y Front[3]")
+    if selectedCubemapObj then
+      -- -Y Back[2]
+      im.SetCursorPosX(im.GetCursorPosX() + cubemapFaceThumbnailSize + v.style.ItemSpacing.x + 2) -- +2 = ImageButton border
+      cubemapFaceImageButton(2, "-Y Back[2]")
+      -- -X Left[1] / +Z Top[4] / +X Right[0] / -Z Bottom[5]
+      cubemapFaceImageButton(1, "-X Left[1]")
+      im.SameLine()
+      cubemapFaceImageButton(4, "+Z Top[4]")
+      im.SameLine()
+      cubemapFaceImageButton(0, "+X Right[0]")
+      im.SameLine()
+      cubemapFaceImageButton(5, "-Z Bottom[5]")
+      -- +Y Front[3]
+      im.SetCursorPosX(im.GetCursorPosX() + cubemapFaceThumbnailSize + v.style.ItemSpacing.x + 2) -- +2 = ImageButton border
+      cubemapFaceImageButton(3, "+Y Front[3]")
 
-    if im.Button("Select") then
-      if currentMaterial:getField("cubemap", 0) ~= selectedCubemapObj:getName() then
-        setPropertyWithUndo("cubemap", 0, selectedCubemapObj:getName())
+      if im.Button("Select") then
+        if currentMaterial:getField("cubemap", 0) ~= selectedCubemapObj:getName() then
+          setPropertyWithUndo("cubemap", 0, selectedCubemapObj:getName())
+        end
+        editor.hideWindow(createCubemapWindowName)
       end
-      editor.hideWindow(createCubemapWindowName)
-    end
-    im.SameLine()
-    if im.Button("Cancel") then
-      editor.hideWindow(createCubemapWindowName)
+      im.SameLine()
+      if im.Button("Cancel") then
+        editor.hideWindow(createCubemapWindowName)
+      end
     end
 
     im.Columns(1)
@@ -1265,7 +1271,7 @@ local function cubemap()
   im.tooltip("None = Material doesn't use any reflection information\nLevel = Material uses reflection information from the level\nCubemap = Material uses reflection information from a custom cubemap")
 
   if o.reflectionMode[0] == 2 then
-    createCubemapWindowGui()
+    -- createCubemapWindowGui()
 
     im.SameLine()
     local cubemapName = currentMaterial:getField("cubemap", 0)
@@ -1784,6 +1790,7 @@ local function materialPropertiesVersion1()
         -- Color Detail Map
         imageButton("BaseColor Detail Map", "detailMap", lyr, function()
           inputFloat2("Scale:", "detailScale", "%.2f", lyr)
+          inputFloat("Strength:", "detailBaseColorMapStrength", nil, nil, nil, lyr)
           combo("UV Layer", "detailMapUV", {"0", "1"}, lyr)
         end)
         im.Separator()
@@ -2259,8 +2266,6 @@ local function onEditorGui()
   if editor.beginWindow(toolWindowName, "Material Editor") then
     v.style = im.GetStyle()
     v.inputWidgetHeight = 20 + v.style.FramePadding.y
-    createMaterialWindowGui()
-    materialsByTagWindow()
     menu()
 
     if openPickMapToFromObjectPopup == true then
@@ -2339,6 +2344,15 @@ local function onEditorGui()
 
   end
   editor.endWindow()
+
+  if editor.isWindowVisible(toolWindowName) then
+    createMaterialWindowGui()
+    materialsByTagWindow()
+
+    if o.reflectionMode[0] == 2 then
+      createCubemapWindowGui()
+    end
+  end
 end
 
 local function onWindowMenuItem()

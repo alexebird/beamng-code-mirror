@@ -3,10 +3,10 @@
     <!-- <div class="md-content" id="bng-vehicle-shopping" tabindex="0" @keypress="exit">-->
     <div class="heading-container">
       <BngScreenHeading>Car dealers</BngScreenHeading>
-      <BngCard class="profile-status" v-bng-blur>
+      <div class="profile-status" v-bng-blur>
         <CareerStatus />
         <div class="slots-available">Free Inventory Slots: {{ vehicleShoppingStore.vehicleShoppingData.numberOfFreeSlots }}</div>
-      </BngCard>
+      </div>
     </div>
     <VehicleList />
     <!--</div>-->
@@ -73,6 +73,8 @@ onUnmounted(kill)
   }
 }
 .profile-status {
+  border-radius: var(--bng-corners-2);
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
   & .slots-available {
     display: flex;

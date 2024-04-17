@@ -29,10 +29,10 @@ function C:interactInPlayMode(interactData, interactableElements)
   local inside = false
   if interactData.vehPos2d:distance(self.pos2d) <= self.radius+2 then
     for _, z in ipairs(self.zones) do
-      if (  z:containsPoint2D(interactData.bbp0)
-        and z:containsPoint2D(interactData.bbp3)
-        and z:containsPoint2D(interactData.bbp4)
-        and z:containsPoint2D(interactData.bbp7)) then
+      if (  z:containsPoint2D(interactData.bbPoints[1])
+        and z:containsPoint2D(interactData.bbPoints[4])
+        and z:containsPoint2D(interactData.bbPoints[5])
+        and z:containsPoint2D(interactData.bbPoints[8])) then
         inside = true
       end
     end

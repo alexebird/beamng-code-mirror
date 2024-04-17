@@ -3,7 +3,7 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
 local M = {}
-M.dependencies = {'core_camera', 'core_settings_settings'}
+M.dependencies = {'core_camera', 'core_settings_settings', 'core_input_bindings'}
 
 local min = math.min
 local max = math.max
@@ -12,26 +12,37 @@ M.cabinFilterStrength = 1
 
 local lastCamPos = nil
 local lastCameraForward = nil
+local cameraForward = vec3()
 local vecDown3F = vec3(0,0,-1)
 local frameFlag = true
 local camPos = vec3()
 local vehVelocity = vec3()
 local insideModifier = settings.getValue('AudioInsideModifier')
 
+-- audio blur helper variables
+local gameAudioBlurValue = 0
+local missionMarkerInteraction = false
+local interactingWithMissionUI = false
+local blurRate, blurAccel, blurBrake = 10, 70, 4
+local blurSmoother = newTemporalSigmoidSmoothing(blurRate, blurAccel, blurBrake, blurRate, gameAudioBlurValue)
+
 local function onPreRender(dtReal, dtSim, dtRaw)
+  local gameAudioBlurValueSm = blurSmoother:get(gameAudioBlurValue, dtReal)
   if Engine.Audio.getGlobalParams then
     local globalParams = Engine.Audio.getGlobalParams()
     if globalParams then
+      globalParams:setParameterValue("g_GameAudioBlur", gameAudioBlurValueSm)
       camPos:set(core_camera.getPositionXYZ())
-      local cameraForward = core_camera.getForward()
+      cameraForward:set(core_camera.getForwardXYZ())
 
       if dtSim > 0 then
         globalParams:setParameterValue("g_CamSpeedMS", camPos:distance(lastCamPos or camPos) / dtSim)
         globalParams:setParameterValue("g_CamRotationSpeedMS", cameraForward:distance(lastCameraForward or cameraForward) / dtSim)
       end
       lastCamPos = lastCamPos or vec3()
+      lastCameraForward = lastCameraForward or vec3()
       lastCamPos:set(camPos)
-      lastCameraForward = cameraForward
+      lastCameraForward:set(cameraForward)
 
       if frameFlag then
         local tod = scenetree.tod
@@ -42,7 +53,7 @@ local function onPreRender(dtReal, dtSim, dtRaw)
         local camAngle = math.atan2(cameraForward.x, -cameraForward.y) * 180 / math.pi + 180.0
         globalParams:setParameterValue("g_CamRotationAngle", camAngle)
 
-        local veh = be:getPlayerVehicle(0)
+        local veh = getPlayerVehicle(0)
         if veh then
           vehVelocity:set(veh:getVelocityXYZ())
           globalParams:setParameterValue("g_VehicleSpeedPlayerMS", vehVelocity:length())
@@ -119,12 +130,81 @@ local function onSettingsChanged()
   insideModifier = settings.getValue('AudioInsideModifier')
 end
 
-M.onPreRender                 = onPreRender
-M.onSettingsChanged           = onSettingsChanged
-M.initEngineSound             = initEngineSound
-M.initExhaustSound            = initExhaustSound
-M.updateEngineSound           = updateEngineSound
-M.setEngineSoundParameter     = setEngineSoundParameter
-M.setEngineSoundParameterList = setEngineSoundParameterList
-M.setExhaustSoundNodes        = setExhaustSoundNodes
+local function onUiChangedState(toState, fromState)
+  if not missionMarkerInteraction then
+    return
+  end
+
+  local old_value = gameAudioBlurValue
+  if interactingWithMissionUI then
+    gameAudioBlurValue = 1
+    if fromState == 'play' and toState == 'blank' then
+      gameAudioBlurValue = 1
+    end
+    if fromState == 'play' and toState == 'scenario-start' then
+      gameAudioBlurValue = 0
+    end
+    if fromState == 'scenario-start' and toState == 'play' then
+      gameAudioBlurValue = 0
+    end
+    if fromState == 'play' and toState == 'scenario-end' then
+      gameAudioBlurValue = 0
+    end
+    if fromState == 'menu' and toState == 'play' then
+      gameAudioBlurValue = 0
+    end
+  else
+    gameAudioBlurValue = 0
+  end
+
+  -- log('I','AUDIO',string.format("ui changed: %s => %s  gameAudioBlurValue = %0.1f (old = %0.1f) (interactingWithMissionUI = %s)", tostring(fromState), tostring(toState), gameAudioBlurValue, old_value, tostring(interactingWithMissionUI)))
+end
+
+local function onMissionInfoChangedState(fromState, toState, content)
+  if not missionMarkerInteraction then
+    return
+  end
+
+  if fromState == 'closed' and toState == 'opened' then
+    interactingWithMissionUI = true
+  elseif fromState == 'opened' and toState == 'closed' then
+    interactingWithMissionUI = false
+    gameAudioBlurValue = 0
+  end
+  -- log('I','AUDIO',string.format("missionInfo changed: %s => %s  gameAudioBlurValue = %0.1f (interactingWithMissionUI = %s)", tostring(fromState), tostring(toState), gameAudioBlurValue, tostring(interactingWithMissionUI)))
+end
+
+local function onActivityAcceptGatherData(elemData, activityData)
+  -- log('I','AUDIO',string.format("onActivityAcceptGatherData: elemData = %s, activityData = %s",dumps(elemData),(activityData)))
+  missionMarkerInteraction = false
+  for i,v in ipairs(elemData) do
+    if v.type == "mission" then
+      missionMarkerInteraction = true
+    end
+  end
+end
+
+local function onMissionAvailabilityChanged(data)
+  if data and data.missionCount == 0 then
+    missionMarkerInteraction = false
+  end
+end
+
+M.onPreRender                   = onPreRender
+M.onSettingsChanged             = onSettingsChanged
+M.initEngineSound               = initEngineSound
+M.initExhaustSound              = initExhaustSound
+M.updateEngineSound             = updateEngineSound
+M.setEngineSoundParameter       = setEngineSoundParameter
+M.setEngineSoundParameterList   = setEngineSoundParameterList
+M.setExhaustSoundNodes          = setExhaustSoundNodes
+M.onUiChangedState              = onUiChangedState
+M.onMissionInfoChangedState     = onMissionInfoChangedState
+M.onActivityAcceptGatherData    = onActivityAcceptGatherData
+M.onMissionAvailabilityChanged  = onMissionAvailabilityChanged
+
+M.setAudioBlur = function (value)
+  gameAudioBlurValue = value
+end
+
 return M

@@ -9,15 +9,11 @@
         <md-button style="margin: auto 0px;" md-no-ink class="md-icon-button md-warn" ng-click="vehConf_save.saveName = ''" ng-disabled="!vehConf_save.saveName">
           <md-icon class="material-icons">close</md-icon>
         </md-button>
-        <md-button ng-disabled="!vehConf_save.saveName" ng-click="vehConf_save.save(vehConf_save.saveName)" ng-class="{'md-warn': vehConf_save.configExists(vehConf_save.saveName), 'md-primary': !vehConf_save.configExists(vehConf_save.saveName)}" class="md-raised" md-no-ink>
+        <md-button ng-disabled="!vehConf_save.validName(vehConf_save.saveName)" ng-click="vehConf_save.save(vehConf_save.saveName)" ng-class="{'md-warn': vehConf_save.configExists(vehConf_save.saveName), 'md-primary': !vehConf_save.configExists(vehConf_save.saveName)}" class="md-raised" md-no-ink>
         {{ vehConf_save.configExists(vehConf_save.saveName) ? 'overwrite' : 'save' | translate}}
         </md-button>
       </div>
     </div>
-    <md-list-item layout style="margin: 0px 16px; text-align: center;" class="md-caption md-whiteframe-z1 md-padding" ng-if="vehConf_save.saveName">
-      <p>{{:: 'ui.vehicleconfig.mouseOverUi' | translate}}</p>
-    </md-list-item>
-
   </div>
 
   <md-list layout="column" style="overflow: auto; height: 100%;">

@@ -4783,4 +4783,4 @@ var spine;
   }(spine.Attachment));
   spine.RegionAttachment = RegionAttachment;
 })(spine || (spine = {}));
-//# sourceMappingURL=spine-canvas.js.map
+//# ssourceMappingURL=spine-canvas.js.map

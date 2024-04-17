@@ -548,6 +548,19 @@ html, body {
   -webkit-font-feature-settings: "kern" 1;
 }
 
+button {
+  font-size: 16px;
+}
+
+@media screen and (max-width: 1281px) {
+  html, body {
+    font-size: 12px;
+  }
+  button {
+    font-size: 12px;
+  }
+}
+
 kbd, .key {
   vertical-align: middle;
   font-family: 'Noto Sans Mono', monospace;
@@ -1432,11 +1445,11 @@ md-list-item.md-2-line.squeezed .md-list-item-text {
   flex: none;
 }
 
-@media (max-width: 1200px){
+/* @media (max-width: 1200px){
   .menuNavbar {
     font-size: 0.75em;
   }
-}
+} */
 
 
 .gridMarkSelected md-grid-tile:hover md-grid-tile-footer {
@@ -2330,11 +2343,11 @@ md-input-container label {
   max-height: 2.5em;
   overflow: hidden;
 }
-@media (max-width: 1500px){
+/* @media (max-width: 1500px){
   .dashBrdText {
     font-size: 0.75em;
   }
-}
+} */
 @media (min-width: 1280px){
   .dashBrdSvgIcon {
     margin-right: 0.25em; /* that's for text, but there's a case when icon won't be shown */
@@ -2342,7 +2355,7 @@ md-input-container label {
 }
 @media (max-width: 1279px){
   #dashmenu > *:not(.dashBrdButtonActive) > .dashBrdText {
-     display: none; 
+     display: none;
   }
 }
 

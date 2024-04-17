@@ -58,7 +58,7 @@ function C:drawCustomProperties()
   end
 
   if im.TreeNode2('cv',"Current Vehicle") then
-    local veh = be:getPlayerVehicle(0)
+    local veh = getPlayerVehicle(0)
     if veh then
       if string.endswith(veh.partConfig, ".pc") then
         im.Text("Part Config File: ")

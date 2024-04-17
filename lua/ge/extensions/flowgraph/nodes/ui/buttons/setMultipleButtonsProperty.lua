@@ -12,7 +12,6 @@ C.color = ui_flowgraph_editor.nodeColors.button
 C.description = "Handle a selection of buttons properties created previously."
 C.category = 'repeat_instant'
 
-C.todo = "TODO"
 C.pinSchema = {
   { dir = 'in', type = 'number', name = 'buttonId_1', description = 'ID of the button.' },
   { dir = 'in', type = 'string', name = 'label_1', default = "Button", description = 'Displayed named of the button.' },

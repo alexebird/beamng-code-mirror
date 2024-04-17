@@ -51,9 +51,22 @@ local function setupTraffic(forceSetup)
     playerData.trafficActive = M.debugMode and _devTraffic.active or amount -- store the amount here for future usage
     if playerData.trafficActive == 0 then playerData.trafficActive = math.huge end
 
-    gameplay_traffic.queueTeleport = true -- forces traffic vehicles to teleport away
-    gameplay_parking.setupVehicles(M.debugMode and _devTraffic.parkedCars)
-    gameplay_traffic.setupTraffic(M.debugMode and _devTraffic.traffic + extraAmount or amount + extraAmount, 0, {policeAmount = policeAmount, simpleVehs = true, autoLoadFromFile = true})
+    --gameplay_traffic.queueTeleport = true -- forces traffic vehicles to teleport away
+
+    -- TEMP: this is a temporary measure; it spawns vehicles far away, but skips the step of force teleporting them
+    -- hopefully, this cures the vehicle instability issue
+    local trafficPos, trafficRot, parkingPos
+    local trafficSpawnPoint = scenetree.findObject("spawns_refinery")
+    local parkingSpawnPoint = scenetree.findObject("spawns_servicestation") -- TODO: replace this with the intended player position (player veh not ready yet)
+    if trafficSpawnPoint then
+      trafficPos, trafficRot = trafficSpawnPoint:getPosition(), quat(trafficSpawnPoint:getRotation()) * quat(0, 0, 1, 0)
+    end
+    if parkingSpawnPoint then
+      parkingPos = parkingSpawnPoint:getPosition()
+    end
+
+    gameplay_parking.setupVehicles(M.debugMode and _devTraffic.parkedCars, {pos = parkingPos})
+    gameplay_traffic.setupTraffic(M.debugMode and _devTraffic.traffic + extraAmount or amount + extraAmount, 0, {policeAmount = policeAmount, simpleVehs = true, autoLoadFromFile = true, pos = trafficPos, rot = trafficRot})
     setTrafficVars()
 
     M.ensureTraffic = false
@@ -87,12 +100,12 @@ local function retrieveFavoriteVehicle()
 
   local vehId = inventory.getVehicleIdFromInventoryId(favoriteVehicleInventoryId)
   if vehId then
-    local playerVehObj = be:getPlayerVehicle(0)
+    local playerVehObj = getPlayerVehicle(0)
     spawn.safeTeleport(be:getObjectByID(vehId), playerVehObj:getPosition(), quatFromDir(playerVehObj:getDirectionVector()), nil, nil, nil, nil, false)
   elseif not vehInfo.timeToAccess and not career_modules_insurance.inventoryVehNeedsRepair(favoriteVehicleInventoryId) then
     inventory.spawnVehicle(favoriteVehicleInventoryId, nil,
     function()
-      local playerVehObj = be:getPlayerVehicle(0)
+      local playerVehObj = getPlayerVehicle(0)
       local vehId = inventory.getVehicleIdFromInventoryId(favoriteVehicleInventoryId)
       spawn.safeTeleport(be:getObjectByID(vehId), playerVehObj:getPosition(), quatFromDir(playerVehObj:getDirectionVector()), nil, nil, nil, nil, false)
     end)
@@ -137,6 +150,7 @@ local function teleportToGarage(garageId, veh, resetVeh)
       vehicleId = veh:getId(),
       resetVeh = resetVeh
     }
+    -- need to do this with one frame delay, otherwise the safeTeleport gets confused with two vehicles
     core_jobsystem.create(teleportTrailerJob, 0.1, teleportArgs)
 
     career_modules_inventory.updatePartConditionsOfSpawnedVehicles(
@@ -156,8 +170,6 @@ local function onVehicleParkingStatus(vehId, data)
     if data.event == "valid" then -- this refers to fully stopping while aligned in a parking spot
       if not playerData.isParked then
         playerData.isParked = true
-        career_saveSystem.saveCurrent()
-        log("I", "career", "Player saved progress in parking spot")
       end
     elseif data.event == "exit" then
       playerData.isParked = false
@@ -201,7 +213,7 @@ local function onPursuitAction(vehId, data)
       log("I", "career", "Pursuit ended, now activating recovery prompt buttons")
     elseif data.type == "arrest" then -- pursuit arrest, make the player pay a fine
       local fine = data.mode * data.uniqueOffensesCount * 100 -- fine value is WIP
-      --fine = math.min(fine, career_modules_playerAttributes.getAttribute("money").value)
+      --fine = math.min(fine, career_modules_playerAttributes.getAttributeValue("money"))
       career_modules_payment.pay({money = {amount = fine}}, {label = "Fine for being arrested by the police"})
       ui_message(translateLanguage("ui.traffic.policeFine", "You got fined by the police: ")..fine, 5, "careerPursuit")
     end

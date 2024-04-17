@@ -59,15 +59,29 @@ local function getPreviousAttachedVehicleId(vehId)
   end
 end
 
-local function isAttachedToNonTrailer(vehId)
+local function getAttachedNonTrailer(vehId)
   local veh = be:getObjectByID(vehId)
   local vehModel = core_vehicles.getModel(veh:getField('JBeam','0')).model
-  if vehModel.Type ~= "Trailer" then return true end
+  if vehModel.Type ~= "Trailer" then return vehId end
   local previousAttachedVehicleId = getPreviousAttachedVehicleId(vehId)
   if previousAttachedVehicleId then
-    return isAttachedToNonTrailer(previousAttachedVehicleId)
+    return getAttachedNonTrailer(previousAttachedVehicleId)
   end
   return false
+end
+
+local function unregisterVehicle(vehId)
+  if trailerReg[vehId] then
+    log("D", logTag, "Unregistered vehicle "..tostring(vehId).."; trailer was ".. (type(trailerReg[vehId]) == "table" and tostring(trailerReg[vehId].trailerId) or trailerReg[vehId]))
+    trailerReg[vehId] = nil
+  end
+
+  for vId, coupleInfo in pairs(trailerReg) do
+    if coupleInfo and coupleInfo.trailerId == vehId then
+      log("D", logTag, "Unregistered trailer "..tostring(vehId).."; vehicle was "..tostring(vId))
+      trailerReg[vId] = nil
+    end
+  end
 end
 
 local function onCouplerAttached(objId1, objId2, nodeId, obj2nodeId)
@@ -76,7 +90,7 @@ local function onCouplerAttached(objId1, objId2, nodeId, obj2nodeId)
     return
   end
 
-  if isAttachedToNonTrailer(objId1) and not checkRedundancy(objId2, objId1) then
+  if getAttachedNonTrailer(objId1) and not checkRedundancy(objId2, objId1) then
     log("D", logTag, tostring(objId1).." registered trailer "..tostring(objId2).."  node = "..tostring(nodeId).."  trailernode = "..tostring(obj2nodeId))
     trailerReg[objId1] = {trailerId=objId2, trailerNode=obj2nodeId, node=nodeId}
   else
@@ -90,18 +104,7 @@ local function onCouplerAttached(objId1, objId2, nodeId, obj2nodeId)
 end
 
 local function onCouplerDetach(objId1, nodeId)
-  if trailerReg[objId1] and trailerReg[objId1] ~= -1 then
-    log("D", logTag, "Unregistered "..tostring(objId1))
-    trailerReg[objId1] = -1
-  end
-
-  for vId,tId in pairs(trailerReg) do
-    if tId ~= -1 and tId.trailerId == objId1 then
-      log("D", logTag, "Unregistered "..tostring(objId1))
-      trailerReg[vId] = -1
-      return
-    end
-  end
+  unregisterVehicle(objId1)
 end
 
 -- coupler tags + a tag for the auto couple function
@@ -119,7 +122,7 @@ end
 
 local function onVehicleActiveChanged(vehId, active)
   -- sets the vehicle's trailer visibility state to match the owner
-  if trailerReg[vehId] and trailerReg[vehId] ~= -1 then
+  if trailerReg[vehId] then
     be:getObjectByID(trailerReg[vehId].trailerId):setActive(active and 1 or 0)
     log("D", logTag, "Trailer "..tostring(trailerReg[vehId].trailerId).." active state set to "..tostring(active))
 
@@ -135,17 +138,7 @@ local function onVehicleSpawned(vehId)
     couplerOffset[vehId] = nil
   end
 
-  if trailerReg[vehId] then
-    log("D", logTag, "Unregistered vehicle "..tostring(vehId).."; trailer was ".. (type(trailerReg[vehId]) == "table" and tostring(trailerReg[vehId].trailerId) or trailerReg[vehId]))
-    trailerReg[vehId] = nil
-  end
-
-  for vId,tId in pairs(trailerReg) do
-    if tId ~= -1 and tId.trailerId == vehId then
-      log("D", logTag, "Unregistered trailer "..tostring(vehId).."; vehicle was "..tostring(vId))
-      trailerReg[vId] = -1
-    end
-  end
+  unregisterVehicle(vehId)
 
   local veh = be:getObjectByID(vehId)
   for tag, _ in pairs(couplerTagsOptions) do
@@ -154,7 +147,7 @@ local function onVehicleSpawned(vehId)
 end
 
 local function onVehicleResetted(vehId)
-  if trailerReg[vehId] and trailerReg[vehId] ~= -1 then
+  if trailerReg[vehId] then
     local tmp = couplerOffset[trailerReg[vehId].trailerId][trailerReg[vehId].trailerNode]
     spawn.placeTrailer(vehId, couplerOffset[vehId][trailerReg[vehId].node], trailerReg[vehId].trailerId, tmp, couplerTags[vehId][trailerReg[vehId].node])
   end
@@ -165,18 +158,7 @@ local function onVehicleDestroyed(vehId)
     couplerOffset[vehId] = nil
   end
 
-  if trailerReg[vehId] then
-    log("D", logTag, "Unregistered vehicle "..tostring(vehId).."; trailer was "..(type(trailerReg[vehId]) == "table" and tostring(trailerReg[vehId].trailerId) or trailerReg[vehId]))
-    trailerReg[vehId] = nil
-  end
-
-  for vId,tId in pairs(trailerReg) do
-    if tId ~= -1 and tId.trailerId == vehId then
-      log("D", logTag, "Unregistered trailer "..tostring(vehId).."; vehicle was "..tostring(vId))
-      trailerReg[vId] = -1
-      return
-    end
-  end
+  unregisterVehicle(vehId)
 end
 
 local function addCouplerOffset(vId, data)
@@ -217,10 +199,19 @@ local function setEnabled(enabled) -- automatically or manually enables or disab
   end
 end
 
+local function isVehicleCoupledToTrailer(vehId, trailerId)
+  local coupleInfo = trailerReg[vehId]
+  if not coupleInfo then return false end
+  if coupleInfo.trailerId == trailerId then return true end
+  return isVehicleCoupledToTrailer(coupleInfo.trailerId, trailerId)
+end
+
 M.setEnabled = setEnabled
 M.getTrailerData = getTrailerData
 M.addCouplerOffset = addCouplerOffset
 M.getCouplerTagsOptions = getCouplerTagsOptions
+M.getAttachedNonTrailer = getAttachedNonTrailer
+M.isVehicleCoupledToTrailer = isVehicleCoupledToTrailer
 
 M.onSerialize = onSerialize
 M.onDeserialized = onDeserialized

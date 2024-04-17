@@ -1,14 +1,18 @@
 import { defineStore } from "pinia"
 import { ref } from "vue"
 import { lua, useBridge } from "@/bridge"
-import { openScreenOverlay } from "@/services/popup"
+import { openScreenOverlay, addPopup } from "@/services/popup"
 
 import ActivityStart from "@/modules/activitystart/views/ActivityStart"
+import Recovery from "@/modules/recovery/views/Recovery"
 
 export const useGameContextStore = defineStore("gameContext", () => {
   const { events } = useBridge()
+
   const activities = ref([])
   let activityScreen = null
+  let recoveryPrompt = null
+  let deliveryEndScreen = null
 
   const startMission = missionId => {
     const mission = activities.value.find(x => x.id === missionId)
@@ -21,8 +25,11 @@ export const useGameContextStore = defineStore("gameContext", () => {
   }
 
   const closeActivitiesPrompt = () => {
-    // closeActivitiesPopup()
     lua.gameplay_markerInteraction.closeViewDetailPrompt(true)
+  }
+
+  async function openRecoveryPrompt() {
+    recoveryPrompt = addPopup(Recovery).promise
   }
 
   const performActivityAction = activityActionIndex => lua.ui_missionInfo.performActivityAction(activityActionIndex)
@@ -32,6 +39,15 @@ export const useGameContextStore = defineStore("gameContext", () => {
   events.on("MenuOpenModule", closeActivitiesPopup)
 
   events.on("ChangeState", closeActivitiesPopup)
+
+  events.on("OpenRecoveryPrompt", openRecoveryPrompt)
+
+  const deliveryRewardData = ref(false)
+  function showDeliveryEndScreen(data) {
+    deliveryRewardData.value = data
+    window.bngVue.gotoGameState("cargoDeliveryReward")
+  }
+  events.on("OpenDeliveryEndScreen", showDeliveryEndScreen)
 
   async function onActivityAcceptUpdate(data) {
     if (activityScreen && (activities.value || !data)) closeActivitiesPopup()
@@ -52,15 +68,32 @@ export const useGameContextStore = defineStore("gameContext", () => {
     activityScreen = null
   }
 
+  function closeRecoveryPrompt() {
+    if (!recoveryPrompt) return
+
+    recoveryPrompt.close(true)
+    recoveryPrompt = null
+  }
+
+  function closeDeliveryEndScreen() {
+    if (!deliveryEndScreen) return
+
+    deliveryEndScreen.close(true)
+    deliveryEndScreen = null
+  }
+
   function dispose() {
     events.off("ActivityAcceptUpdate", onActivityAcceptUpdate)
   }
 
   return {
     activities,
-    startMission,
-    performActivityAction,
     closeActivitiesPrompt,
+    closeDeliveryEndScreen,
+    closeRecoveryPrompt,
+    deliveryRewardData,
     dispose,
+    performActivityAction,
+    startMission,
   }
 })

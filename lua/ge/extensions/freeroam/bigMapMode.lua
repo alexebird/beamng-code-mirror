@@ -70,6 +70,7 @@ local showNavigationMarker
 local routePreview
 local transitionSoundId
 local currentlyVisibleIds = {}
+local missionToOpenOnStart
 
 
 -- Level properties
@@ -214,7 +215,7 @@ local function calculateCamPos()
     bbox = core_terrain.getTerrain():getWorldBox()
     includeClustersInBbox(bbox)
   else
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     bbox = Box3F()
     bbox:setExtents(vec3(1000, 1000, 1000))
     bbox:setCenter(playerVehicle and playerVehicle:getPosition() + vec3(0,0,500) or vec3(0, 0, 0))
@@ -257,7 +258,7 @@ local function buildTransitionPath(endMarkerData)
 
   local path = { looped = false, manualFov = false}
   local startPos = core_camera.getPosition()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not bigMap then
     -- transition to big map
     local transitionEndPos = bigMapInitialCamPos
@@ -350,11 +351,13 @@ local function resetRoute()
   end
 end
 
+local navDestinationForLuaReloads
 local function setNavFocus(pos)
   extensions.hook("onSetBigmapNavFocus", pos)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     pos = nil
   end
+  navDestinationForLuaReloads = pos
   core_groundMarkers.setFocus(pos)
   resetRoute()
 end
@@ -461,7 +464,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
 
   if not transitionActive then
     local iconRenderer = scenetree.findObjectById(iconRendererId)
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     if iconRenderer and playerVehicle then
       local iconInfo = iconRenderer:getIconByName("playerVehicle")
       if iconInfo then
@@ -595,7 +598,7 @@ local function activateBigMapCallback()
   local iconRenderer = scenetree.findObjectById(iconRendererId)
   if not iconRenderer then return end
   iconRenderer:loadIconAtlas("core/art/gui/images/iconAtlas.png", "core/art/gui/images/iconAtlas.json");
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   iconRenderer:addIcon("playerVehicle", "player", playerVehicle and playerVehicle:getPosition() or vec3(0,0,0))
   local iconInfo = iconRenderer:getIconByName("playerVehicle")
   iconInfo.color = pureWhite
@@ -724,6 +727,7 @@ end
 
 local function enterBigMapActual(instant)
   if bigMap then return end
+  extensions.hook("onBeforeBigMapActivated")
   --freeroam_bigMapMarkers.buildPoiList() -- removed(testing)
   --freeroam_bigMapMarkers.setupFilter()
 
@@ -775,7 +779,7 @@ local function enterBigMapActual(instant)
     DOFPostEffect:disable()
   end
 
-  simTimeAuthority.pause(true)
+  simTimeAuthority.pause(true, false)
 
   local camMode = core_camera.getGlobalCameras().bigMap
   setLevelProperties()
@@ -794,7 +798,7 @@ local function enterBigMapActual(instant)
   end
 
   camMode.fovMin = clamp(minZoomFactor / camHeightAboveTerrain, 10, camMode.fovMax)
-  if commands.isFreeCamera() or not be:getPlayerVehicle(0) or instant then
+  if commands.isFreeCamera() or not getPlayerVehicle(0) or instant then
     -- In freecam, skip the path transition
     commands.setGameCamera()
     core_camera.setByName(0, 'bigMap', false, {initialCamData = {pos = bigMapInitialCamPos, rot = bigMapCamRotation}})
@@ -823,8 +827,9 @@ local function enterBigMapActual(instant)
   transitionProgress = 0
 
   if not poiSelectCallback then
-    guihooks.trigger('MenuOpenModule', 'menu.bigmap')
+    guihooks.trigger('MenuOpenModule', {state = "menu.bigmap", params = {missionId = missionToOpenOnStart}})
   end
+  missionToOpenOnStart = nil
 
   -- block some actions
   core_input_actionFilter.setGroup('bigmapBlockedActions', blockedInputActions)
@@ -834,9 +839,13 @@ local function enterBigMapActual(instant)
   extensions.hook("onBigMapActivated")
 end
 
-local function enterBigMap(instant)
+local function enterBigMap(options)
   if bigMap or (core_camera.getActiveCamName() == "bigMap" and not commands.isFreeCamera()) or not getCurrentLevelIdentifier() then return end
-  enterBigMapActual(instant)
+  options = options or {}
+  if options.missionId then
+    missionToOpenOnStart = options.missionId
+  end
+  enterBigMapActual(options.instant or (render_openxr and render_openxr.isSessionRunning()))
 end
 
 local function exitBigMap(instant, closeEscMenu, forceGameCam)
@@ -848,14 +857,13 @@ local function exitBigMap(instant, closeEscMenu, forceGameCam)
     previousCamMode = "orbit"
   end
 
-  instant = instant or previousFreeCamData
+  instant = instant or previousFreeCamData or (render_openxr and render_openxr.isSessionRunning())
   if instant then
     freeroam_bigMapMarkers.clearMarkers()
   else
     freeroam_bigMapMarkers.hideMarkers()
   end
-  local camMode = core_camera.getGlobalCameras().bigMap
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle and not instant and not transitionActive then
     core_camera.getGlobalCameras().transition:start(false, {callback = function(endMarkerData) startTransition(endMarkerData, closeEscMenu) end})
     core_camera.setByName(0, previousCamMode, false)
@@ -1116,6 +1124,9 @@ local function deselect()
       clearRoutePreview()
     end
     selectedPreviewMissionId = nil
+    if poiSelectCallback then
+      poiSelectCallback(nil)
+    end
   end
 end
 
@@ -1187,7 +1198,7 @@ end
 local function teleportToPoi(poiId)
   for _, poi in ipairs(gameplay_rawPois.getRawPoiListByLevel(getCurrentLevelIdentifier())) do
     if poiId == poi.id then
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       if veh then
         local pos, rot = (poi.markerInfo.bigmapMarker.quickTravelPosRotFunction or nop)(poi, veh)
         if pos and rot then
@@ -1245,7 +1256,7 @@ end
 local function clickOnMap()
 
   -- deselecting the current marker
-  log("I", "", string.format("Sel: %s Hov: %s HasTgt: %s", M.selectedPoiId, M.hoveredPoiId, dumps(core_groundMarkers.currentlyHasTarget())))
+  --log("I", "", string.format("Sel: %s Hov: %s HasTgt: %s", M.selectedPoiId, M.hoveredPoiId, dumps(core_groundMarkers.currentlyHasTarget())))
   if M.selectedPoiId and (not M.hoveredPoiId or M.selectedPoiId == M.hoveredPoiId) then
     deselect()
     return
@@ -1323,9 +1334,12 @@ local function onSerialize()
   local data = {}
   data.airSoundId = airSoundId
   data.bigMap = bigMap
+  data.navDestinationForLuaReloads = navDestinationForLuaReloads
+  data.showNavigationMarker = showNavigationMarker
   if bigMap then
     -- Just calling exitBigMap in onSerialize doesnt work correctly for some reason, so we have to do some stuff manually
     data.previousCamMode = previousCamMode
+    data.previousFreeCamData = previousFreeCamData
     exitBigMap(true, true)
   end
   clearCylinderCache()
@@ -1335,13 +1349,25 @@ end
 
 local function onDeserialized(v)
   airSoundId = v.airSoundId
+  showNavigationMarker = v.showNavigationMarker
   if v.bigMap then
-    local _previousCamMode = v.previousCamMode
     extensions.core_jobsystem.create(
       function (job)
         job.sleep(0.1)
+        simTimeAuthority.setInstant(simTimeAuthority.getInitialTimeScale() or 1)
         enterBigMapActual(true)
-        previousCamMode = _previousCamMode
+        previousCamMode = v.previousCamMode
+        previousFreeCamData = v.previousFreeCamData
+        if v.navDestinationForLuaReloads and not career_career.isActive() then
+          setNavFocus(v.navDestinationForLuaReloads)
+        end
+      end
+    )
+  elseif v.navDestinationForLuaReloads and not career_career.isActive() then
+    extensions.core_jobsystem.create(
+      function (job)
+        job.sleep(0.1)
+        setNavFocus(v.navDestinationForLuaReloads)
       end
     )
   end
@@ -1366,7 +1392,7 @@ end
 local function onNavgraphReloaded()
   if bigMap then
     exitBigMap(true)
-    enterBigMap(true)
+    enterBigMap({instant = true})
   end
 end
 
@@ -1389,7 +1415,7 @@ end
 local function enterBigmapWithCustomPOIs(poiIds, callback, instant, _horizontalOffsetFactor)
   horizontalOffsetFactor = _horizontalOffsetFactor
   poiSelectCallback = callback
-  enterBigMap(instant)
+  enterBigMap({instant = instant})
   setOnlyIdsVisible(poiIds)
 end
 
@@ -1417,6 +1443,7 @@ M.getVerticalResolution = getVerticalResolution
 M.poiHovered = poiHovered
 M.isUIPopupOpen = isUIPopupOpen
 M.enterBigmapWithCustomPOIs = enterBigmapWithCustomPOIs
+M.resetRoute = resetRoute
 
 M.onClientStartMission    = onClientStartMission
 M.onClientEndMission      = onClientEndMission

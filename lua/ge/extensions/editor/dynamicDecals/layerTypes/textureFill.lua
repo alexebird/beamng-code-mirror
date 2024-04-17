@@ -40,7 +40,7 @@ local function inspectLayerGui(layer, guiId)
     api.setLayer(layer, true)
   end
   im.SameLine()
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   local paletteColor = {1, 1, 1, 0}
   if layer.colorPaletteMapId == 0 then
     paletteColor = layer.color:toTable()
@@ -75,51 +75,15 @@ local function inspectLayerGui(layer, guiId)
     layer.scale.y = api.propertiesMap["scale"].value[2]
     api.setLayer(layer, true)
   end
-end
 
-local function textureFillLayerScaleWidget()
-  local textureFillLayerScale = api.getTextureFillLayerScale()
-  local changed = false
-
-  im.TextUnformatted("Texture Fill Layer Scale")
-  local btnSize = math.ceil(im.GetFontSize()) + 2 * im.GetStyle().FramePadding.y
-  if editor.uiIconImageButton(editor.icons.lock, tool.getIconSizeVec2(), lockFillTextureLayerScaleRatio and editor.color.beamng.Value or nil, nil, nil, "lockFillTextureLayerScaleRatioButton") then
-    lockFillTextureLayerScaleRatio = not lockFillTextureLayerScaleRatio
+  if widgets.draw({layer.offset.x, layer.offset.y}, api.propertiesMap["offset"], widgetId, editor.getTempBool_BoolBool(false)) then
+    layer.offset.x = api.propertiesMap["offset"].value[1]
+    layer.offset.y = api.propertiesMap["offset"].value[2]
   end
-  im.tooltip("Lock ratio. If enabled changing the x or z component of the scale will set the other component to the same value.")
-  im.SameLine()
-
-  if editor.uiIconImageButton(editor.icons.refresh, tool.getIconSizeVec2(), nil, nil, nil, "resetFillTextureLayerScaleButton") then
-    changed = true
-    textureFillLayerScale.x = 1.0
-    textureFillLayerScale.y = 1.0
-  end
-  im.tooltip("Reset to default values##textureFillLayerScale")
-  im.SameLine()
-
-  local width = (im.GetContentRegionAvailWidth() - im.GetStyle().ItemSpacing.x) / 2
-  im.PushItemWidth(width)
-  if im.SliderFloat("##textureFillLayerScale_x", editor.getTempFloat_NumberNumber(textureFillLayerScale.x), 0.01, 6.0, "%.3f") then
-    changed = true
-    textureFillLayerScale.x = editor.getTempFloat_NumberNumber()
-    if lockFillTextureLayerScaleRatio then
-      textureFillLayerScale.y = textureFillLayerScale.x
-    end
-  end
-  im.tooltip("Scale X")
-  im.SameLine()
-  if im.SliderFloat("##textureFillLayerScale_y", editor.getTempFloat_NumberNumber(textureFillLayerScale.y), 0.01, 6.0, "%.3f") then
-    changed = true
-    textureFillLayerScale.y = editor.getTempFloat_NumberNumber()
-    if lockFillTextureLayerScaleRatio then
-      textureFillLayerScale.x = textureFillLayerScale.y
-    end
-  end
-  im.tooltip("Scale Y")
-  im.PopItemWidth()
-
-  if changed then
-    api.setTextureFillLayerScale(textureFillLayerScale)
+  if editor.getTempBool_BoolBool() == true then
+    layer.offset.x = api.propertiesMap["offset"].value[1]
+    layer.offset.y = api.propertiesMap["offset"].value[2]
+    api.setLayer(layer, true)
   end
 end
 
@@ -131,7 +95,7 @@ local function sectionGui(guiId)
     api.setFillLayerColorPaletteMapId(api.propertiesMap["textureFill_colorPaletteMapId"].value)
   end
   im.SameLine()
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   local paletteColor = {1, 1, 1, 0}
   if colorPaletteMapId == 0 then
     paletteColor = api.getFillLayerColor():toTable()
@@ -161,6 +125,10 @@ local function sectionGui(guiId)
     api.setTextureFillLayerScale(Point2F.fromTable(api.propertiesMap["scale"].value))
   end
 
+  if widgets.draw(api.getTextureFillOffset():toTable(), api.propertiesMap["offset"], guiId) then
+    api.setTextureFillOffset(Point2F.fromTable(api.propertiesMap["offset"].value))
+  end
+
   -- Disabled for the time since it's heavily WIP
   -- if widgets.draw(api.getBlendMode(), api.propertiesMap["textureFill_blendMode"], widgetId) then
   --   api.setBlendMode(api.propertiesMap["textureFill_blendMode"].value)
@@ -168,7 +136,7 @@ local function sectionGui(guiId)
   -- end
 end
 
-local function toolbarItemGui()
+local function onEditorGui()
   if editor.beginWindow(textureFillLayer_add_windowName, "Add Texture Fill Layer") then
     im.Text("Add a new layer filled with a texture")
     sectionGui("addLayerWindow")
@@ -182,7 +150,9 @@ local function toolbarItemGui()
     end
   end
   editor.endWindow()
+end
 
+local function toolbarItemGui()
   if editor.uiIconImageButton(editor.icons.texture, nil, nil, nil, nil, "Add texture fill layer") then
     editor.showWindow(textureFillLayer_add_windowName)
   end
@@ -223,7 +193,8 @@ local function setup(tool_in)
   docs = extensions.editor_dynamicDecals_docs
   widgets = extensions.editor_dynamicDecals_widgets
 
-  tool.registerSection("Texture Fill Layer Properties", sectionGui, 1100, false, {})
+  tool.registerOnEditorGuiFn("textureFill", onEditorGui)
+  -- tool.registerSection("Texture Fill Layer Properties", sectionGui, 1100, false, {})
   inspector.registerLayerGui(api.layerTypes.textureFill, inspectLayerGui)
   tool.registerToolbarToolItem("textureFill", toolbarItemGui, 20)
   docs.register({section = {"Layer Types", "Texture Fill Layers"}, guiFn = documentationGui})

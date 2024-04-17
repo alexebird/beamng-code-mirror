@@ -37,7 +37,7 @@
     width: 60em;
     max-width: 80%;
     min-height: 25em;
-    height: auto;
+    /* height: auto; */
     max-height: 80%;
     margin: 0;
     padding: 0;

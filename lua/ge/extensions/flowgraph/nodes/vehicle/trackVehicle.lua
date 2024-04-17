@@ -2,15 +2,12 @@
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
---require('/lua/vehicle/controller')
-
 local C = {}
 
 C.name = 'Track Vehicle'
 C.color = ui_flowgraph_editor.nodeColors.vehicle
 C.icon = ui_flowgraph_editor.nodeIcons.vehicle
 C.description = 'Allow Flowgraph to track the vehicle spawned outside Flowgraph.'
-C.todo = ""
 C.category = 'repeat_instant'
 
 C.pinSchema = {

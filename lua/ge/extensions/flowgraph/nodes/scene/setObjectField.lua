@@ -10,12 +10,11 @@ local C = {}
 C.name = 'Set Object Field'
 C.description = 'Sets a field of an object.'
 C.category = 'repeat_instant'
-C.todo = "Not tested at all."
 
 C.pinSchema = {
   { dir = 'in', type = 'number', name = 'objectId', description = 'Defines the id of the object to modify.' },
   { dir = 'in', type = 'string', name = 'fieldName', description = 'Defines the name of the field to modify.' },
-  { dir = 'in', type = 'number', name = 'fieldArrayNum', default = 0, hardcoded = true, hidden = true, description = 'Field array number to modify.' },
+  { dir = 'in', type = 'number', name = 'fieldArrayNum', default = 0, hardcoded = true, hidden = true, description = '(Optional) Field array number to modify.' },
   { dir = 'in', type = 'any', name = 'value', description = 'Value to be set. Vectors and Quaternions are automatically converted into correctly formatted strings.' },
   { dir = 'out', type = 'bool', name = 'objectFound', hidden = true, description = 'Puts out true, when the object was found.' },
 }
@@ -34,6 +33,7 @@ function C:work()
     val = table.concat(val,' ')
   end
   obj:setField(self.pinIn.fieldName.value, self.pinIn.fieldArrayNum.value or 0, val)
+  if obj.updateInstanceRenderData then obj:updateInstanceRenderData() end
 end
 
 

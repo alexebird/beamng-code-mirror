@@ -46,8 +46,11 @@ end
 
 --seems to work for freeroam
 local function createGameActual(lvlPath, customLoadingFunction)
-  levelPath = lvlPath
+  local timerFunc = hptimer()
   profilerPushEvent('createGameActual')
+  levelPath = lvlPath
+
+  log('I', 'levelLoading', "Level loading: '"..levelPath.."'...")
 
   LoadingManager:setLoadingScreenEnabled(true)
   loadingProgress = LoadingManager:push('level')
@@ -73,12 +76,11 @@ local function createGameActual(lvlPath, customLoadingFunction)
   if not levelPath:find(".json") and not levelPath:find(".mis") then
     levelPath = levelPath .. 'info.json'
   end
-  log('I', 'levelLoading', "*** loading level: "..levelPath)
 
 
   TorqueScriptLua.setVar("$Physics::isSinglePlayer", "true")
 
-  log('I', 'levelLoading', '*** Loading init took: ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
+  local timeInit = timer1:stopAndReset() / 1000
 
   -- Load up any core datablocks
   if FS:fileExists("core/art/datablocks/datablockExec.cs") then
@@ -112,7 +114,7 @@ local function createGameActual(lvlPath, customLoadingFunction)
   loadingProgress:update(-1, '')
   loadJsonMaterialsFile("art/datablocks/managedDatablocks.datablocks.json")
 
-  log('I', 'levelLoading', '*** Loaded datablocks in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
+  local timeDatablocks = timer1:stopAndReset() / 1000
 
   profilerPopEvent() -- datablocks
   loadingProgress:update(-1, 'datablocks done')
@@ -184,8 +186,7 @@ local function createGameActual(lvlPath, customLoadingFunction)
   loadingProgress:update(-1, 'materials done')
   profilerPushEvent('objects')
 
-  log('I', 'levelLoading', '*** Loaded materials in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
-
+  local timeMat = timer1:stopAndReset()/1000
 
   -- if the scenetree folder exists, try to load it
   if FS:directoryExists(levelDir .. 'main/') then
@@ -224,7 +225,7 @@ local function createGameActual(lvlPath, customLoadingFunction)
   --Make the MissionCleanup group the place where all new objects will automatically be added.
   TorqueScriptLua.setVar("$instantGroup", misCleanup:getID())
 
-  log('I', 'levelLoading', "*** Level loaded: "..getMissionFilename())
+  log('I', 'levelLoading', "Level loaded: "..getMissionFilename())
 
   TorqueScriptLua.setVar("$missionRunning", 1)
 
@@ -235,12 +236,12 @@ local function createGameActual(lvlPath, customLoadingFunction)
     scenetree.AudioChannelEffects:play(-1.0, -1.0)
   end
 
-  log('I', 'levelLoading', '*** Loaded objects in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
+  local timeObjects = timer1:stopAndReset() / 1000
 
   -- notify the map
   map.onMissionLoaded()
 
-  log('I', 'levelLoading', '*** Loaded ai.map in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
+  local timeAIMap = timer1:stopAndReset() / 1000
 
   -- Load the static level decals.
   if FS:fileExists(levelDir.."main.decals.json") then
@@ -248,16 +249,14 @@ local function createGameActual(lvlPath, customLoadingFunction)
   elseif FS:fileExists(levelDir.."../main.decals.json") then
     be:decalManagerLoad(levelDir.."../main.decals.json")
   end
+  local timeDecals = timer1:stopAndReset() / 1000
 
   profilerPopEvent() -- objects
   loadingProgress:update(-1, 'objects done')
   profilerPushEvent('start physics')
 
-  log('I', 'levelLoading', '*** Loaded decals in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
-
   be:physicsStartSimulation()
-
-  log('I', 'levelLoading', '*** Started physics in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
+  local timePhysics = timer1:stopAndReset() / 1000
 
   profilerPopEvent() -- start physics
   loadingProgress:update(-1, 'physics done')
@@ -265,28 +264,30 @@ local function createGameActual(lvlPath, customLoadingFunction)
 
   -- NOTE(AK): These spawns are only needed by freeroam. Scenario does it's own spawning
   spawn.spawnCamera()
+  local timeCam = timer1:stopAndReset() / 1000
   spawn.spawnPlayer()
-
-  log('I', 'levelLoading', '*** Loaded player and camera in ' .. string.format('%5.3f s', timer1:stopAndReset() / 1000))
-
   extensions.hook('onPlayerCameraReady')
+  local timePlayer = timer1:stopAndReset() / 1000
   profilerPopEvent() -- spawn player
 
   ------------------------------------
-
   if customLoadingFunction then
-    log("I",'levelLoading',"*** Delaying fadeout by request.")
+    log("D",'levelLoading',"*** Delaying fadeout by request.")
     customLoadingFunction()
   else
     M.fadeoutLoadingScreen()
   end
+  local timeFade = timer1:stopAndReset() / 1000
 
   rawset(_G, 'levelLoaded', levelDir)
+
+  local timeTotal = timerFunc:stopAndReset() / 1000
+  log('I', 'levelLoading', string.format("Level loaded in %.3fs: init %.3fs + datablocks %.3fs + materials %.3fs + objects %.3fs + ai.map %.3fs + decals %.3fs + physics %.3fs + cam %.3fs + player %.3fs + fade %.3fs", timeTotal, timeInit, timeDatablocks, timeMat, timeObjects, timeAIMap, timeDecals, timePhysics, timeCam, timePlayer, timeFade))
 end
 
 local function fadeoutLoadingScreen(skipStart)
   if not levelPath then
-    log("I",'levelLoading',"!!! levelPath is already nil.")
+    log("W",'fadeoutLoadingScreen',"levelPath is already nil.")
     return
   end
   loadingProgress:update(-1, 'player done')
@@ -310,14 +311,13 @@ local function fadeoutLoadingScreen(skipStart)
 
   Engine.Platform.taskbarSetProgressState(0)
   TorqueScriptLua.setVar("$loadingLevel", false) -- DO NOT REMOVE, this is used on the c++ side
-  log('I', 'levelLoading', '*** Loaded everything in ' .. string.format('%5.3f s', timer2:stopAndReset() / 1000))
-
 
   LoadingManager:pop(loadingProgress)
 
 
   LoadingManager:setLoadingScreenEnabled(false)
   extensions.hook("onLoadingScreenFadeout")
+  log('I', 'levelLoading', 'Loading screen disabled after ' .. string.format('%5.3fs', timer2:stopAndReset() / 1000))
   --Engine.Profiler.stopCapture()
   --Engine.Profiler.saveCapture('loading.opt')
   levelPath, timer2, loadingProgress = nil, nil, nil

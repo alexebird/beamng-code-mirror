@@ -5,7 +5,7 @@
 -- extensions.gameplay_statistic.setDebug(true)
 
 local M = {}
-M.dependencies = {"ui_imgui"}
+M.dependencies = {"ui_imgui","core_gamestate"}
 local im = ui_imgui
 
 local realtimer = 0
@@ -13,7 +13,7 @@ local simtimer = 0
 
 local fileName = "/settings/cloud/gameplay_stat.json"
 local fileData = nil
-local fileNameCareer = nil
+
 local fileDataCareer = nil
 local currentActivity = nil
 local currentLevel = nil
@@ -49,20 +49,7 @@ local function _saveData()
   else
     log("E","save","failed to write json!")
   end
-  -- log("E","save","fileNameCareer="..dumps(fileNameCareer))
-  if fileNameCareer then
-    if fileNameCareer == "" then --happens when new save
-      local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
-      if not savePath or savePath == "" then log("E","save","career savepath not set properlly");return end
-      fileNameCareer = savePath
-    end
-    if jsonWriteFile(fileNameCareer.. "/career/gameplay_stat.json"..".tmp",fileDataCareer) then
-      FS:removeFile(fileNameCareer)
-      FS:renameFile(fileNameCareer.. "/career/gameplay_stat.json"..".tmp", fileNameCareer.. "/career/gameplay_stat.json" )
-    else
-      log("E","save","failed to write career json!")
-    end
-  end
+  -- career saving has been moved to onSaveCurrentSaveSlot
 end
 
 local function onInit()
@@ -89,7 +76,6 @@ local function onSerialize()
   data.windowOpen = windowOpen[0]
   data.realtimer = realtimer
   data.simtimer = simtimer
-  data.fileNameCareer = fileNameCareer
   return data
 end
 
@@ -99,9 +85,8 @@ local function onDeserialized(data)
   if data.currentMod then currentMod = data.currentMod end
   if data.realtimer then realtimer = data.realtimer end
   if data.simtimer then simtimer = data.simtimer end
-  if data.windowOpen then windowOpen[0] = data.windowOpen end
+  if data.windowOpen ~= nil then windowOpen[0] = data.windowOpen end
   if data.currentLevel then M.onClientStartMission() end
-  if data.fileNameCareer then M.onSetSaveSlot(data.fileNameCareer,"noname") end
 end
 
 local function addSchedule(fn)
@@ -122,7 +107,7 @@ end
 
 local function loadSubmodules(data)
   statSchedule = {}
-  currentPlayerVehicleObj = be:getPlayerVehicle(0) or nil
+  currentPlayerVehicleObj = getPlayerVehicle(0) or nil
   if currentPlayerVehicleObj then
     currentPlayerVehicleId = currentPlayerVehicleObj:getId()
   end
@@ -192,7 +177,7 @@ end
 
 local function metricAdd(name,value,aggregate)
   if name==nil then log("E", "metricAdd", "invalid metric name") return end
-  if value==nil then log("E", "metricAdd", "invalid value") return end
+  if value==nil then log("E", "metricAdd", "invalid value metric="..dumps(name)) return end
   local oldEntry = deepcopy(fileData.entries[name])
   local r = _metricAdd(fileData.entries[name],name,value,aggregate)
   if not oldEntry then
@@ -200,7 +185,7 @@ local function metricAdd(name,value,aggregate)
   end
   _runCallback(name,oldEntry,r,false)
 
-  if fileNameCareer then
+  if fileDataCareer then
     oldEntry = deepcopy(fileDataCareer.entries[name])
     r = _metricAdd(fileDataCareer.entries[name],name,value,aggregate)
     if not oldEntry then
@@ -234,15 +219,12 @@ local function metricSet(name,value,aggregate)
   if name==nil then log("E", "metricSet", "invalid metric name") return end
   if value==nil then log("E", "metricSet", "invalid value") return end
   local oldEntry = deepcopy(fileData.entries[name])
-  local r = _metricSet(oldEntry,name,value,aggregate)
-  if not oldEntry then
-    fileData.entries[name] = r
-  end
-  _runCallback(name,oldEntry,r,false)
+  fileData.entries[name] = _metricSet(fileData.entries[name],name,value,aggregate)
+  _runCallback(name,oldEntry,fileData.entries[name],false)
 
-  if fileNameCareer then
+  if fileDataCareer then
     oldEntry = deepcopy(fileDataCareer.entries[name])
-    r = _metricSet(fileDataCareer.entries[name],name,value,aggregate)
+    local r = _metricSet(fileDataCareer.entries[name],name,value,aggregate)
     if not oldEntry then
       fileDataCareer.entries[name] = r
     end
@@ -252,7 +234,7 @@ end
 
 local function metricGet(name, carreer)
   local entry = nil
-  if carreer then
+  if fileDataCareer and carreer then
     entry = fileDataCareer.entries[name]
   else
     entry = fileData.entries[name]
@@ -289,7 +271,7 @@ end
 
 local function timerStop(name)
   if not timers[name] then
-    log("W","timerStart", "Timer "..dumps(name).." not started. will be ignored")
+    log("W","timerStop", "Timer "..dumps(name).." not started. will be ignored")
     return 0
   end
   local value = _timerSave(name)
@@ -313,6 +295,7 @@ local function callbackRegister(name, trigger, callbackFunction, career)
   entry.func = callbackFunction
   if career then
     callbacksCareer[name][tostring(trigger)..tostring(callbackFunction)] = entry
+    log("I","",string.format("Registered callback for %s at %0.2f", name, trigger))
   else
     callbacks[name][tostring(trigger)..tostring(callbackFunction)] = entry
   end
@@ -351,7 +334,9 @@ end
 
 local function endActivity()
   if not currentActivity then log("E","endAct","no activity"); return end
-  timerStop(currentActivity)
+  if timers[currentActivity] then
+    timerStop(currentActivity)
+  end
   currentActivity = nil
 end
 
@@ -364,19 +349,20 @@ local function startActivity(levelPath)
   -- else
   --   levelFolder = _levelPath(levelPath)
   -- end
+  if currentMod and timers["general/mode/"..currentMod..".time"] then
+    timerStop("general/mode/"..currentMod..".time")
+    currentMod = nil
+  end
+  if currentLevel and timers["general/map/"..currentLevel..".time"] then
+    timerStop("general/map/"..currentLevel..".time")
+    currentLevel = nil
+  end
   if not levelFolder then
     -- log("E","startActivity", "levelFolder is null!!!!!")
     if currentActivity then
       endActivity()
     end
-    if currentMod then
-      timerStop("general/mode/"..currentMod..".time")
-      currentMod = nil
-    end
-    if currentLevel then
-      timerStop("general/map/"..currentLevel..".time")
-      currentLevel = nil
-    end
+
     return
   end
   local missionId
@@ -422,14 +408,18 @@ local function startActivity(levelPath)
   currentActivity = activityType .."/".. levelFolder .. activityDetail ..".time"
   timerStart(currentActivity)
 
-  if activityType~= currentMod or not timer["general/mode/"..currentMod..".time"] then
-    if currentMod then timerStop("general/mode/"..currentMod..".time") end
+  if activityType~= currentMod or not timers["general/mode/"..currentMod..".time"] then
+    if currentMod and timers["general/mode/"..currentMod..".time"] then
+      timerStop("general/mode/"..currentMod..".time")
+    end
     currentMod = activityType
     timerStart("general/mode/"..currentMod..".time")
   end
 
-  if levelFolder~= currentLevel or not timer["general/map/"..currentLevel..".time"]then
-    if currentLevel then timerStop("general/map/"..currentLevel..".time") end
+  if levelFolder~= currentLevel or not timers["general/map/"..currentLevel..".time"]then
+    if currentLevel and timers["general/mapmap/"..currentLevel..".time"]then
+      timerStop("general/map/"..currentLevel..".time")
+    end
     currentLevel = levelFolder
     timerStart("general/map/"..currentLevel..".time")
   end
@@ -544,7 +534,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
         im.EndTabItem()
       end
       if im.BeginTabItem("entries career") then
-        im.TextUnformatted("save : "..dumps(type(fileNameCareer))..dumps(string.len(fileNameCareer or "") )..dumps(fileNameCareer))
+        --im.TextUnformatted("save : "..dumps(type(fileNameCareer))..dumps(string.len(fileNameCareer or "") )..dumps(fileNameCareer))
         if fileDataCareer then
           for k,v in pairs(fileDataCareer.entries) do
             if v.max then
@@ -613,40 +603,34 @@ end
 
 local function sendGUIState()
   local data = {general= fileData.entries}
-  if fileNameCareer and fileDataCareer then
+  if fileDataCareer then
     data.career = fileDataCareer.entries
   end
   guihooks.trigger('StatisticData', data )
 
 end
 
-local function onSetSaveSlot(currentSavePath, slotName)
-  --log("E","onSetSaveSlot","currentSavePath="..dumps(currentSavePath).."\tslotName="..dumps(slotName))
-  if currentSavePath then
-    if fileNameCareer then
-      _saveData()
-    end
-    fileNameCareer = currentSavePath
-    fileDataCareer = jsonReadFile(fileNameCareer.. "/career/gameplay_stat.json")
+local function onSaveCurrentSaveSlot(currentSavePath)
+  -- save local career data into the saveslot folder
+  local careerSaveFilePath = currentSavePath .. "/career/gameplay_stat.json"
+  if not career_saveSystem.jsonWriteFileSafe(careerSaveFilePath,fileDataCareer) then
+    log("E","save","failed to write career json!")
+  end
+end
+
+
+local function onCareerActive(active)
+  if active then
+    -- load current saveslot stats
+    local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
+    if not saveSlot then return end
+    fileDataCareer = jsonReadFile(savePath.. "/career/gameplay_stat.json")
+    -- if no stats are found, create empty data.
     if not fileDataCareer or not fileDataCareer.entries or type(fileDataCareer.entries)~="table" or not fileDataCareer.version then
       fileDataCareer = {version=1, entries={}}
     end
   else
-    if fileNameCareer then
-      _saveData()
-      fileNameCareer = nil
-    end
-  end
-end
-
-local function onSaveCurrentSaveSlot(oldestSave, saveDate, forceSyncSave)
-  _saveData()
-end
-
-local function onCareerActive(state)
-  if not state then
-    _saveData()
-    fileNameCareer = nil
+  -- if career is deactivated, remove local career data.
     fileDataCareer = nil
   end
 end
@@ -669,7 +653,6 @@ M.onSerialize = onSerialize
 M.onDeserialized = onDeserialized
 M.onExtensionLoaded = onExtensionLoaded
 
-M.onSetSaveSlot = onSetSaveSlot
 M.onSaveCurrentSaveSlot = onSaveCurrentSaveSlot
 M.onCareerActive = onCareerActive
 

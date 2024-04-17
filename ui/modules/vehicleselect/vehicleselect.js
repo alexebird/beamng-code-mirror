@@ -331,7 +331,7 @@ angular.module('beamng.stuff')
   }
 
   // because of bug in non compete iirc
-  vm.disableSpawnNew = (state) => state.toLowerCase().indexOf('scenario') !== -1
+  vm.disableSpawnNew = state => state.toLowerCase().indexOf('scenario') !== -1
 
 
   function processData() {
@@ -774,12 +774,14 @@ function ($scope, $state, $timeout, $stateParams, $rootScope, Settings, VehicleP
     'boat':1,
     'automation':2,
     'trailer':3,
+    'prop':4,
     // rest will fallback to 9
   }
   let categoryColors = {
     1: "rgba(255, 255, 255, 0.0)",
     2: "rgba(255, 100, 130, 0.2)",
     3: "rgba(90, 130, 255, 0.2)",
+    4: "rgba(255, 255, 255, 0.0)",
     9: "rgba(255, 190, 100, 0.2)",
   }
 

@@ -18,12 +18,11 @@ local helper = nil
 
 local uvLayerNamesCharPtr = nil
 
-local materialsMapMaterialNameToMaterialIdx -- key: material name, value: material id
-local materialsMapMaterialIxToArrayIdx -- key: material name, value: material id
-local materialNames -- lua string table
-local materialNamesCharPtr -- ffi string table
+local materialsMapMaterialNameToMaterialIdx = {} -- key: material name, value: material id
+local materialsMapMaterialIdxToMaterialName = {} -- key: material id, value: material name
 
 local shapeMeshes = nil
+local materialsFilter = im.ImGuiTextFilter()
 local meshesFilter = im.ImGuiTextFilter()
 
 local textureResolutionNamesCharPtr
@@ -32,23 +31,18 @@ local textureResolutionYId = 1
 
 local function updateMaterials()
   if not api then return end
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   if not vehicleObj then
     return
   end
   local vehicleName = (vehicleObj and vehicleObj.jbeam or "")
   local mNames = api.getShapeMaterialNames()
   materialsMapMaterialNameToMaterialIdx = {}
-  materialsMapMaterialIxToArrayIdx = {}
-  materialNames = {}
-  local i = 0
+  materialsMapMaterialIdxToMaterialName = {}
   for materialId, materialName in pairs(mNames) do
-    table.insert(materialNames, materialName)
     materialsMapMaterialNameToMaterialIdx[materialName] = materialId
-    materialsMapMaterialIxToArrayIdx[materialId] = i
-    i = i + 1
+    materialsMapMaterialIdxToMaterialName[materialId] = materialName
   end
-  materialNamesCharPtr = im.ArrayCharPtrByTbl(materialNames)
 end
 
 local function sectionGui(guiId)
@@ -102,51 +96,69 @@ local function sectionGui(guiId)
   im.tooltip("Changing UV layer will reproject all layers.\nDepending on the amount of layers this might take some time.")
   im.PopItemWidth()
 
-  im.TextUnformatted("Material")
-  im.SameLine()
-  im.PushItemWidth(im.GetContentRegionAvailWidth())
-  if im.Combo1("Material Names", editor.getTempInt_NumberNumber(materialsMapMaterialIxToArrayIdx[api.getMaterialIdx()]), materialNamesCharPtr) then
-    if materialsMapMaterialNameToMaterialIdx[materialNames[editor.getTempInt_NumberNumber() + 1]] then
-     api.setMaterialIdx(materialsMapMaterialNameToMaterialIdx[materialNames[editor.getTempInt_NumberNumber() + 1]])
-    end
-  end
-  im.PopItemWidth()
+  if im.TreeNodeEx1(string.format("Materials##VehicleLiveryEditor_Settings_%s", widgetId), im.TreeNodeFlags_DefaultOpen) then
+    editor.uiInputSearchTextFilter("Materials Filter", materialsFilter, im.GetContentRegionAvailWidth())
+    im.BeginChild1(string.format("MaterialsChild_VehicleLiveryEditor_Settings_%s", widgetId), im.ImVec2(0, 280), true)
 
-  if im.Button("Update materials") then
-    updateMaterials()
-  end
+    local materialIndices = api.getMaterialIndices()
 
-  im.Separator()
-
-  if im.TreeNodeEx1("Meshes", im.TreeNodeFlags_DefaultOpen) then
-    if im.Button("Enable all") then
-      for id, data in pairs(shapeMeshes) do
-        data.enabled = true
-        api.setMeshEnabledState(id, true)
-      end
-    end
-    im.SameLine()
-    if im.Button("Disable all") then
-      for id, data in pairs(shapeMeshes) do
-        data.enabled = false
-        api.setMeshEnabledState(id, false)
-      end
-    end
-    im.SameLine()
-    editor.uiInputSearchTextFilter("Meshes Filter", meshesFilter, im.GetContentRegionAvailWidth())
-    im.BeginChild1("##MeshesChild", im.ImVec2(0, 280), true)
-    for id, data in pairs(shapeMeshes) do
-      if im.ImGuiTextFilter_PassFilter(meshesFilter, data.name) then
-        if im.Checkbox(string.format("##shapeMesh_%d", id), editor.getTempBool_BoolBool(data.enabled)) then
+    for name, id in pairs(materialsMapMaterialNameToMaterialIdx) do
+      if im.ImGuiTextFilter_PassFilter(materialsFilter, name) then
+        local enabled = tableContains(materialIndices, id)
+        if im.Checkbox(string.format("##%s_material_%d_checkbox", widgetId, id), editor.getTempBool_BoolBool(enabled)) then
           local newValue = editor.getTempBool_BoolBool()
-          data.enabled = newValue
-          api.setMeshEnabledState(id, newValue)
+          if newValue == true then
+            api.addMaterialIdx(id)
+          else
+            api.removeMaterialIdx(id)
+          end
         end
         im.SameLine()
-        im.TextUnformatted(data.name)
+        if im.Selectable1(string.format("%s##%s_material_%d_selectable", name, widgetId, id), enabled) then
+          if enabled == false then
+            api.addMaterialIdx(id)
+          else
+            api.removeMaterialIdx(id)
+          end
+        end
       end
     end
     im.EndChild()
+
+    if im.Button("Update materials") then
+      updateMaterials()
+    end
+    im.TreePop()
+  end
+
+  if im.TreeNodeEx1(string.format("Meshes##VehicleLiveryEditor_Settings_%s", widgetId), im.TreeNodeFlags_DefaultOpen) then
+    local sMeshes = api.getShapeMeshes()
+
+    if im.Button(string.format("Enable all##Meshes_%s", widgetId)) then
+      api.enableAllMeshes()
+    end
+    im.SameLine()
+    if im.Button(string.format("Disable all##Meshes_%s", widgetId)) then
+      api.disableAllMeshes()
+    end
+    im.SameLine()
+    editor.uiInputSearchTextFilter(string.format("Meshes Filter##%s", widgetId), meshesFilter, im.GetContentRegionAvailWidth())
+    im.BeginChild1(string.format("MeshesChild_VehicleLiveryEditor_Settings_%s", widgetId), im.ImVec2(0, 280), true)
+    local i = 0
+    for name, enabled in pairs(sMeshes) do
+      if im.ImGuiTextFilter_PassFilter(meshesFilter, name) then
+        if im.Checkbox(string.format("##%s_shapeMesh_%d_checkbox", widgetId, i), editor.getTempBool_BoolBool(enabled)) then
+          api.setMeshEnable(name, not enabled)
+        end
+        im.SameLine()
+        if im.Selectable1(string.format("%s##%s_shapeMesh_%d_selectable", name, widgetId, i), enabled) then
+          api.setMeshEnable(name, not enabled)
+        end
+      end
+      i = i + 1
+    end
+    im.EndChild()
+
     im.TreePop()
   end
 
@@ -194,7 +206,11 @@ local function registerEditorPreferences(prefsRegistry)
 end
 
 local function editorPreferenceValueChanged(path, value)
+end
 
+local function updateShapeMeshesJob()
+  coroutine.yield()
+  shapeMeshes = api.getShapeMeshes()
 end
 
 local tblx = {}
@@ -224,7 +240,8 @@ local function setup(tool_in)
     end
 
     updateMaterials()
-    shapeMeshes = api.getShapeMeshes()
+    -- for some reason we need to delay getting the shape names for the vehicle, otherwise they aren't ready
+    core_jobsystem.create(updateShapeMeshesJob, 1)
   end
 
   tool.registerSection("Settings", sectionGui, 1040, false, {})
@@ -234,7 +251,7 @@ local function getUsedMaterialNames()
   local res = {}
 
   for _, id in ipairs(api.getMaterialIndices()) do
-    table.insert(res, materialNames[id+1])
+    table.insert(res, materialsMapMaterialIdxToMaterialName[id])
   end
 
   return res

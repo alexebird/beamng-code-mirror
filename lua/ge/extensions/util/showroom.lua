@@ -48,7 +48,7 @@ end
 
 local function isInside(pos)
   if not pos then
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     pos = vec3(playerVehicle and playerVehicle:getPosition() or core_camera.getPosition())
   end
   --TODO do proper test against a BB or whatever method is appropriate

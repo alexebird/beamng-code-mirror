@@ -14,10 +14,10 @@ local pointBBox = quadtree.pointBBox
 
 local M = {}
 
-M.objects = {}
-local objectsCache = {}
 M.objectNames = {}
+M.objects = {}
 
+local objectsCache = {}
 local mapFilename = ''
 local map = {nodes = {}}
 local loadedMap = false
@@ -31,12 +31,7 @@ local edgeKdTree = nil
 local nodeKdTree = nil
 local manualWaypoints
 local buildSerial = -1
-
-local singleEventTimer = {}
-singleEventTimer.__index = singleEventTimer
-
 local emptyTable = setmetatable({}, {__newindex = function(t, key, val) log('E', 'map', 'Tried to insert new elements into map.objects') end})
-
 local vecX = vec3(1,0,0)
 local vecY = vec3(0,1,0)
 local vecUp = vec3(0,0,1)
@@ -45,6 +40,9 @@ local vecUp = vec3(0,0,1)
 local function _updateProgress()
   LoadingManager:triggerUpdate()
 end
+
+local singleEventTimer = {}
+singleEventTimer.__index = singleEventTimer
 
 local function newSingleEventTimer()
   local data = {waitDt = -1, update = nop, eventFun = nop}
@@ -197,15 +195,15 @@ local function loadJsonDecalMap()
     if o and (not o.excludeFromMap) and mapNodes[nodeName] == nil then
       local radius = getSceneWaypointRadius(o)
       local pos = o:getPosition()
+      mapNodes[nodeName] = {pos = pos, radius = radius, links = {}, manual = 1}
       manualWaypoints[nodeName] = {pos = vec3(pos), radius = radius}
-      mapNodes[nodeName] = {pos = vec3(pos), radius = radius, links = {}, manual = 1}
     end
   end
 
   _updateProgress()
 
   do -- load DecalRoad data
-    local nodePos, nodeSqRad, tmpPos, stack, stackIdx = {}, {}, vec3(), {}, 0
+    local nodePos, nodeSqRad, stack, stackIdx = {}, {}, {}, 0
     for _, decalRoadName in ipairs(scenetree.findClassObjects('DecalRoad')) do
       local road = scenetree.findObject(decalRoadName)
       if road and road.drivability > 0 then
@@ -243,106 +241,100 @@ local function loadJsonDecalMap()
           if edgeCount > nodeCount and road.useSubdivisions then -- use decalRoad edge (subdivision) data to generate AI path
             local segCount = edgeCount - 1
 
-            -- for the logic of what follows see: https://web.archive.org/web/20200802051601/https://geomalgorithms.com/a16-_decimate-1.html
-            nodePos[1] = vec3(road:getMiddleEdgePosition(0))
+            -- Polyline simplification: radial distance
+            local count = 1
+            nodePos[1] = road:getMiddleEdgePosition(0)
             nodeSqRad[1] = nodePos[1]:squaredDistance(road:getLeftEdgePosition(0))
             local warningCount = 0
             if nodeSqRad[1] > 900 then warningCount = warningCount + 1 end
-            local count = 1
             for i = 1, segCount-1 do
-              tmpPos:set(road:getMiddleEdgePosition(i))
-              local radius = tmpPos:squaredDistance(road:getLeftEdgePosition(i))
-              if radius > 900 then warningCount = warningCount + 1 end
-              if tmpPos:squaredDistance(nodePos[count]) >= 4 * min(nodeSqRad[count], radius) then
+              local pos = road:getMiddleEdgePosition(i)
+              local radius = pos:squaredDistance(road:getLeftEdgePosition(i))
+              if pos:squaredDistance(nodePos[count]) >= 4 * min(nodeSqRad[count], radius) then
                 count = count + 1
-                nodePos[count] = vec3(tmpPos)
+                nodePos[count] = pos
                 nodeSqRad[count] = radius
               end
+              if radius > 900 then warningCount = warningCount + 1 end
             end
             count = count + 1
-            nodePos[count] = vec3(road:getMiddleEdgePosition(segCount))
+            nodePos[count] = road:getMiddleEdgePosition(segCount)
             nodeSqRad[count] = nodePos[count]:squaredDistance(road:getLeftEdgePosition(segCount))
             if nodeSqRad[count] > 900 then warningCount = warningCount + 1 end
             if warningCount > 0 then log('W', "map", "Road "..prefix.." centerline to edge distance exceeding 30m on "..warningCount.." counts.") end
 
-            local startPointIdx, endPointIdx = 1, count
-            local startPoint = nodePos[1]
-
+            -- Polyline simplification: Ramer-Douglas-Peucker algorithm
+            local i, k = 1, count
             count = 1
-            local nodeName = nameNode(prefix, count)
-            mapNodes[nodeName] = {pos = startPoint, radius = sqrt(nodeSqRad[1]), links = {}, noMerge = noMerge, endNode = true}
-            local prevName = nodeName
+            local nid = nameNode(prefix, count)
+            mapNodes[nid] = {pos = nodePos[1], radius = sqrt(nodeSqRad[1]), links = {}, noMerge = noMerge, endNode = true}
 
             repeat
               local dMax, idxMax = 0, nil
-              local endPoint = nodePos[endPointIdx]
-              for i = startPointIdx+1, endPointIdx-1 do
-                local sqDist = nodePos[i]:squaredDistanceToLineSegment(startPoint, endPoint)
+              local pi, pk = nodePos[i], nodePos[k]
+              for j = i+1, k-1 do
+                local sqDist = nodePos[j]:squaredDistanceToLineSegment(pi, pk)
                 if sqDist > dMax then
                   dMax = sqDist
-                  idxMax = i
+                  idxMax = j
                 end
               end
 
               if idxMax and dMax > max(0.0065 * nodeSqRad[idxMax], 0.04) then
                 stackIdx = stackIdx + 1
-                stack[stackIdx] = endPointIdx
-                endPointIdx = idxMax
+                stack[stackIdx] = k
+                k = idxMax
               else
                 count = count + 1
-                startPointIdx = endPointIdx
-                startPoint = nodePos[startPointIdx]
-                endPointIdx, stackIdx = stack[stackIdx], stackIdx - 1
-
-                nodeName = nameNode(prefix, count)
-
-                local data = {
+                local nextNid = nameNode(prefix, count)
+                local edgeData = {
                   drivability = drivability,
                   hiddenInNavi = hiddenInNavi,
                   oneWay = oneWay,
                   lanes = lanes,
                   speedLimit = speedLimit,
-                  inNode = flipDirection and nodeName or prevName,
+                  inNode = flipDirection and nextNid or nid,
                   type = roadType,
                   noMerge = noMerge
                 }
+                mapNodes[nextNid] = {pos = pk, radius = sqrt(nodeSqRad[k]), links = {[nid] = edgeData}, noMerge = noMerge}
+                mapNodes[nid].links[nextNid] = edgeData
+                nid = nextNid
 
-                mapNodes[nodeName] = {pos = startPoint, radius = sqrt(nodeSqRad[startPointIdx]), links = {[prevName] = data}, noMerge = noMerge}
-                mapNodes[prevName].links[nodeName] = data
-                prevName = nodeName
+                i = k
+                k = stack[stackIdx]
+                stackIdx = stackIdx - 1
               end
-            until not endPointIdx
-            mapNodes[nodeName].endNode = true -- set the last node of this road as an end node
+            until not k
+            mapNodes[nid].endNode = true -- set the last node of this road as an end node
+
+            tableClear(nodePos)
+            tableClear(nodeSqRad)
+            tableClear(stack)
+            stackIdx = 0
           else -- use decalRoad node data to generate AI path
-            local prevName
-            for i = 0, nodeCount - 1 do
-              local nodeName = nameNode(prefix, i+1)
-              local endNode
-              if i == 0 or i == nodeCount - 1 then endNode = true end
-              mapNodes[nodeName] = {pos = vec3(road:getNodePosition(i)), radius = road:getNodeWidth(i)*0.5, links = {}, noMerge = noMerge, endNode = endNode}
-              if prevName then
-                local data = {
-                  drivability = drivability,
-                  hiddenInNavi = hiddenInNavi,
-                  oneWay = oneWay,
-                  lanes = lanes,
-                  speedLimit = speedLimit,
-                  inNode = flipDirection and nodeName or prevName,
-                  type = roadType,
-                  noMerge = noMerge
-                }
-                mapNodes[prevName].links[nodeName] = data
-                mapNodes[nodeName].links[prevName] = data
-              end
-              prevName = nodeName
+            local nid = nameNode(prefix, 1)
+            mapNodes[nid] = {pos = road:getNodePosition(0), radius = road:getNodeWidth(0) * 0.5, links = {}, noMerge = noMerge, endNode = true}
+            for i = 1, nodeCount - 1 do
+              local nextNid = nameNode(prefix, i+1)
+              local edgeData = {
+                drivability = drivability,
+                hiddenInNavi = hiddenInNavi,
+                oneWay = oneWay,
+                lanes = lanes,
+                speedLimit = speedLimit,
+                inNode = flipDirection and nextNid or nid,
+                type = roadType,
+                noMerge = noMerge
+              }
+              mapNodes[nextNid] = {pos = road:getNodePosition(i), radius = road:getNodeWidth(i) * 0.5, links = {[nid] = edgeData}, noMerge = noMerge}
+              mapNodes[nid].links[nextNid] = edgeData
+              nid = nextNid
             end
+            mapNodes[nid].endNode = true
           end
         end
       end
-      tableClear(nodePos)
-      tableClear(nodeSqRad)
-      tableClear(stack)
-      stackIdx = 0
     end
   end
 
@@ -967,37 +959,58 @@ local function validateMapData(singleSided)
   local noOfNodes = 0
   local noOfValidEdges = 0
   local noOfInvalidEdges = 0
-  local noOfSingleSidedEdges = 0
   local nonManualIsolatedNodes = 0
+  local numOfEdges = 0
   for n1id, n1 in pairs(map.nodes) do
     noOfNodes = noOfNodes + 1
-    if not singleSided and not n1.manual and tableSize(n1.links) == 0 then
-      nonManualIsolatedNodes = nonManualIsolatedNodes + 1
-    end
+    local degree = 0
     for n2id, data in pairs(n1.links) do
-      if map.nodes[n1id].links[n2id] == map.nodes[n2id].links[n1id] then
-        noOfValidEdges = noOfValidEdges + 1
-      else
-        if map.nodes[n1id].links[n2id] == nil or map.nodes[n2id].links[n1id] == nil then
-          noOfSingleSidedEdges = noOfSingleSidedEdges + 1
-        else
-          noOfInvalidEdges = noOfInvalidEdges + 1
+      if n1id ~= n2id then
+        degree = degree + 1
+        if singleSided then
+          if map.nodes[n2id] then
+            if map.nodes[n2id].links[n1id] == nil then
+              noOfValidEdges = noOfValidEdges + 1
+            else -- if singleSided is true and the edge is double sided consider it invalid
+              noOfInvalidEdges = noOfInvalidEdges + 1
+            end
+          else -- linked node does not exist
+            noOfInvalidEdges = noOfInvalidEdges + 1
+          end
+        else -- graph is double sided
+          -- check if node n2id exists and if both sides refer to the same data
+          if map.nodes[n2id] and map.nodes[n2id].links[n1id] == data then
+            noOfValidEdges = noOfValidEdges + 1 -- edges will be counted twice
+          else
+            noOfInvalidEdges = noOfInvalidEdges + 1
+          end
         end
+      else
+        noOfInvalidEdges = noOfInvalidEdges + 1
       end
     end
+    if not singleSided then
+      if degree == 0 and not n1.manual then
+        nonManualIsolatedNodes = nonManualIsolatedNodes + 1
+      end
+    end
+    numOfEdges = numOfEdges + degree
   end
 
+  local case
+  if singleSided then
+    case = 'Single Sided: '
+  else
+    case = 'Double Sided: '
+  end
   if noOfValidEdges > 0 then
-    log('W', 'map', "There are "..tonumber(noOfValidEdges).." valid edges")
+    log('W', 'map', case.."There are "..tonumber(noOfValidEdges).." valid edges")
   end
   if noOfInvalidEdges > 0 then
-    log('W', 'map', "There are "..tonumber(noOfInvalidEdges).." invalid edges")
-  end
-  if noOfSingleSidedEdges > 0 then
-    log('W', 'map', "There are "..tonumber(noOfSingleSidedEdges).." single sided edges")
+    log('W', 'map', case.."There are "..tonumber(noOfInvalidEdges).." invalid edges")
   end
   if nonManualIsolatedNodes > 0 then
-    log('W', 'map', "There are "..tonumber(nonManualIsolatedNodes).." non manual isolated nodes")
+    log('W', 'map', case.."There are "..tonumber(nonManualIsolatedNodes).." non manual isolated nodes")
   end
 end
 
@@ -1201,7 +1214,7 @@ local function loadMap(customMapNodes)
   map.buildSerial = buildSerial
 
   --log('D', 'map', "generating roads took " .. string.format("%2.3f ms", timer:stopAndReset()))
-  be:sendToMailbox("mapData", lpack.encodeBin(
+  be:sendToMailbox("mapData", lpack.encodeBinWorkBuffer(
     {
       nodeAliases = map.nodeAliases,
       maxRadius = maxRadius,
@@ -1211,7 +1224,7 @@ local function loadMap(customMapNodes)
     }
   ))
 
-  be:sendToMailbox("updateDrivabilities", lpack.encodeBin(nil)) -- clear updateDrivabilities mailbox
+  be:sendToMailbox("updateDrivabilities", lpack.encodeBinWorkBuffer(nil)) -- clear updateDrivabilities mailbox
 
   guihooks.trigger("NavigationMapChanged", map)
   profilerPopEvent() -- aiMap
@@ -1221,12 +1234,16 @@ local function loadMap(customMapNodes)
 end
 
 -- this is also in vehicle/mapmgr.lua
-local function findClosestRoad(pos)
-  -- find road (edge) closest to "position" and return the nodes ids (closestRoadNode1, closestRoadNode2) of that edge and distance to it.
+-- find road (edge) closest to "position" and return the nodes ids (closestRoadNode1, closestRoadNode2) of that edge and distance to it.
+local function findClosestRoad(pos, searchRadiusLim)
+  -- searchRadiusLim: Optional
+
   if edgeKdTree == nil then return end
+  searchRadiusLim = searchRadiusLim or 200
+  local searchRadius = min(maxRadius, searchRadiusLim)
+
   local mapNodes = map.nodes
   local closestRoadNode1, closestRoadNode2, closestDist
-  local searchRadius = maxRadius
   repeat
     closestDist = searchRadius * searchRadius
     for item_id in edgeKdTree:queryNotNested(pointBBox(pos.x, pos.y, searchRadius)) do
@@ -1241,9 +1258,49 @@ local function findClosestRoad(pos)
       end
     end
     searchRadius = searchRadius * 2
-  until closestRoadNode1 or searchRadius > 200
+  until closestRoadNode1 or searchRadius > searchRadiusLim
 
   return closestRoadNode1, closestRoadNode2, sqrt(closestDist)
+end
+
+local function findBestRoad(pos, dir)
+  -- searches for best road with respect to position and direction, with a fallback to the generic findClosestRoad function
+  local mapNodes = map.nodes
+  local bestRoad1, bestRoad2, bestDist
+  local currRoads = {}
+
+  for item_id in edgeKdTree:queryNotNested(pointBBox(pos.x, pos.y, 20)) do -- assuming that no roads would have a radius greater than 20 m
+    local i = stringFind(item_id, '\0')
+    local n1id = stringSub(item_id, 1, i-1)
+    local n2id = stringSub(item_id, i+1, #item_id)
+    local curDist = pos:squaredDistanceToLineSegment(mapNodes[n1id].pos, mapNodes[n2id].pos)
+
+    if curDist <= square(math.max(mapNodes[n1id].radius, mapNodes[n2id].radius)) then
+      local xnorm = pos:xnormOnLine(mapNodes[n1id].pos, mapNodes[n2id].pos)
+      if xnorm >= 0 and xnorm <= 1 then -- insert result if it is within road boundaries
+        table.insert(currRoads, {n1id, n2id, curDist})
+      end
+    end
+  end
+
+  if not currRoads[1] then
+    --log('W', 'map', 'no results for findBestRoad, now using findClosestRoad')
+    return findClosestRoad(pos, wZ) -- fallback
+  elseif not currRoads[2] then -- only one entry in the table
+    return currRoads[1][1], currRoads[1][2], math.sqrt(currRoads[1][3])
+    -- need to return inNode to outNode
+  end
+
+  local bestDot = 0
+  for _, v in ipairs(currRoads) do
+    local dirDot = math.abs(dir:dot((mapNodes[v[1]].pos - mapNodes[v[2]].pos):normalized()))
+    if dirDot >= bestDot then -- best direction
+      bestDot = dirDot
+      bestRoad1, bestRoad2, bestDist = v[1], v[2], v[3]
+    end
+  end
+
+  return bestRoad1, bestRoad2, math.sqrt(bestDist)
 end
 
 local function getPath(start, target, cutOffDrivability, dirMult, penaltyAboveCutoff, penaltyBelowCutoff)
@@ -1345,7 +1402,7 @@ local function startPosLinks(position, wZ)
               key = n2id
             else
               key = {n1id, n2id}
-              xnorms[key] = xnorm -- we only need to store the xnorm if 1 < xnorm < 0
+              xnorms[key] = xnorm -- we only need to store the xnorm if 0 < xnorm < 1
             end
             if not costs[key] then
               edgeVec:setScaled(xnorm)
@@ -1434,7 +1491,8 @@ local function saveSVG(filename)
 end
 
 local function updateGFX(dtReal)
-  be:sendToMailbox("objUpdate", lpack.encodeBin(M.objects))
+  be:sendToMailbox("objUpdate", lpack.encodeBinWorkBuffer(M.objects))
+
   objectsReset = true
 
   delayedLoad:update(dtReal)
@@ -1522,10 +1580,10 @@ local function request(objId, objbuildSerial)
   if objbuildSerial ~= buildSerial then
     be:queueObjectLua(objId, string.format("mapmgr.setMap(%d)", buildSerial))
 
-    if core_trafficSignals then -- this is set here to always get updated signal states
-      local signalsDict = core_trafficSignals.getSignalsDict()
+    if core_trafficSignals then
+      local signalsDict = core_trafficSignals.getMapNodeSignals() -- table of current traffic signal states, with map node names as keys
       if signalsDict and next(signalsDict) then
-        be:queueObjectLua(objId, string.format("mapmgr.setSignals(%q)", serialize(signalsDict)))
+        be:queueObjectLua(objId, string.format("mapmgr.setSignals(%s)", serialize(signalsDict)))
       end
     end
   end
@@ -1551,7 +1609,7 @@ local function updateDrivabilities(changeSet)
   end
 
   if hasChanged then -- send data if there is at least one change
-    be:sendToMailbox("updateDrivabilities", lpack.encodeBin(changeSet)) -- mailbox is cleared when map is loaded
+    be:sendToMailbox("updateDrivabilities", lpack.encodeBinWorkBuffer(changeSet)) -- mailbox is cleared when map is loaded
     for objId, _ in pairs(M.objects) do
       be:queueObjectLua(objId, "mapmgr.updateDrivabilities()")
     end
@@ -1613,24 +1671,25 @@ local function objectData(objId, isactive, damage, states, objectCollisions)
     tableClear(M.objects)
     objectsReset = false
   end
+
   local object = be:getObjectByID(objId)
   if object and M.objects[objId] == nil then
     local obj = objectsCache[objId] or {view = true, pos = vec3(), vel = vec3(), dirVec = vec3(), dirVecUp = vec3()}
-    local uiState = object.uiState and tonumber(object.uiState)
-    objectsCache[objId] = obj
-    M.objects[objId] = obj
 
     obj.id = objId
     obj.active = isactive
     obj.damage = damage
     obj.states = states or emptyTable
-    obj.uiState = uiState
+    obj.uiState = object.uiState and tonumber(object.uiState)
     obj.objectCollisions = objectCollisions or emptyTable
     obj.pos:set(object:getPosition())
     obj.vel:set(object:getVelocity())
     obj.dirVec:set(object:getDirectionVector())
     obj.dirVecUp:set(object:getDirectionVectorUp())
     obj.isParked = object.isParked and true
+
+    objectsCache[objId] = obj
+    M.objects[objId] = obj
   end
 end
 
@@ -1641,10 +1700,16 @@ local function tempObjectData(objId, isactive, pos, vel, dirVec, dirVecUp, damag
     objectsReset = false
   end
 
-  local obj = objectsCache[objId] or {id = objId, view = true, active = isactive, pos = pos, vel = vel,
-  dirVec = dirVec, dirVecUp = dirVecUp, damage = damage, objectCollisions = objectCollisions}
-  objectsCache[objId] = obj
-  M.objects[objId] = obj
+  local obj = objectsCache[objId] or {
+    id = objId,
+    view = true,
+    active = isactive,
+    pos = pos,
+    vel = vel,
+    dirVec = dirVec,
+    dirVecUp = dirVecUp,
+    damage = damage,
+    objectCollisions = objectCollisions}
 
   obj.id = objId
   obj.active = isactive
@@ -1654,6 +1719,9 @@ local function tempObjectData(objId, isactive, pos, vel, dirVec, dirVecUp, damag
   obj.vel:set(vel)
   obj.dirVec:set(dirVec)
   obj.dirVecUp:set(dirVecUp)
+
+  objectsCache[objId] = obj
+  M.objects[objId] = obj
 end
 
 local function setNameForId(name, id)
@@ -1670,6 +1738,10 @@ local function isCrashAvoidable(objectID, pos, radius)
 
   local relativePos = pos - vec3(obj:getSpawnWorldOOBB():getCenter())
   local relativePosLen = relativePos:length()
+
+  -- Over 150m, we assume it's safe to spawn
+  if relativePosLen > 150 then return true end
+
   local objVel = vec3(obj:getVelocity())
   local relativeSpeed = max(objVel:dot(relativePos / (relativePosLen + 1e-30)), 0)
   local ff = 0.5 * vecUp:dot(vec3(obj:getDirectionVectorUp())) -- frictionCoeff * Normal Force.
@@ -1680,7 +1752,7 @@ local function isCrashAvoidable(objectID, pos, radius)
   local gravity = core_environment.getGravity()
   gravity = max(0.1, abs(gravity)) * sign2(gravity)
 
-  local a = max(0, -gravity * (ff + fw))
+  local a = max(1e-30, -gravity * (ff + fw))
   return relativePosLen > relativeSpeed * relativeSpeed / (2 * a) + obj:getInitialLength() * 0.5 + radius
 end
 
@@ -1717,6 +1789,7 @@ M.getRoadRules = getRoadRules
 M.getManualWaypoints = getManualWaypoints
 M.getTrackedObjects = getTrackedObjects
 M.findClosestRoad = findClosestRoad
+M.findBestRoad = findBestRoad
 M.getPath = getPath
 M.getNodesFromPathDist = getNodesFromPathDist
 M.getPathLen = getPathLen

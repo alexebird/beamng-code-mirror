@@ -239,7 +239,8 @@ local function layerElement(k, layer, guiId, parentUid, parentStack, layerLevel)
   im.SameLine()
   im.SetCursorPosX(im.GetCursorPosX() + (im.GetContentRegionAvailWidth() - (tool.getIconSize() * im.uiscale[0])))
   if editor.uiIconImageButton(layer.enabled and editor.icons.visibility or editor.icons.visibility_off, im.ImVec2(tool.getIconSize(), tool.getIconSize()), nil, nil, nil, string.format("##enabled_%s_%s", guiId, layer.uid)) then
-    api.toggleLayerVisibility(layer.uid)
+    layer.enabled = not layer.enabled
+    api.setLayer(layer, true)
   end
   im.tooltip("Toggle layer visibility")
 
@@ -453,7 +454,7 @@ local function layerElement(k, layer, guiId, parentUid, parentStack, layerLevel)
           im.tooltip("Unselect layer mask layer")
         else
           if editor.uiIconImageButton(editor.icons.near_me, im.ImVec2(tool.getIconSize(), tool.getIconSize()), nil, nil, nil, string.format("select##%s_%s", guiId, layer.uid)) then
-            selection.selectMaskLayer(k, layer.uid)
+            selection.selectLayer(maskLayer.uid)
           end
           im.tooltip("Select layer mask layer")
         end
@@ -571,7 +572,7 @@ local function layerElement(k, layer, guiId, parentUid, parentStack, layerLevel)
 end
 
 local function sectionGui(guiId)
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
   layerHoverStateA[guiId] = nil
   layerMaskHoverStateA[guiId] = nil
 
@@ -638,9 +639,6 @@ local function sectionGui(guiId)
     editor.uiTextUnformattedRightAlign(layerCountText)
   end
 
-  im.Separator()
-  -- debug
-  im.TextUnformatted("guiId: " .. guiId)
   im.Separator()
 
   if editor.getPreference("dynamicDecalsTool.layerStack.topToBottomLayerStructure") then

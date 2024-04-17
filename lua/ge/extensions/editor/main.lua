@@ -499,6 +499,9 @@ local function setEditorActiveInternal(activate, safeMode)
       editor.selectEditMode(editor.editModes.objectSelect)
     end
 
+    -- enable back signals for SimSet object list operations add/remove/clear
+    worldEditorCppApi.enableSimSetAndSimObjectSignals()
+
     if editorLuaReloaded then
       editor.dirty = editorWasDirty
       editorLuaReloaded = false

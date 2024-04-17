@@ -1,15 +1,9 @@
 <template>
   <div class="paint-presets" bng-ui-scope="paint_presets">
-    <div
-      v-for="group in presetGroups"
-      class="paint-presets-group"
-    >
+    <div v-for="group in presetGroups" class="paint-presets-group">
       <span class="paint-presets-name">
         {{ $t(`ui.color.${group.name}`) }}:
-        <span
-          v-if="showText && editable && group.editable"
-          class="paint-presets-hint"
-        >({{ $t("ui.colorpicker.holdToDel") }})</span>
+        <span v-if="showText && editable && group.editable" class="paint-presets-hint">({{ $t("ui.colorpicker.holdToDel") }})</span>
       </span>
       <div
         v-for="preset in group.presets"
@@ -22,11 +16,10 @@
         v-bng-on-ui-nav:ok.asMouse.focusRequired
         v-bng-click="{
           clickCallback: () => emit('apply', preset),
-          holdCallback: editable && group.editable ? (() => removePreset(preset.name)) : undefined,
+          holdCallback: editable && group.editable ? () => removePreset(preset.name) : undefined,
           holdDelay: 1000,
           repeatInterval: 0,
-        }"
-      ></div>
+        }"></div>
       <!-- TODO: icon instead of a label -->
       <!-- FIXME: consider replacing a button with just an icon -->
       <BngButton
@@ -36,7 +29,8 @@
         @click="addPreset"
         Xicon="save"
         v-bng-tooltip:right="$t('ui.colorpicker.colToPre')"
-      >+</BngButton>
+        >+</BngButton
+      >
     </div>
   </div>
 </template>
@@ -67,9 +61,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  current: { // current paint so it could be saved to user presets
+  current: {
+    // current paint so it could be saved to user presets
     type: Object,
-  }
+  },
 })
 
 const emit = defineEmits(["apply"])
@@ -101,7 +96,7 @@ const presetGroups = computed(() => {
   // build group sequence with sources
   const res = []
   // factory (supplied) paint selection
-  if (Object.keys(factoryPresets.value).length > 0) {
+  if (Object.keys(factoryPresets.value).length) {
     res.push({
       name: "factory",
       showTooltip: true,
@@ -120,16 +115,13 @@ const presetGroups = computed(() => {
   }
   // rebuild presets
   for (const group of res) {
-    let presets = Object.keys(group.presets).map(
-      colname => ({
-        name: colname,
-        ...group.presets[colname],
-        // note: user presets might have alpha 0..2 instead of 0..1
-        css: `rgb(${group.presets[colname].baseColor.slice(0, 3).map(val => val * 255)})`,
-      })
-    )
-    if (group.name !== "user")
-      presets = sortColors(presets)
+    let presets = Object.keys(group.presets).map(colname => ({
+      name: colname,
+      ...group.presets[colname],
+      // note: user presets might have alpha 0..2 instead of 0..1
+      css: `rgb(${group.presets[colname].baseColor.slice(0, 3).map(val => val * 255)})`,
+    }))
+    if (group.name !== "user") presets = sortColors(presets)
     group.presets = presets
     // console.log(group.name, group.presets.map(itm => itm.name))
   }
@@ -145,7 +137,7 @@ function valComparable(col, thres = 0.05) {
   let bool = true
   const av = average(col)
   for (let i = 0; i < col.length; i++) {
-    bool = bool && (av - thres <= col[i]) && (av + thres >= col[i])
+    bool = bool && av - thres <= col[i] && av + thres >= col[i]
   }
   bool = bool && (av > 0.8 || av < 0.2)
   return bool
@@ -165,12 +157,11 @@ function colorHigher(a, b) {
     return colorHigherHelper(b) - colorHigherHelper(a)
   } else if (aColor && !bColor) {
     return 1
-  } else if (!aColor && bColor){
+  } else if (!aColor && bColor) {
     return -1
   } else {
     for (let i = 0; i < 3; i++) {
-      if (a.val[i] !== b.val[i])
-        return a.val[i] - b.val[i]
+      if (a.val[i] !== b.val[i]) return a.val[i] - b.val[i]
     }
     return 0
   }
@@ -181,7 +172,7 @@ function colorValue(arr) {
   let repitions = 8
   let rgb = []
   for (let i = 0; i < 3; i++) {
-    rgb[i] = ((1 - arr[3] / 2) * arr[i]) + (arr[3] / 2 * arr[i])
+    rgb[i] = (1 - arr[3] / 2) * arr[i] + (arr[3] / 2) * arr[i]
   }
   let lum = Math.sqrt(0.241 * rgb[0] + 0.691 * rgb[1] + 0.068 * rgb[2])
   let hsl = Paint.rgbToHsl(rgb)
@@ -195,25 +186,25 @@ function colorValue(arr) {
 }
 
 function sortColors(list) {
-  return list.map(elem => {
-    return {
-      val: colorValue(elem.baseColor),
-      orig: elem,
-    }
-  }).sort(colorHigher).map(elem => elem.orig)
+  return list
+    .map(elem => {
+      return {
+        val: colorValue(elem.baseColor),
+        orig: elem,
+      }
+    })
+    .sort(colorHigher)
+    .map(elem => elem.orig)
 }
 
-
 function addPreset() {
-  if (!props.current)
-    return
+  if (!props.current) return
   const colour = {
     ...props.current,
     baseColor: toRaw(props.current.baseColor),
   }
   let idx = 1
-  while (`Custom ${idx}` in userPresets.value)
-    idx++
+  while (`Custom ${idx}` in userPresets.value) idx++
   userPresets.value[`Custom ${idx}`] = colour
   savePresets()
 }
@@ -232,12 +223,11 @@ $game.events.on("SettingsChanged", data => {
   settingsState = data.values
   let paints = {}
   if (settingsState.userPaintPresets) {
-    paints = JSON.parse(settingsState.userPaintPresets.replace(/'/g, '\"'))
+    paints = JSON.parse(settingsState.userPaintPresets.replace(/'/g, '"'))
     if (typeof paints === "object") {
       // convert array to object if needed
       if (Array.isArray(paints)) {
-        paints = paints.reduce((res, paint, idx) =>
-          ({ ...res, [`Custom ${idx}`]: paint }), {})
+        paints = paints.reduce((res, paint, idx) => ({ ...res, [`Custom ${idx}`]: paint }), {})
       }
       const test = new Paint()
       for (const name in paints) {

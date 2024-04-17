@@ -2,9 +2,9 @@
   <div class="components-demo">
     <h1>BNG UI Component Demos</h1>
     <div class="demo-layout">
-      <div class="index">
-        <span v-for="[listName, componentList] in Object.entries(componentLists)" :key="listName">
-          <h3>{{listName}}</h3>
+      <Accordion class="index" :expanded="true">
+        <AccordionItem v-for="[listName, componentList] in Object.entries(componentLists)" :key="listName">
+          <template #caption><h3>{{listName}}</h3></template>
           <ul class="components-list">
             <li
               :class="{ current: current == component.name }"
@@ -15,8 +15,8 @@
               {{ component.name }}
             </li>
           </ul>
-        </span>
-      </div>
+        </AccordionItem>
+      </Accordion>
       <div class="demo" :class="[current]">
         <component v-if="demoView" :is="demoView" />
         <div v-else>No {{ current }} demo available</div>
@@ -32,7 +32,10 @@ import * as DirectiveExports from "@/common/directives"
 import * as LayoutExports from "@/common/layouts"
 import PairingTest from "../components/PairingTest.vue"
 import PopupDemo from "../components/PopupDemo.vue"
-import { computed, ref } from "vue"
+import IconBrowserDemo from "../components/IconBrowserDemo.vue"
+import { computed, ref, provide } from "vue"
+
+const { Accordion, AccordionItem } = UtilityComponentExports
 
 const current = ref("")
 
@@ -45,6 +48,7 @@ const getDemo = name => ({
   ...LayoutExports,
   PairingTestDemo: PairingTest,
   PopupDemo,
+  IconBrowserDemo,
 }[`${name}Demo`])
 
 const makeComponentsList = exportedComponents => Object.keys(exportedComponents)
@@ -58,6 +62,7 @@ const componentLists = {
   'Directives': makeComponentsList(DirectiveExports),
   'Layouts': makeComponentsList(LayoutExports),
   'Special': [
+    { name: "IconBrowser" },
     { name: "PairingTest" },
     { name: "Popup" },
   ]
@@ -66,6 +71,7 @@ const componentLists = {
 function loadDemo(component) {
   current.value = component
 }
+provide("loadDemo", loadDemo)
 </script>
 
 <style lang="scss" scoped>
@@ -89,7 +95,10 @@ $fontsize: 18px;
 }
 
 .index {
-  overflow-y: auto;
+  overflow-y: scroll;
+  h3 {
+    margin: 0;
+  }
 }
 
 .demo-layout {

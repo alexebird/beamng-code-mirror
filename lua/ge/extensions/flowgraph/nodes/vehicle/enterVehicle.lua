@@ -10,11 +10,9 @@ local C = {}
 C.name = 'Enter Vehicle'
 C.color = ui_flowgraph_editor.nodeColors.vehicle
 C.icon = ui_flowgraph_editor.nodeIcons.vehicle
-
-C.description = 'Enters a vehicle and sets the camera to orbit. PlayerID can be set for multiseat.'
+C.description = 'Enters a vehicle and sets the camera to orbit.'
 C.category = 'dynamic_instant'
 
-C.todo = "Needs further testing."
 C.pinSchema = {
   { dir = 'in', type = 'number', name = 'vehId', description = 'Defines the id of the vehicle to enter.' },
 }
@@ -41,7 +39,7 @@ function C:enterVehicle()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
 
   if veh then

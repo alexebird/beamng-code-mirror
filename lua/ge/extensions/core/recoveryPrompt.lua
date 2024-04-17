@@ -5,7 +5,7 @@
 local M = {}
 local active = false
 
-local function slowerThan(v) local veh = be:getPlayerVehicle(0) if veh then return veh:getVelocity():len() <= v end return false end
+local function slowerThan(v) local veh = getPlayerVehicle(0) if veh then return veh:getVelocity():len() <= v end return false end
 
 local movingSlowlyThreshold = 10 -- m/s
 local stoppedThreshold = 0.5 --m/s
@@ -45,8 +45,11 @@ local conditions = {
     if not favoriteVehicleId then return false, "No favourite vehicle set." end
     local vehInfo = career_modules_inventory.getVehicles()[favoriteVehicleId]
     if not vehInfo then return false, "No favourite vehicle set." end
-    if career_modules_inventory.getVehicleIdFromInventoryId(favoriteVehicleId) then return false, "No favourite vehicle set." end
-    if vehInfo.timeToAccess or career_modules_insurance.inventoryVehNeedsRepair(favoriteVehicleId) then return false, "Favourite vehicle still in repair." end
+    if vehInfo.timeToAccess
+    or not career_modules_inventory.getVehicleIdFromInventoryId(favoriteVehicleId) and career_modules_insurance.inventoryVehNeedsRepair(favoriteVehicleId) -- vehicle is not spawned and needs a repair
+    then
+      return false, "Favourite vehicle still in repair."
+    end
     return true
   end,
   notTestdriving = function(type, vehId)
@@ -64,7 +67,14 @@ local conditions = {
   towToRoadAllowedByPermission = function(type, vehId)
     if not career_modules_permissions then return true end
     local status, warning = career_modules_permissions.getStatusForTag("recoveryTowToGarage")
-    return status == "allowed" or "warning", warning
+    return status == "allowed" or status == "warning", warning
+  end,
+  vehicleIsDeliveryVehicle = function(type, vehId)
+    if not career_modules_delivery_vehicleTasks then return false end
+    if career_modules_delivery_vehicleTasks.isVehicleDeliveryVehicle(vehId) then
+      return true
+    end
+    return false
   end
 }
 
@@ -75,16 +85,19 @@ local baseTowToGarageCost = 250
 local currentMenuTag
 local openRecoveryPrompt
 
+local function getPriceFunction(basePrice)
+  return function(target)
+    if career_modules_insurance.isRoadSideAssistanceFree(career_modules_inventory.getInventoryIdFromVehicleId(target.vehId)) then
+      return {money = {amount = 0, canBeNegative = true}}
+    end
+    return {money = {amount = basePrice, canBeNegative = true}}
+  end
+end
+
 local buttonOptions = {
   -- available durign regular career gameplay
   towToRoad = {
-    label = function(options, target)
-      if career_modules_insurance.isRoadSideAssistanceFree(career_modules_inventory.getInventoryIdFromVehicleId(target.vehId)) then
-        return "ui.career.towToRoad"
-      else
-        return string.format("Tow to road (%.2f)", towToRoadCost)
-      end
-    end,
+    label = "ui.career.towToRoad",
     type = "vehicle",
     includeConditions = {},
     enableConditions = {conditions.outOfPursuit, conditions.vehicleSlow, conditions.notTestdriving, conditions.vehicleOwned},
@@ -102,15 +115,12 @@ local buttonOptions = {
     enabled = true,
     fadeActive = true,
     fadeStartSound = "event:>UI>Missions>Vehicle_Recover",
+    icon = "road",
+    confirmationText = "Do you want to tow your vehicle to the nearest road?",
+    price = getPriceFunction(towToRoadCost)
   },
   flipUpright = {
-    label = function(options, target)
-      if career_modules_insurance.isRoadSideAssistanceFree(career_modules_inventory.getInventoryIdFromVehicleId(target.vehId)) then
-        return "Flip Upright"
-      else
-        return string.format("Flip Upright (%.2f)", flipUpRightCost)
-      end
-    end,
+    label = "Flip Upright",
     type = "vehicle",
     includeConditions = {},
     enableConditions = {conditions.outOfPursuit, conditions.vehicleStopped, conditions.vehicleOwned, conditions.notTestdriving},
@@ -128,6 +138,9 @@ local buttonOptions = {
     enabled = true,
     fadeActive = true,
     fadeStartSound = "event:>UI>Missions>Vehicle_Flip",
+    icon = "carToWheels",
+    confirmationText = "Do you want your vehicle to be flipped upright?",
+    price = getPriceFunction(flipUpRightCost)
   },
   towToGarage = {
     type = "vehicle",
@@ -138,13 +151,14 @@ local buttonOptions = {
     enableConditions = {conditions.outOfPursuit, conditions.vehicleSlow, conditions.vehicleOwned, conditions.notTestdriving, conditions.towToRoadAllowedByPermission},
     atFadeFunction = function(target)
       currentMenuTag = "towing"
-      openRecoveryPrompt("Select location")
+      openRecoveryPrompt("Select location", true)
     end,
     order = 25,
     active = true,
     enabled = true,
     fadeActive = false,
-    keepMenuOpen = true
+    keepMenuOpen = true,
+    icon = "toGarage"
   },
   taxi = {
     type = "walk",
@@ -155,13 +169,14 @@ local buttonOptions = {
     enableConditions = {conditions.outOfPursuit, conditions.notTestdriving},
     atFadeFunction = function()
       currentMenuTag = "taxi"
-      openRecoveryPrompt("Where would you like to taxi to?")
+      openRecoveryPrompt("Where would you like to take a taxi to?", true)
     end,
     order = 5,
     active = false,
     enabled = true,
     fadeActive = false,
-    keepMenuOpen = true
+    keepMenuOpen = true,
+    icon = "car"
   },
   getFavoriteVehicle = {
     type = "walk",
@@ -173,7 +188,9 @@ local buttonOptions = {
     order = 11,
     active = false,
     enabled = true,
-    fadeActive = true
+    fadeActive = true,
+    icon = "carStarred",
+    confirmationText = "Do you want to retrieve your favorite vehicle?"
   },
   -- only during mission
   flipMission = {
@@ -188,6 +205,7 @@ local buttonOptions = {
     enabled = true,
     fadeActive = true,
     fadeStartSound = "event:>UI>Missions>Vehicle_Flip",
+    icon = "carToWheels"
   },
   recoverMission = {
     type = "vehicle",
@@ -200,6 +218,7 @@ local buttonOptions = {
     enabled = true,
     fadeActive = true,
     fadeStartSound = "event:>UI>Missions>Vehicle_Recover",
+    icon = "car"
   },
   submitMission = {
     type = "none",
@@ -221,7 +240,8 @@ local buttonOptions = {
     order = 15,
     active = false,
     enabled = true,
-    fadeActive = false
+    fadeActive = false,
+    icon = "restart"
   },
   -- only during tutorial
   repairHere = {
@@ -229,7 +249,7 @@ local buttonOptions = {
     label = "Repair",
     --veh, pos, rot, checkOnlyStatics_, visibilityPoint_, removeTraffic_, centeredPosition, resetVehicle
     atFadeFunction = function()
-      local veh = be:getPlayerVehicle(0)
+      local veh = getPlayerVehicle(0)
       if veh then
         if career_career.isActive() then
           if career_modules_inventory.getCurrentVehicle() then
@@ -247,6 +267,7 @@ local buttonOptions = {
     enabled = true,
     fadeActive = true,
     fadeStartSound = "event:>UI>Missions>Vehicle_Recover",
+    icon = "car"
   },
   -- testing for non-career freeroam
   resetVehicle = {
@@ -274,6 +295,23 @@ local buttonOptions = {
     active = true,
     enabled = true,
     fadeActive = true,
+    icon = "restart"
+  },
+    -- during testdrive
+  giveBackDeliveryVehicle = {
+    type = "vehicle",
+    label = "Discard Delivery Vehicle",
+    --veh, pos, rot, checkOnlyStatics_, visibilityPoint_, removeTraffic_, centeredPosition, resetVehicle
+    atFadeFunction = function(target)
+      career_modules_delivery_vehicleTasks.giveBackDeliveryVehicle(target.vehId)
+    end,
+    includeConditions = {conditions.outOfPursuit, conditions.vehicleIsDeliveryVehicle},
+    enableConditions = {conditions.vehicleSlow},
+    order = 10,
+    active = true,
+    enabled = true,
+    fadeActive = true,
+    icon = "restart"
   },
 }
 
@@ -283,28 +321,29 @@ local function addTowingButtons()
 
   -- add garage tow buttons
   for _, garage in ipairs(garages) do
+    local function getPrice(target)
+      if career_modules_insurance.isRoadSideAssistanceFree(career_modules_inventory.getInventoryIdFromVehicleId(target.vehId)) then
+        return nil
+      end
+      local price = career_modules_quickTravel.getPriceForQuickTravelToGarage(garage)
+      if price > 0 then price = price + baseTowToGarageCost end
+      return {money = {amount = career_modules_quickTravel.getPriceForQuickTravelToGarage(garage), canBeNegative = true}}
+    end
+
     buttonOptions[string.format("towTo%s", garage.id)] =
     {
       type = "vehicle",
       label = function(options, target)
-        if career_modules_insurance.isRoadSideAssistanceFree(career_modules_inventory.getInventoryIdFromVehicleId(target.vehId)) then
-          return string.format("%s", translateLanguage(garage.name, garage.name, true))
-        else
-          local price = career_modules_quickTravel.getPriceForQuickTravelToGarage(garage)
-          if price > 0 then price = price + baseTowToGarageCost end
-          return string.format("%s (%.2f)", translateLanguage(garage.name, garage.name, true), price)
-        end
+        return string.format("%s", translateLanguage(garage.name, garage.name, true))
       end,
       includeConditions = {},
       menuTag = "towing",
       enableConditions = {conditions.outOfPursuit, conditions.vehicleSlow, conditions.vehicleOwned, conditions.notTestdriving, conditions.towToRoadAllowedByPermission},
       atFadeFunction = function(target)
         career_modules_playerDriving.teleportToGarage(garage.id, scenetree.findObjectById(target.vehId), false)
-
-        if not career_modules_insurance.isRoadSideAssistanceFree(career_modules_inventory.getInventoryIdFromVehicleId(target.vehId)) then
-          local price = career_modules_quickTravel.getPriceForQuickTravelToGarage(garage)
-          if price > 0 then price = price + baseTowToGarageCost end
-          career_modules_payment.pay({money = {amount = price, canBeNegative = true}}, {label = string.format("Towed your vehicle to your garage")})
+        local price = getPrice(target)
+        if price then
+          career_modules_payment.pay(price, {label = string.format("Towed your vehicle to your garage")})
         end
       end,
       message = "ui.career.towed",
@@ -312,7 +351,10 @@ local function addTowingButtons()
       active = true,
       enabled = true,
       fadeActive = true,
-      fadeStartSound = "event:>UI>Missions>Vehicle_Recover"
+      fadeStartSound = "event:>UI>Missions>Vehicle_Recover",
+      icon = "toGarage",
+      price = getPrice,
+      confirmationText = "Do you want to tow your vehicle to this garage?"
     }
   end
 end
@@ -327,8 +369,7 @@ local function addTaxiButtons()
     {
       type = "walk",
       label = function(options)
-        local price = career_modules_quickTravel.getPriceForQuickTravelToGarage(garage)
-        return string.format("%s (%.2f)", translateLanguage(garage.name, garage.name, true), price)
+        return string.format("%s", translateLanguage(garage.name, garage.name, true))
       end,
       includeConditions = {},
       menuTag = "taxi",
@@ -340,23 +381,29 @@ local function addTaxiButtons()
       active = true,
       enabled = true,
       fadeActive = true,
-      fadeStartSound = "event:>UI>Missions>Vehicle_Recover"
+      fadeStartSound = "event:>UI>Missions>Vehicle_Recover",
+      icon = "toGarage",
+      price = function() return {money = {amount = career_modules_quickTravel.getPriceForQuickTravelToGarage(garage)}} end,
+      confirmationText = "Do you want to use the taxi?"
     }
+  end
+
+  local function getPrice()
+    local lastVehicleId = career_modules_inventory.getLastVehicle()
+    local vehObjId = career_modules_inventory.getVehicleIdFromInventoryId(lastVehicleId)
+    if vehObjId then
+      local vehObj = be:getObjectByID(vehObjId)
+      local pos = vehObj:getPosition()
+      local price = career_modules_quickTravel.getPriceForQuickTravel(pos)
+      return {money = {amount = price}}
+    end
   end
 
   buttonOptions.taxiToVehicle =
     {
       type = "walk",
       label = function(options)
-        local lastVehicleId = career_modules_inventory.getLastVehicle()
-        local vehObjId = career_modules_inventory.getVehicleIdFromInventoryId(lastVehicleId)
-        if vehObjId then
-          local vehObj = be:getObjectByID(vehObjId)
-          local pos = vehObj:getPosition()
-          local price = career_modules_quickTravel.getPriceForQuickTravel(pos)
-          return string.format("Your vehicle (%.2f)", price)
-        end
-        return "Your vehicle"
+        return "Your last vehicle"
       end,
       includeConditions = {},
       menuTag = "taxi",
@@ -372,9 +419,15 @@ local function addTaxiButtons()
       end,
       order = 25,
       active = true,
-      enabled = true,
+      enabled = function()
+        local lastVehicleId = career_modules_inventory.getLastVehicle()
+        return career_modules_inventory.getVehicleIdFromInventoryId(lastVehicleId)
+      end,
       fadeActive = true,
-      fadeStartSound = "event:>UI>Missions>Vehicle_Recover"
+      fadeStartSound = "event:>UI>Missions>Vehicle_Recover",
+      icon = "car",
+      price = getPrice,
+      confirmationText = "Do you want to use the taxi?"
     }
 end
 
@@ -408,6 +461,7 @@ local function setDefaultsForCareer()
   buttonOptions.taxi.active = true
   buttonOptions.getFavoriteVehicle.active = true
   buttonOptions.stopTestdrive.active = true
+  buttonOptions.giveBackDeliveryVehicle.active = true
   addTowingButtons()
   addTaxiButtons()
 end
@@ -456,7 +510,7 @@ local function highestOrderPlusOne()
   return highest + 1
 end
 
-local function addButton(id, label, atFadeFunction, order, message, active, enabled, fadeActive)
+local function addButton(id, label, atFadeFunction, order, message, active, enabled, fadeActive, icon)
   if not id then log("E","","Tried creating button without ID!" ) return end
   if buttonOptions[id] and not buttonOptions[id].customButton then log("E","Tried to add a button, but it already exists and it's not a custom button, so it's not allowed! " .. dumps(id)) return end
   -- fill some defaults for the button if it doesnt have them
@@ -471,6 +525,7 @@ local function addButton(id, label, atFadeFunction, order, message, active, enab
     enabled = enabled,
     customButton = true,
     fadeActive = fadeActive,
+    icon = icon
   }
   if buttonOptions[id] then
     log("E","","Button for Id already exists and will be overwritten: " .. dumps(id) .. ": " .. dumps(buttonOptions[btn.id]))
@@ -563,14 +618,14 @@ local currentRecoveryOptionTarget = nil
 local fadeDuration = 0.3
 local function buttonPressed(buttonId, target)
   if career_career and career_career.isActive() and not gameplay_walk.isWalking() then
-    core_vehicleBridge.executeAction(be:getPlayerVehicle(0), 'createPartConditionSnapshot', "beforeTeleport")
-    core_vehicleBridge.executeAction(be:getPlayerVehicle(0), 'setPartConditionResetSnapshotKey', "beforeTeleport")
+    core_vehicleBridge.executeAction(getPlayerVehicle(0), 'createPartConditionSnapshot', "beforeTeleport")
+    core_vehicleBridge.executeAction(getPlayerVehicle(0), 'setPartConditionResetSnapshotKey', "beforeTeleport")
   end
 
   currentRecoveryOptionId = buttonId
   currentRecoveryOptionTarget = target
   if buttonOptions[buttonId].fadeActive then
-    core_vehicleBridge.requestValue(be:getPlayerVehicle(0), function()
+    core_vehicleBridge.requestValue(getPlayerVehicle(0), function()
       if buttonOptions[buttonId].fadeStartSound then
         Engine.Audio.playOnce('AudioGui',buttonOptions[buttonId].fadeStartSound)
       end
@@ -581,8 +636,10 @@ local function buttonPressed(buttonId, target)
   end
 end
 
-local function cancelPressed()
+local popupData
+local function onPopupClosed()
   currentRecoveryOptionId = nil
+  popupData = nil
   simTimeAuthority.pause(false)
 end
 
@@ -609,7 +666,7 @@ local function handleCurrRecoveryOption()
   currentRecoveryOptionId = nil
   currentRecoveryOptionTarget = nil
   if not option.keepMenuOpen then
-    simTimeAuthority.pause(false)
+    onPopupClosed()
   end
   gameplay_markerInteraction.setForceReevaluateOpenPrompt()
     --extensions.hook("onCareerCustomTowHook")
@@ -646,7 +703,7 @@ local function getButtonsForTarget(target)
       end
       add = add and (option.menuTag == currentMenuTag)
       if add then
-        local enabled = option.enabled
+        local enabled = type(option.enabled) == "function" and option.enabled(option, target) or option.enabled
         local reason = nil
         for key, cond in ipairs(option.enableConditions or {}) do
           local en, rs = cond(target.type, target.vehId)
@@ -658,14 +715,20 @@ local function getButtonsForTarget(target)
           label = {txt = 'missions.missions.recoveryPrompt.remainingUses', context = {label = label, count = option.limit - option.count}}
           enabled = enabled and option.count < option.limit
         end
+
+        local price = type(option.price) == "function" and option.price(target) or option.price
         local disableReason = reason or (not enabled and "Disabled")
         local btn = {
           label = label,
-          luaCallback = "core_recoveryPrompt.buttonPressed('"..id.."',"..serialize(target)..")",
+          luaCallback = function() core_recoveryPrompt.buttonPressed(id, target) end,
           order = option.order,
+          keepMenuOpen = option.keepMenuOpen,
+          price = price,
           enabled = enabled,
           disableReason = disableReason,
-          soundClass = (option.fadeStartSound and "bng_click_empty" or nil)
+          soundClass = (option.fadeStartSound and "bng_click_empty" or nil),
+          icon = option.icon,
+          confirmationText = option.confirmationText
         }
         table.insert(buttons, btn)
       end
@@ -675,8 +738,9 @@ local function getButtonsForTarget(target)
   return buttons
 end
 
-openRecoveryPrompt = function(title)
+openRecoveryPrompt = function(title, updatePopupData)
   if not active then return end
+  if popupData and not updatePopupData then return end
   local buttons = {}
   local targets = getRecoveryTargets()
   for i, target in ipairs(targets) do
@@ -691,32 +755,74 @@ openRecoveryPrompt = function(title)
     log("W","","Tried to open recovery prompt, but no buttons were active. Not opening prompt.")
     return
   end
+  local cancelButton
   if currentMenuTag then
-    table.insert(buttons, { label = "Back",  isCancel = true, luaCallback = "core_recoveryPrompt.onResetGameplay()"})
+    cancelButton = { label = "Back", keepMenuOpen = true, luaCallback = function() core_recoveryPrompt.openDefaultPopup(true) end}
   else
-    table.insert(buttons, { label = "Cancel",  isCancel = true, luaCallback = "core_recoveryPrompt.cancelPressed()"})
+    cancelButton = { label = "Cancel", luaCallback = core_recoveryPrompt.onPopupClosed}
   end
   if next(buttons) then
     buttons[1].default = true
   end
 
-  local data = {text = title or "Recovery Menu", buttons = buttons, class = "recoveryPrompt"}
-  guihooks.trigger('showConfirmationDialog', data)
-  simTimeAuthority.pause(true)
-  gameplay_markerInteraction.closeViewDetailPrompt(true)
+  popupData = {title = title or "Recovery Menu", buttons = buttons, cancelButton = cancelButton, class = "recoveryPrompt"}
+  if not updatePopupData then
+    guihooks.trigger('OpenRecoveryPrompt')
+    simTimeAuthority.pause(true)
+    gameplay_markerInteraction.closeViewDetailPrompt(true)
+  else
+    guihooks.trigger('updateRecoveryPopupData')
+  end
+end
+
+local function getUIData()
+  if not popupData then return {} end
+  popupData.warningMessage = nil
+  if career_career.isActive() then
+    local status, warning = career_modules_permissions and career_modules_permissions.getStatusForTag("recoveryTowToGarage")
+    if warning then
+      popupData.warningMessage = warning
+    end
+  end
+  return popupData
+end
+
+local function uiPopupButtonPressed(index)
+  local button = popupData.buttons[index]
+  if not button then return end
+  button.luaCallback()
+end
+
+local function uiPopupCancelPressed()
+  local button = popupData.cancelButton
+  if not button then return end
+  button.luaCallback()
 end
 
 -- this creates the list of buttons to be sent to the UI.
-local function onResetGameplay(playerID)
+local function openDefaultPopup(updatePopupData)
   currentMenuTag = nil
-  openRecoveryPrompt()
+  openRecoveryPrompt(nil, updatePopupData)
+end
+
+local function onResetGameplay(playerID)
+  openDefaultPopup()
+end
+
+local function isOpen()
+  return popupData ~= nil
 end
 
 M.buttonPressed = buttonPressed
-M.cancelPressed = cancelPressed
+M.onPopupClosed = onPopupClosed
 M.onResetGameplay = onResetGameplay
 M.onScreenFadeState = onScreenFadeState
 M.handleCurrRecoveryOption = handleCurrRecoveryOption
+M.getUIData = getUIData
+M.uiPopupButtonPressed = uiPopupButtonPressed
+M.uiPopupCancelPressed = uiPopupCancelPressed
+M.openDefaultPopup = openDefaultPopup
+M.isOpen = isOpen
 
 M.onCareerModulesActivated = onCareerModulesActivated
 M.onClientStartMission = onClientStartMission

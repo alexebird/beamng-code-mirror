@@ -10,11 +10,11 @@ local qtmp = quat()
 local function rotateEuler(x, y, z, q)
   q = q or quat()
   qtmp:setFromEuler(0, z, 0)
-  q = qtmp * q
+  q:setMul2(qtmp, q)
   qtmp:setFromEuler(0, 0, x)
-  q = qtmp * q
+  q:setMul2(qtmp, q)
   qtmp:setFromEuler(y, 0, 0)
-  q = qtmp * q
+  q:setMul2(qtmp, q)
   return q
 end
 
@@ -31,7 +31,7 @@ function C:init()
   self.camRot = vec3(0, 0, 0)
   self.relativeYaw = 0
   self.relativePitch = 0
-  self.fwdVel = 0
+  self.fwdSpeed = 0
   self.manualzoom = manualzoom()
   self:onVehicleCameraConfigChanged()
   self:onSettingsChanged()
@@ -86,11 +86,12 @@ local dzSmoother = newTemporalSmoothing(3,1)
 local currentCarPos, prevCarPos = vec3(), vec3()
 local rot = vec3()
 local left, ref, back = vec3(), vec3(), vec3()
-local carLeft, carFwd, carUp, carDir = vec3(), vec3(), vec3(), quat()
+local carLeft, carFwd, carUp, carRot, carRotInverse = vec3(), vec3(), vec3(), quat(), quat()
 local nodePos = vec3()
-local camUp = vec3()
+local camUp, camRot = vec3(), quat()
 local camPosLocal, combinedPos, rotationOffset = vec3(), vec3(), vec3()
 local intermediateCamPos = vec3()
+local nRockPos, projectedRockPos = vec3(), vec3()
 
 function C:update(data)
   local carPos = data.pos
@@ -156,8 +157,8 @@ function C:update(data)
     end
   else
     -- camera will stay where it is when the controller is released
-    self.relativeYaw   = self.relativeYaw   + (MoveManager.yawRight  - MoveManager.yawLeft) * 0.01
-    self.relativePitch = self.relativePitch + (MoveManager.pitchDown - MoveManager.pitchUp) * 0.04
+    self.relativeYaw   = self.relativeYaw   + (MoveManager.yawRight  - MoveManager.yawLeft) * 0.01 * data.dt * 60
+    self.relativePitch = self.relativePitch + (MoveManager.pitchDown - MoveManager.pitchUp) * 0.04 * data.dt * 60
   end
 
   local sideInput = self.relativeYaw   + absYaw
@@ -176,7 +177,7 @@ function C:update(data)
 
   -- orientation
   rot:set(math.rad(self.camRot.x), math.rad(self.camRot.y), math.rad(self.camRot.z))
-  -- avoid physical discomfor by removing smoothers from VR
+  -- avoid physical discomfort by removing smoothers from VR
   if not data.openxrSessionRunning then
     local ratiox = 1 / (data.dt * 50)
     local ratioy = 1 / (data.dt * 10)
@@ -202,35 +203,37 @@ function C:update(data)
   carUp:setCross(carLeft, carFwd); carUp:normalize()
 
   -- Smooth velocity using rock on a string algorithm
-  self.rockPos = self.rockPos - data.vel * data.dt
-  local projectedRockPos = self.rockPos:projectToOriginPlane(carUp):resized(min(self.rockPos:length(), self.lookAheadSmoothness))
+  self.rockPos:set(push3(self.rockPos) - push3(data.vel) * data.dt)
+  projectedRockPos:setProjectToOriginPlane(carUp, self.rockPos)
+  projectedRockPos:resize(min(self.rockPos:length(), self.lookAheadSmoothness))
   -- When vehicle flips, left and right sides of it flip aswell. To prevent this from happening
   -- We tempereraly stop projecting the rock position
   if self.rockPos:distance(projectedRockPos) < 0.1 then
     self.rockPos = projectedRockPos
   else
-    self.rockPos = self.rockPos:resized(min(self.rockPos:length(), self.lookAheadSmoothness))
+    self.rockPos:resize(min(self.rockPos:length(), self.lookAheadSmoothness))
   end
   -- Stable horizon
-  carDir:setFromDir(carFwd, carUp)
-  local camDir = quatFromDir(-push3(carFwd))
-  camUp:setRotate(camDir, vecZ)
+  carRot:setFromDir(carFwd, carUp)
+  camRot:setFromDir(-push3(carFwd))
+  camUp:setRotate(camRot, vecZ)
   local carRoll = math.atan2(push3(camUp):dot(-push3(carLeft)), camUp:dot(carUp))
   local carRollFactor = 1 - self.stableHorizonFactor * smootheststep(clamp(1.42*carUp.z, 0, 1))
   local camRoll = carRoll * carRollFactor
 
   -- Look-ahead angle
-  self.fwdVel = lerp(self.fwdVel, -data.vel:length() * data.vel:normalized():dot(carFwd), data.dt * ( 1.5 - self.lookAheadSmoothness))
-  local nRockPos = (carFwd * (1 - self.rockPos:length() / self.lookAheadSmoothness) + self.rockPos):normalized()
+  self.fwdSpeed = lerp(self.fwdSpeed, -data.vel:length() * push3(data.vel):normalized():dot(carFwd), data.dt * ( 1.5 - self.lookAheadSmoothness))
+  nRockPos:set(push3(carFwd) * (1 - self.rockPos:length() / self.lookAheadSmoothness) + self.rockPos)
+  nRockPos:normalize()
   local lookAheadAngle = math.atan2(nRockPos.x * carFwd.y - nRockPos.y * carFwd.x, nRockPos.x * carFwd.x + nRockPos.y * carFwd.y)
-  self.rockPos = self.rockPos * ((1 - data.dt * 0.1) * clamp(self.fwdVel / 20, 0, 1))
-  lookAheadAngle = clamp(lookAheadAngle, -1.1, 1.1) * self.lookAheadAngle * clamp(self.fwdVel / 15, 0, 1)
+  self.rockPos:setScaled((1 - data.dt * 0.1) * clamp(self.fwdSpeed / 20, 0, 1))
+  lookAheadAngle = clamp(lookAheadAngle, -1.1, 1.1) * self.lookAheadAngle * clamp(self.fwdSpeed / 15, 0, 1)
 
   -- Pitch smoothing
 
   --local roll, pitch, yaw = data.veh:getRollPitchYawAngularVelocity()
   local pitch = 0
-  camDir = rotateEuler(math.rad(self.camRot.x) + lookAheadAngle, math.rad(self.camRot.y) - pitch, camRoll, camDir) -- stable hood line
+  camRot = rotateEuler(math.rad(self.camRot.x) + lookAheadAngle, math.rad(self.camRot.y) - pitch, camRoll, camRot) -- stable hood line
 
   local notifiedFov = self.manualzoom:update(data)
   if notifiedFov then
@@ -239,7 +242,9 @@ function C:update(data)
 
   -- physics-based position
   nodePos:set(data.veh:getNodePositionXYZ(camNodeID or 0))
-  camPosLocal:setRotate(carDir:inversed(), nodePos)
+  carRotInverse:set(carRot)
+  carRotInverse:inverse()
+  camPosLocal:setRotate(carRotInverse, nodePos)
 
   -- static position
   if self.camPosInitialLocal == nil then ---- FIXME this can happen at any point, e.g. when vehicle is damaged
@@ -247,11 +252,11 @@ function C:update(data)
     local origSpawnAABB = data.veh:getSpawnLocalAABB()
     local minExt = origSpawnAABB.minExtents
     local maxExt = origSpawnAABB.maxExtents
-    self.marginX = (maxExt.x - minExt.x)/2 - abs(data.veh:getInitialNodePosition(camNodeID or 0).x-(maxExt.x + minExt.x)/2) -- distance to boundingbox lateral
+    self.marginX = (maxExt.x - minExt.x)*0.5 - abs(data.veh:getInitialNodePosition(camNodeID or 0).x-(maxExt.x + minExt.x)*0.5) -- distance to boundingbox lateral
   end
 
   -- physics+static position combination
-  combinedPos:set(push3(camPosLocal)*self.physicsFactor + push3(self.camPosInitialLocal)*(1 - self.physicsFactor))
+  combinedPos:setLerp(self.camPosInitialLocal, camPosLocal, self.physicsFactor)
 
   -- left/right head sticking out position
   local minAngle = 70 -- starting angle when driver will start looking back
@@ -318,9 +323,9 @@ function C:update(data)
 
   -- application
   intermediateCamPos:set(push3(combinedPos) + self.seatPosition + rotationOffset)
-  data.res.pos:setRotate(carDir, intermediateCamPos)
+  data.res.pos:setRotate(carRot, intermediateCamPos)
   data.res.pos:setAdd(carPos)
-  data.res.rot = camDir
+  data.res.rot:set(camRot)
 
   -- save fov/seat settings on timeout
   if self.saveTimeout and self.saveTimeout <= 0 then

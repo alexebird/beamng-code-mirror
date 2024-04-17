@@ -7,15 +7,21 @@ export const useVehicleShoppingStore = defineStore("vehicleShopping", () => {
   const vehicleShoppingData = ref({})
   const filteredVehicles = computed(() => {
     const d = vehicleShoppingData.value
-    if (d.currentSeller == null || d.currentSeller === undefined) {
-      return d.vehiclesInShop
-    } else {
-      let filtered = Object.keys(d.vehiclesInShop).reduce(function (filtered, key) {
-        if (d.vehiclesInShop[key].sellerId === d.currentSeller) filtered[key] = d.vehiclesInShop[key]
-        return filtered
-      }, {})
-      return filtered
-    }
+    if (!d.vehiclesInShop) return []
+
+    let filteredList = Object.keys(d.vehiclesInShop).reduce(function (result, key) {
+      if (d.currentSeller) {
+        if (d.vehiclesInShop[key].sellerId === d.currentSeller) result.push(d.vehiclesInShop[key])
+      } else {
+        result.push(d.vehiclesInShop[key])
+      }
+
+      return result
+    }, [])
+
+    if (filteredList.length) filteredList.sort((a, b) => a.Value - b.Value)
+
+    return filteredList
   })
 
   // Actions

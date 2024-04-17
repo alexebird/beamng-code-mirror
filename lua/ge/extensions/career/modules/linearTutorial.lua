@@ -8,6 +8,10 @@ local im = ui_imgui
 M.dependencies = {'career_career'}
 M.tutorialEnabled = -1
 M.bounceBigmapIcons = false
+
+local debug_ignoreGlobalSaveData = false
+local debug_alwaysShowAllPopups = false
+
 local tutorialsFolder ='/gameplay/tutorials/'
 local saveFile = "/career/tutorialData.json"
 local saveData
@@ -15,75 +19,19 @@ local globalSaveFile = "/settings/careerIntroPopups.json"
 local globalSaveData
 
 M.clearGlobalSaveData = function() globalSaveData = {} jsonWriteFile(globalSaveFile, globalSaveData, false) end
-M.debugMenu = function()
-
-  if im.Button("Dump Save Data") then
-    dump(saveData)
-  end
-  im.Text("Linear Step: " .. dumps(saveData.linearStep))
-
-  im.Text("Flags")
-  if im.BeginCombo("Flags","...") then
-    for _, flag in ipairs(tableKeysSorted(saveData.flags)) do
-      if im.Checkbox(flag, im.BoolPtr(saveData.flags[flag] or false)) then
-        M.setTutorialFlag(flag, not (saveData.flags[flag] or false))
-      end
-    end
-    im.EndCombo()
-  end
-  if im.Button("Show All Splashscreens and Logbok Entries") then
-
-  end
-  im.TextWrapped("Playing these out of order or individually might break!")
-  im.TextWrapped("Action Restrictions will probably break too!")
-  if im.Button("Set UI Layout to 'Career Freeroam'") then
-    core_gamestate.setGameState("career","career", nil)
-  end
-  if im.Button("Tutorial 01 Movement Basics") then
-    saveData.flags = {}
-    saveData.linearStep = 1
-    core_flowgraphManager.loadManager("gameplay/tutorials/01-movementBasics.flow.json"):setRunning(true)
-  end
-  if im.Button("Tutorial 02 Car Basics") then
-    saveData.flags = {}
-    saveData.linearStep = 2
-    core_flowgraphManager.loadManager("gameplay/tutorials/02-carBasics.flow.json"):setRunning(true)
-  end
-  if im.Button("Tutorial 03 Bigmap Basics") then
-    saveData.flags = {towToRoadEnabled=true}
-    saveData.linearStep = 3
-    core_flowgraphManager.loadManager("gameplay/tutorials/03-bigmapBasics.flow.json"):setRunning(true)
-  end
-  if im.Button("Tutorial 04 Refueling and Mission") then
-    saveData.flags = {towToRoadEnabled=true}
-    saveData.linearStep = 4
-    core_flowgraphManager.loadManager("gameplay/tutorials/04-refueling.flow.json"):setRunning(true)
-  end
-  if im.Button("Tutorial 05 Dealership") then
-    saveData.flags = {towToRoadEnabled=true,arrivedAtGarage=true,arrivedAtFuelstation=true,completedTutorialMission=true}
-    saveData.linearStep = 5
-    core_flowgraphManager.loadManager("gameplay/tutorials/05-dealership.flow.json"):setRunning(true)
-  end
-  if im.Button("Tutorial 06 Garage") then
-    saveData.flags = {towToRoadEnabled=true,arrivedAtGarage=true,arrivedAtFuelstation=true,completedTutorialMission=true,purchasedFirstCar=true}
-    saveData.linearStep = 6
-    core_flowgraphManager.loadManager("gameplay/tutorials/06-garage.flow.json"):setRunning(true)
-  end
-  if im.Button("Tutorial 07 Garage") then
-    saveData.flags = {towToRoadEnabled=true,arrivedAtGarage=true,arrivedAtFuelstation=true,completedTutorialMission=true,purchasedFirstCar=true, partShoppingComplete=true, tuningComplete=true,modifiedFirstCar=true}
-    saveData.linearStep = 7
-    core_flowgraphManager.loadManager("gameplay/tutorials/07-finishing.flow.json"):setRunning(true)
-  end
-end
 
 local function onExtensionLoaded()
   if not career_career.isActive() then return false end
   -- load from saveslot
   local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
   saveData = (savePath and jsonReadFile(savePath .. saveFile)) or {}
+
+  if debug_alwaysShowAllPopups then saveData = {} end
+
   if not next(saveData) then
     saveData = {
       linearStep = career_career.tutorialEnabled and 1 or -1,
+      buyVehicleFlowgraphStarted = false,
       flags = {
         towToRoadEnabled = false,
         towToGarageEnabled = false,
@@ -109,6 +57,9 @@ local function onExtensionLoaded()
     end
   end
   globalSaveData = jsonReadFile(globalSaveFile) or {}
+
+  if debug_ignoreGlobalSaveData or debug_alwaysShowAllPopups then globalSaveData = {} end
+
 end
 
 
@@ -138,8 +89,18 @@ end
 
 
 local function beginLinearStep(step)
-  if step == -1 then return end
+  if step == -1 then
+    if career_career.hasBoughtStarterVehicle() then return end
+    if not saveData.buyVehicleFlowgraphStarted then
+      log("I","","Loading Vehicle buying Intro...")
+      core_flowgraphManager.loadManager("gameplay/tutorials/buyVehicle.flow.json"):setRunning(true)
+      saveData.buyVehicleFlowgraphStarted = true
+    end
+  end
   log("I","","Loading Linear Step " .. step)
+  if step == 1 then
+    core_flowgraphManager.loadManager("gameplay/tutorials/01-movementBasics.flow.json"):setRunning(true)
+  end
   saveData.linearStep = step
   -- if tutorialData[step] then
   --   local fgPath = tutorialsFolder .. tutorialData[step].fgPath
@@ -150,6 +111,19 @@ local function beginLinearStep(step)
   --   mgr:setRunning(true)
   -- end
 end
+
+local function onExtensionUnloaded()
+  -- if career is being stopped
+  for _, mgr in ipairs(core_flowgraphManager.getAllManagers()) do
+    if mgr._isCareerFlowgraph then
+      log("I","","Stopping " .. mgr.name .. ", as it is a career FG.")
+      -- stop all career-related FGs instantly
+      mgr:setRunning(false, true)
+    end
+  end
+
+end
+M.onExtensionUnloaded = onExtensionUnloaded
 
 local function completeLinearStep(nextStep)
   if saveData.linearStep == -1 then return end
@@ -176,7 +150,7 @@ M.getTutorialData = function() return saveData end
 
 -- this should only be loaded when the career is active
 local function onSaveCurrentSaveSlot(currentSavePath)
-  jsonWriteFile(currentSavePath .. saveFile, saveData, true)
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. saveFile, saveData, true)
 end
 
 
@@ -229,6 +203,8 @@ M.introPopup = function(id, force)
     jsonWriteFile(globalSaveFile, globalSaveData, false)
   end
 
+  if not FS:fileExists("ui/modules/introPopup/tutorial/"..id.."/content.html") then return end
+
   local content = readFile("ui/modules/introPopup/tutorial/"..id.."/content.html"):gsub("\r\n","")
   local entry = {
     type = "info",
@@ -237,6 +213,7 @@ M.introPopup = function(id, force)
     isPopup = true,
   }
   guihooks.trigger("introPopupTutorial", {entry})
+
 end
 
 local introPopupTable = {
@@ -289,21 +266,23 @@ local introPopupTable = {
 
   -- shown at the end of the tutorial
   showLogbookSplash = {"logbook"},
-  showTutorialOverSplash = {"finishing"},
+  showTutorialOverSplash = {"finishing", "logbook","milestones","progress"},
 
   -- shown when opening the cargo screen for the first time
   onEnterCargoOverviewScreen = {"cargoScreen"},
 
-  -- shown when delivering cargo for the first time
-  onCargoDelivered = {"cargoDelivered"},
+  onComputerInsurance = {"insurance"},
+
+  onVehiclePaintingUiOpened = {"vehiclePainting"},
+
 }
 
 -- this function is custom, because it needs to clear flags to make sure it always shows
 M.showNonTutorialWelcomeSplashscreen = function()
-  globalSaveData.welcomeNoTutorial = nil
-  globalSaveData.logbookNoTutorial = nil
-  M.introPopup("welcomeNoTutorial")
-  M.introPopup("logbookNoTutorial")
+  M.introPopup("welcomeNoTutorial", true)
+  M.introPopup("logbookNoTutorial", true)
+  M.introPopup("milestones", true)
+  M.introPopup("progress", true)
 end
 
 for key, values in pairs(introPopupTable) do
@@ -323,6 +302,72 @@ M.showAllSplashscreensAndLogbookEntries = function()
     M[key]()
   end
 end
+
+
+local introPopupFiles = {
+ {"/ui/modules/introPopup/tutorial/welcome/content.html"                 ,"Tutorial Start"},
+ {"/ui/modules/introPopup/tutorial/driving/content.html"                 ,"Tutorial Driving"},
+ {"/ui/modules/introPopup/tutorial/crashRecover/content.html"            ,"Tutorial Crashing"},
+ {"/ui/modules/introPopup/tutorial/bigmap/content.html"                  ,"Tutorial Bigmap, Or when opening Bigmap"},
+ {"/ui/modules/introPopup/tutorial/refueling/content.html"               ,"Tutorial Refuel, Or when opening Refueling screen"},
+ {"/ui/modules/introPopup/tutorial/missions/content.html"                ,"Tutorial Missions, Or when opening Mission screen"},
+ {"/ui/modules/introPopup/tutorial/postMission/content.html"             ,"Tutorial after Mission"},
+ {"/ui/modules/introPopup/tutorial/dealership/content.html"              ,"Tutorial Dealership, or when opening Dealership Screen"},
+ {"/ui/modules/introPopup/tutorial/computer/content.html"                ,"Tutorial Computer, or when opening Computer"},
+ {"/ui/modules/introPopup/tutorial/partShopping/content.html"            ,"Tutorial Shopping, or when opening Shopping"},
+ {"/ui/modules/introPopup/tutorial/finishing/content.html"               ,"Tutorial End 1"},
+ {"/ui/modules/introPopup/tutorial/logbook/content.html"                 ,"Tutorial End 2"},
+ {"/ui/modules/introPopup/tutorial/milestones/content.html"              ,"Tutorial End 3, Non-tutorial Start 3"},
+ {"/ui/modules/introPopup/tutorial/progress/content.html"                ,"Tutorial End 4, Non-tutorial Start 4"},
+  {},
+ {"/ui/modules/introPopup/tutorial/welcomeNoTutorial/content.html"       ,"No-Tutorial Start 1"},
+ {"/ui/modules/introPopup/tutorial/logbooknoTutorial/content.html"       ,"No-Tutorial Start 2"},
+  {},
+ {"/ui/modules/introPopup/tutorial/cargoScreen/content.html"             ,"Opening Cargo Screen for the first time"},
+ {"/ui/modules/introPopup/tutorial/cargoDelivered/content.html"          ,"Delivered cargo for the first time"},
+ {"/ui/modules/introPopup/tutorial/vehicleDeliveryUnlocked/content.html" ,"Vehicle Delivery System unlocked"},
+ {"/ui/modules/introPopup/tutorial/trailerDeliveryUnlocked/content.html" ,"Trailer Delivery System unlocked"},
+ {"/ui/modules/introPopup/tutorial/cargoContainerHowTo/content.html"     ,"How-To button on cargo screen"},
+  {},
+ {"/ui/modules/introPopup/tutorial/vehiclePainting/content.html"         ,"Opening Painting for the first time"},
+ {"/ui/modules/introPopup/tutorial/tuning/content.html"                  ,"Opening Tuning menu for the first time"},
+ {"/ui/modules/introPopup/tutorial/insurance/content.html"               ,"Opening Insurance Menu for the first time"},
+}
+
+M.drawDebugFunctions = function()
+  if im.BeginMenu("> Intro Popups...") then
+    if im.Selectable1("View All In Order") then
+      for _,  file in ipairs(introPopupFiles) do
+        if next(file) then
+          local folder = file[1]:match(".-([^/]+)/[^/]+$")
+          M.introPopup(folder, true)
+        end
+      end
+    end
+    im.Dummy(im.ImVec2(1,3))
+    im.Separator()
+    im.Dummy(im.ImVec2(1,3))
+    for _,  file in ipairs(introPopupFiles) do
+      if not next(file) then
+        im.Dummy(im.ImVec2(1,3))
+        im.Separator()
+        im.Dummy(im.ImVec2(1,3))
+      else
+        local folder = file[1]:match(".-([^/]+)/[^/]+$")
+        if im.Button("Edit##"..folder) then
+          Engine.Platform.exploreFolder(file[1])
+        end
+        im.SameLine()
+        if im.Selectable1("View " .. folder) then
+          M.introPopup(folder, true)
+        end
+        im.tooltip(file[2])
+      end
+    end
+    im.EndMenu()
+  end
+end
+
 
 M.allTutorialFlags = {insuranceFlag, bigmapFlag, refuelFlag, missionFlag, dealershipFlag, inventoryFlag, computerFlag, partShoppingFlag, tuningFlag, garageFlag}
 

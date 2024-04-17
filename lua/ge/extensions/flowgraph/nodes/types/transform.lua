@@ -9,7 +9,6 @@ local C = {}
 
 C.name = 'Transform'
 C.description = 'Manages a position, rotation and scale in 3D space.'
-C.todo = "Rotation is not working i guess"
 C.category = 'provider'
 
 C.icon = "d_rotation"

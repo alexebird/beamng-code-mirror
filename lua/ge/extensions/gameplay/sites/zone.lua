@@ -272,12 +272,17 @@ function C:containsPoint2D(point)
   end
 end
 
-function C:containsVehicle(veh)
+function C:containsVehicle(veh, basic)
   local oobb = veh:getSpawnWorldOOBB()
-  local p0, p3, p4, p7 = oobb:getPoint(0), oobb:getPoint(3), oobb:getPoint(4), oobb:getPoint(7)
-  if (self:containsPoint2D(p0) and self:containsPoint2D(p3) and self:containsPoint2D(p4) and self:containsPoint2D(p7)) then
-    return true
+  if basic then
+    return self:containsPoint2D(oobb:getCenter())
+  else
+    local p0, p3, p4, p7 = oobb:getPoint(0), oobb:getPoint(3), oobb:getPoint(4), oobb:getPoint(7)
+    if (self:containsPoint2D(p0) and self:containsPoint2D(p3) and self:containsPoint2D(p4) and self:containsPoint2D(p7)) then
+      return true
+    end
   end
+  return false
 end
 
 local clrITemp = ColorI(0,0,0,0)
@@ -301,7 +306,7 @@ function C:drawDebug(drawMode, clr, customHeight, customDown, nearCam, drawDista
     end
   end
 
-  local alpha = (drawMode == 'normal') and 0.4 or 1
+  local alpha = drawMode == 'normal' and 0.4 or 1
   if drawMode ~= 'faded' then
     debugDrawer:drawTextAdvanced((self.labelPos), String(self.name), ColorF(1, 1, 1, alpha), true, false, ColorI(0, 0, 0, alpha * 255))
   end

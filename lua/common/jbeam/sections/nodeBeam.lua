@@ -130,24 +130,25 @@ end
 
 local function processQuads(vehicle)
   if not vehicle.quads then return end
-  vehicle.maxIDs.triangles = vehicle.maxIDs.triangles or 0
-  if vehicle.triangles == nil then vehicle.triangles = {} end
   -- quads are a way of placing two tris at the same time
+  vehicle.maxIDs.triangles = vehicle.maxIDs.triangles or 0
+  vehicle.triangles = vehicle.triangles or {}
+  local tbi = tableEndC(vehicle.triangles)
   for _, quad in pairs(vehicle.quads) do
     local tri1 = deepcopy(quad)
+    vehicle.triangles[tbi] = tri1; tbi = tbi + 1
     tri1.cid = vehicle.maxIDs.triangles
     vehicle.maxIDs.triangles = vehicle.maxIDs.triangles + 1
-    table.insert(vehicle.triangles, tri1)
     tri1.id4 = nil
 
     local tri2 = deepcopy(quad)
+    vehicle.triangles[tbi] = tri2; tbi = tbi + 1
     tri2.cid = vehicle.maxIDs.triangles
     vehicle.maxIDs.triangles = vehicle.maxIDs.triangles + 1
     tri2.id1 = quad.id3
     tri2.id2 = quad.id4
     tri2.id3 = quad.id1
     tri2.id4 = nil
-    table.insert(vehicle.triangles, tri2)
   end
   vehicle.quads = nil -- not needed anymore
 end

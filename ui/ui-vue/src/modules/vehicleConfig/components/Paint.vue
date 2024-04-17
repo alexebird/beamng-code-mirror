@@ -1,28 +1,23 @@
 <template>
-  <Tabs v-if="tabbed" :class="{
-    'bng-tabs': true,
-    'paint-container-tabs': true,
-    'without-background': !withBackground,
-  }">
-    <Tab
-      v-for="(c, idx) in color"
-      :heading="$t('ui.trackBuilder.matEditor.paint') + ' ' + (idx + 1)"
-      :load-on-demand="true"
-    >
-      <PaintPicker
-        v-model="color[idx]"
-        @change="updateColor(idx)"
-        :show-preview="false"
-        :presets-editable="true"
-        :presets="factoryPresets"
-        :legacy="legacy"
-      />
+  <Tabs
+    v-if="tabbed"
+    :class="{
+      'bng-tabs': true,
+      'paint-container-tabs': true,
+      'without-background': !withBackground,
+    }">
+    <TabList v-bng-blur="withBackground" />
+    <Tab v-for="(c, idx) in color" :heading="$t('ui.trackBuilder.matEditor.paint') + ' ' + (idx + 1)" :load-on-demand="true" v-bng-blur="withBackground">
+      <PaintPicker v-model="color[idx]" @change="updateColor(idx)" :show-preview="false" :presets-editable="true" :presets="factoryPresets" :legacy="legacy" />
     </Tab>
   </Tabs>
-  <div v-else :class="{
-    'paint-container': true,
-    'with-background': withBackground,
-  }">
+  <div
+    v-else
+    :class="{
+      'paint-container': true,
+      'with-background': withBackground,
+    }"
+    v-bng-blur="withBackground">
     <PaintPicker
       v-for="(c, idx) in color"
       v-model="color[idx]"
@@ -31,7 +26,8 @@
       :presets-editable="true"
       :presets="factoryPresets"
       :legacy="legacy"
-    >{{ $t("ui.trackBuilder.matEditor.paint") }} {{ idx + 1 }}</PaintPicker>
+      >{{ $t("ui.trackBuilder.matEditor.paint") }} {{ idx + 1 }}</PaintPicker
+    >
     <div v-if="color.length % 2 === 1"></div>
   </div>
 </template>
@@ -39,15 +35,14 @@
 <script setup>
 import { ref, inject, onUnmounted, nextTick } from "vue"
 import { lua } from "@/bridge"
-import { Tabs, Tab } from "@/common/components/utility"
+import { Tabs, TabList, Tab } from "@/common/components/utility"
+import { vBngBlur } from "@/common/directives"
 import PaintPicker from "./PaintPicker.vue"
 
 const $game = inject("$game")
 
 defineProps({
-  withBackground: {
-    type: Boolean,
-  },
+  withBackground: Boolean,
   tabbed: {
     type: Boolean,
     default: true,
@@ -65,15 +60,13 @@ const color = ref([colorDefault, colorDefault, colorDefault])
 const factoryPresets = ref({})
 
 function updateColor(index) {
-  nextTick(
-    () => lua.core_vehicle_colors.setVehicleColor(index, color.value[index])
-  )
+  nextTick(() => lua.core_vehicle_colors.setVehicleColor(index, color.value[index]))
 }
 
 async function fetchDefinedColors() {
   for (let i = 0; i < color.value.length; i++) {
     const promise = i === 0 ? lua.getVehicleColor() : lua.getVehicleColorPalette(i - 1)
-    color.value[i] = await promise || colorDefault
+    color.value[i] = (await promise) || colorDefault
   }
   // console.log("fetchDefinedColors", color.value)
 }

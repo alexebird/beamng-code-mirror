@@ -152,6 +152,10 @@ local lastCamPointVec, lastCamLastPerp, moveDir = vec3(), vec3(), vec3()
 
 local rot, calculatedCamPos, camPos, updir, rear = vec3(), vec3(), vec3(), vec3(), vec3()
 
+local resultPos, resultRot, dynamicPitchQuat, tempQuatB = vec3(), quat(), quat(), quat()
+
+local bbCenter, bbHalfAxis1 = vec3(), vec3()
+
 function C:update(data)
   data.res.collisionCompatible = true
   if self.target then
@@ -180,7 +184,7 @@ function C:update(data)
     self.configChanged = false
   end
   if data.teleported then
-      self.smoothedVelocity:set(data.vel:length())
+    self.smoothedVelocity:set(data.vel:length())
   end
 
   -- calculate the camera offset: rotate with the vehicle
@@ -348,7 +352,11 @@ function C:update(data)
     rear:set(data.veh:getNodePositionXYZ(self.rearNodeID))
     rear:setAdd(data.pos)
   else
-    rear = data.veh:getSpawnWorldOOBBRearPoint()
+    local vehId = data.veh:getID()
+    bbCenter:set(be:getObjectOOBBCenterXYZ(vehId))
+    bbHalfAxis1:set(be:getObjectOOBBHalfAxisXYZ(vehId, 1))
+    rear:set(bbCenter)
+    rear:setAdd(bbHalfAxis1)
   end
 
   -- compute how wide the rear of the car is (in screen space) when using the jbeam config (self.camDist). This 'originalWidth' will be preserved in screen space, no matter the FOV we end up applying
@@ -380,7 +388,8 @@ function C:update(data)
     math.sin(rotB.x) * math.cos(rotB.y)
     , -math.cos(rotB.x) * math.cos(rotB.y)
     , -math.sin(rotB.y))
-  calculatedCamPos:setRotate(quatFromDir(dirB))
+  tempQuatB:setFromDir(dirB)
+  calculatedCamPos:setRotate(tempQuatB)
   calculatedCamPos:setScaled(dist + fovdistDiff)
 
   camPos:set(push3(calculatedCamPos) + targetPos + self.orbitOffset)
@@ -403,11 +412,17 @@ function C:update(data)
   local smoothedVelocity = math.max(self.smoothedVelocity:get(velocity, data.dt) * 0.05 - 0.2, 0.0)
   local lengthValue = math.min((1.4 * smoothedVelocity) / (smoothedVelocity + 4.1), 1)
   local dynamicPitch = -self.maxDynamicPitch * lengthValue
-  local dynamicPitchQuat = quatFromEuler(dynamicPitch, 0, 0)
+  dynamicPitchQuat:setFromEuler(dynamicPitch, 0, 0)
 
   -- application
-  data.res.pos = camPos + vec3(0, 0, lengthValue) * self.maxDynamicOffset
-  data.res.rot = dynamicPitchQuat * quatFromDir(push3(targetPos) - camPos)
+  resultPos:set(0, 0, lengthValue)
+  resultPos:setScaled(self.maxDynamicOffset)
+  resultPos:setAdd(camPos)
+
+  resultRot:setFromDir(push3(targetPos) - camPos)
+  resultRot:setMul2(dynamicPitchQuat, resultRot)
+  data.res.pos:set(resultPos)
+  data.res.rot:set(resultRot)
   data.res.fov = fov
   data.res.targetPos:set(targetPos)
   self.collision:update(data)

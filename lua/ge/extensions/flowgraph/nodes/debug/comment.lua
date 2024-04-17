@@ -16,13 +16,11 @@ local moveModesPrettyNames = {
 C.name = 'Comment'
 C.description = "Places a comment into your graph, which can group together nodes."
 C.category = 'logic'
-C.todo = "Size of the node is not kept through reloading and randomly breaks. Use 'Simple' mode to avoid this"
 C.tags = { 'group' }
 
 C.pinSchema = {}
 
 function C:init()
-
   self.commentSize = im.ImVec2(200, 200)
   self.storedCommentSize = im.ImVec2(200,200)
   self.commentTitle = 'Comment'

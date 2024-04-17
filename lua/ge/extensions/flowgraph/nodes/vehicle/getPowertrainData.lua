@@ -40,7 +40,7 @@ function C:workOnce()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   if veh then
     core_vehicleBridge.requestValue(veh, function(val) dump(val) dumpz(self, 1) self.receivedInfo = val.result end,'powertrainDevice', self.pinIn.device.value, self.pinIn.property.value)

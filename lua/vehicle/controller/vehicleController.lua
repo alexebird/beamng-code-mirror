@@ -387,7 +387,7 @@ local function updateAggression(dt)
     end
     smoothedValues.drivingAggression = min(aggression, 1) --previous smoother outputs max out at 1.333 to give some headroom, but now we cap them to 1 for the rest of the code
   else --use old logic for old manuals
-    smoothedValues.drivingAggression = throttle * throttle * throttle
+    smoothedValues.drivingAggression = smoothedValues.throttle
   end
 
   smoothedValues.drivingAggression = aggressionOverride or smoothedValues.drivingAggression

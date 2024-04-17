@@ -207,7 +207,7 @@ local function initSounds(device, jbeamData)
 
   for _, consumer in ipairs(device.connectedConsumers) do
     if consumer.initSounds then
-      consumer:initSounds(device.cylinderJbeamData[consumer.name])
+      consumer:initSounds(device.consumerJbeamData[consumer.name])
     end
   end
 end
@@ -219,7 +219,7 @@ local function resetSounds(device, jbeamData)
 
   for _, consumer in ipairs(device.connectedConsumers) do
     if consumer.resetSounds then
-      consumer:resetSounds(device.cylinderJbeamData[consumer.name])
+      consumer:resetSounds(device.consumerJbeamData[consumer.name])
     end
   end
 end
@@ -258,8 +258,8 @@ local function reset(device, jbeamData)
 
   selectUpdates(device)
 
-  for _, cylinder in ipairs(device.connectedConsumers) do
-    cylinder:reset(jbeamData)
+  for _, consumer in ipairs(device.connectedConsumers) do
+    consumer:reset(device.consumerJbeamData[consumer.name])
   end
 
   return device
@@ -345,17 +345,17 @@ local function new(jbeamData)
   hydraulicConsumerFactories.hydraulicCylinder = require("powertrain/hydraulicCylinder")
   --hydraulicConsumerFactories.hydraulicRotator = require("powertrain/hydraulicRotator")
 
-  device.cylinderJbeamData = {}
+  device.consumerJbeamData = {}
   for _, ph in pairs(v.data.powertrainHydros or {}) do
     if ph.connectedPump == device.name then
-      local cylinderJbeamData = deepcopy(tableMerge(ph, v.data[ph.name] or {}))
+      local consumerJbeamData = deepcopy(tableMerge(ph, v.data[ph.name] or {}))
 
-      local consumerType = cylinderJbeamData.type
+      local consumerType = consumerJbeamData.type
       local factory = hydraulicConsumerFactories[consumerType]
-      local cylinder = factory.new(cylinderJbeamData, device)
+      local consumer = factory.new(consumerJbeamData, device)
 
-      table.insert(device.connectedConsumers, cylinder)
-      device.cylinderJbeamData[cylinderJbeamData.name] = cylinderJbeamData
+      table.insert(device.connectedConsumers, consumer)
+      device.consumerJbeamData[consumerJbeamData.name] = consumerJbeamData
     end
   end
 

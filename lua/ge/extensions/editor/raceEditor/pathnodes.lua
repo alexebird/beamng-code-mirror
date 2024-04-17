@@ -142,7 +142,7 @@ function C:dragging()
     if node.mode == 'manual' then
       node.radius = self.beginDragRadius * scl
     elseif node.mode == 'navgraph' then
-      node:setNavRadiusScale(beself.beginDragRadiusginDragRadius * scl)
+      node:setNavRadiusScale(self.beginDragRadius * scl)
     end
   end
 end

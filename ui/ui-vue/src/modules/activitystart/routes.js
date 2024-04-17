@@ -1,5 +1,5 @@
 // ActivityStart routes --------------------------------------
-import ActivityStart from "@/modules/activitystart/views/ActivityStart.vue"
+import ActivityStart from "./views/ActivityStart.vue"
 
 export default [
   {

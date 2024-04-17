@@ -910,15 +910,15 @@ local function getVerticesWithOOBCoords()
 
             local spikeX, spikeY, spikeZ
 
-            if locCoords.x < 0 or locCoords.x > 1 then
+            if locCoords.x < -0.5 or locCoords.x > 1.5 then
               spikeX = true
               countVec.x = countVec.x + 1
             end
-            if locCoords.y < 0 or locCoords.y > 1 then
+            if locCoords.y < -0.5 or locCoords.y > 1.5 then
               spikeY = true
               countVec.y = countVec.y + 1
             end
-            if locNodes[4] ~= -1 and (locCoords.z < 0 or locCoords.z > 1) then
+            if locNodes[4] ~= -1 and (locCoords.z < -0.5 or locCoords.z > 1.5) then
               spikeZ = true
               countVec.z = countVec.z + 1
             end
@@ -1038,7 +1038,7 @@ local function renderVertexOOBCoordsWindow()
   if showVerticesOBBCoordsWindow[0] then
     if im.Begin(verticesOOBCoordsWindowName, showVerticesOBBCoordsWindow) then
       if state.verticesOOBCoordsData then
-        local totalVertices = be:getPlayerVehicle(0):getRootNodeFlexmesh():getVertexCount()
+        local totalVertices = getPlayerVehicle(0):getRootNodeFlexmesh():getVertexCount()
 
         im.Text("Potential Spiking Vertices Count: " .. string.format("%d / %d", state.verticesOOBCoordsData.count, totalVertices))
         im.Text("Problematic Locators Count (NX,NY,NZ): " .. dumps(state.verticesOOBCoordsData.countVec))
@@ -1072,7 +1072,7 @@ local function renderVerticesLackingNodesWindow()
   if showVerticesLackingNodesWindow[0] then
     if im.Begin(verticesLackingNodesWindowName, showVerticesLackingNodesWindow) then
       if state.verticesLackingNodesData then
-        local totalVertices = be:getPlayerVehicle(0):getRootNodeFlexmesh():getVertexCount()
+        local totalVertices = getPlayerVehicle(0):getRootNodeFlexmesh():getVertexCount()
 
         im.Text("Problematic Vertices Count: " .. string.format("%d / %d", state.verticesLackingNodesData.count, totalVertices))
         im.Separator()

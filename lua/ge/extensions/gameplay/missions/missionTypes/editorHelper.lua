@@ -946,7 +946,7 @@ local drawFunctions = {
 function C:updateMouseInfo(mission)
   if not self.mouseInfo then self.mouseInfo = {} end
   if core_forest.getForestObject() then core_forest.getForestObject():disableCollision() end
-  self.mouseInfo.camPos = getCameraPosition()
+  self.mouseInfo.camPos = core_camera.getPosition()
   self.mouseInfo.ray = getCameraMouseRay()
   self.mouseInfo.rayDir = vec3(self.mouseInfo.ray.dir)
   self.mouseInfo.rayCast = cameraMouseRayCast()

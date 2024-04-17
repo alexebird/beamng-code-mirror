@@ -98,7 +98,7 @@ local function onActivityAcceptGatherData(elemData, activityData)
         if fuelType ~= "unknown" then
           fuelTranslations[fuelTypeToFuelTranslation[fuelType]] = (fuelTranslations[fuelTypeToFuelTranslation[fuelType]] or 0) + 1
           table.insert(props, {
-            icon = "icons.general.refuel",
+            icon = "fuelPump",
             keyLabel = "ui.general.fuelType."..fuelType
           })
         end
@@ -108,8 +108,8 @@ local function onActivityAcceptGatherData(elemData, activityData)
         key = "refuelMixed"
       end
       data.props = props
-      data.buttonLabel = career_career.isActive() and "ui.career.refueling.action.title" or ("ui.freeroam."..key..".prompt")
-      data.buttonFun = function() M.refuelCar(elem, fuelTypes, be:getPlayerVehicle(0)) end
+      data.buttonLabel = ("ui.freeroam."..key..".prompt")
+      data.buttonFun = function() M.refuelCar(elem, fuelTypes, getPlayerVehicle(0)) end
       table.insert(activityData, data)
     end
   end

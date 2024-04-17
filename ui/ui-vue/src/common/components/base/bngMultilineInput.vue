@@ -2,7 +2,7 @@
 <template>
   <div class="input-icon-wrapper" :class="{ scalable: scalable }">
     <span v-if="leadingIcon" ref="leadingIconContainer" class="input-icon">
-      <bng-icon :type="leadingIcon" />
+      <BngIcon :type="leadingIcon" />
     </span>
     <div
       ref="inputContainer"
@@ -28,12 +28,13 @@
         :disabled="disabled"
         @focusin="onInputFieldFocusIn"
         @focusout="onInputFieldFocusOut"
+        v-bng-text-input
       ></textarea>
       <span v-if="floatingLabel" class="floating-label">{{ floatingLabel }}</span>
       <span ref="focusHighlight" class="focus-highlight"></span>
     </div>
     <span v-if="trailingIcon" ref="trailingIconContainer" class="input-icon">
-      <bng-icon :type="trailingIcon" />
+      <BngIcon :type="trailingIcon" />
     </span>
   </div>
 </template>
@@ -41,14 +42,15 @@
 <script setup>
 import { computed, onBeforeMount, onDeactivated, onMounted, ref } from "vue"
 import { BngIcon } from "@/common/components/base/index"
+import { vBngTextInput } from "@/common/directives"
 
 const props = defineProps({
   floatingLabel: String,
   externalLabel: String,
   placeholder: String,
   initialValue: String,
-  leadingIcon: String,
-  trailingIcon: String,
+  leadingIcon: Object,
+  trailingIcon: Object,
   scalable: Boolean,
   hasError: Boolean,
   errorMessage: String,
@@ -190,10 +192,11 @@ $input-height: 2.5em;
     }
   }
 
-  > .input-icon > img {
+  > .input-icon span  {
     display: inline-block;
     padding: 0 0.5em;
     height: 1.5em;
+    font-size: 1.25em;
   }
 }
 

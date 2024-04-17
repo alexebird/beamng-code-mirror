@@ -36,7 +36,6 @@ local function createViewFromData(id, data)
     editorIconsVisible = im.BoolPtr(data.editorIconsVisible or false),
     ortho = im.BoolPtr(data.ortho or false),
     dragOffset = data.dragOffset or vec3(0,0,0),
-    targetRenderView = DebugDrawerTargetRenderViews(false, {wndName}),
     --control = ImguiRenderViewControl.getOrCreate(wndName),
   }
 
@@ -167,7 +166,7 @@ local function _drawgrid(size, rot, gridOrigin, width)
 end
 
 local function _windowContent(id, sceneViewName, view)
-  debugDrawer:setTargetRenderViews(view.targetRenderView)
+  --debugDrawer:setTargetRenderViews(view.targetRenderView)
 
   local delta = vec3(0, 0, 0)
   local gridSize = 5 -- meters
@@ -204,7 +203,7 @@ local function _windowContent(id, sceneViewName, view)
   local focusRot
   local focusObj
   if view.attachToObject[0] then
-    focusObj = be:getPlayerVehicle(0)
+    focusObj = getPlayerVehicle(0)
     if focusObj then
       focusRot = quat(focusObj:getRefNodeRotation())
       focusPos = focusObj:getPosition() + focusRot * view.dragOffset
@@ -298,7 +297,7 @@ local function _windowContent(id, sceneViewName, view)
   local txt = dumps{'type: ', view.mode, 'view.pos: ', view.pos}
   debugDrawer:drawTextAdvanced((vec3(0,20,0)), "PLEASE DISABLE AMBIENT OCCLUSION", ColorF(0,0,0,1), false, true, ColorI(0, 0, 0, 255))
   debugDrawer:drawTextAdvanced((vec3(0,40,0)), txt, ColorF(0,0,0,1), false, true, ColorI(0, 0, 0, 255))
-  debugDrawer:clearTargetRenderViews()
+  --debugDrawer:clearTargetRenderViews()
 
   -- update renderview settings
   if focusObj then

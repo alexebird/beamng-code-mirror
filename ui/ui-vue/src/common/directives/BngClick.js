@@ -7,8 +7,8 @@
  *                                        before registering click and hold event type. **Default value is 400.**
  * @param       {number}  repeatInterval  *(optional) applicable only to **click-and-hold** event type*. Time in ms
  *                                        between calling the **holdCallback** property. **Default value is 100.**
- * @param       {function}  clickCallback   the function to be called when **click** event type detected.
- * @param       {function}  holdCallback    the function to be called when **click-and-hold** event type is detected.
+ * @param       {function}  clickCallback   the function to be called when **click** event type detected (receives original event object that started the click).
+ * @param       {function}  holdCallback    the function to be called when **click-and-hold** event type is detected (receives original event object that started the hold).
  *
  * @example
  *    `v-bng-click="helloFn"` for **click** event.
@@ -27,27 +27,31 @@
 /**
  * `binding.value` but predictably formatted
  * @typedef {object} ClickBinding
- * @property {function}  [clickCallback]  Callback for click event
- * @property {function}  [holdCallback]   Callback for hold event
- * @property {number}    holdDelay        Hold delay
- * @property {number}    repeatInterval   Repeat interval
+ * @property {function}         [clickCallback]          Callback for click event
+ * @property {function}         [holdCallback]           Callback for hold event
+ * @property {number}           holdDelay                Hold delay
+ * @property {boolean|number}   [holdRollback=false]     Hold rollback animation (if number, sets the rollback speed; default speed: 5)
+ * @property {number}           repeatInterval           Repeat interval
  */
 /**
  * Mutable click data object
  * @typedef {object} ClickData
- * @property {number}        id           Unique ID
- * @property {HTMLElement}   element      An element
- * @property {object}        events       Events currently bound to `element`
- * @property {ClickBinding}  binding      "Fixed" source directive data from binding.value
- * @property {boolean}       hasClick     If it has click event
- * @property {boolean}       hasHold      If it has hold event
+ * @property {number}           id                       Unique ID
+ * @property {HTMLElement}      element                  An element
+ * @property {object}           events                   Events currently bound to `element`
+ * @property {ClickBinding}     binding                  "Fixed" source directive data from binding.value
+ * @property {boolean}          hasClick                 If it has click event
+ * @property {boolean}          hasHold                  If it has hold event
+ * @property {number}           holdRollbackSpeed        Hold rollback effect speed: step * speed
  */
 
 const
   HOLD_ANIM_UPDATE_TIME_MS = 20,
   DEFAULT_HOLD_DELAY = 400,
   DEFAULT_REPEAT_INTERVAL = 100,
-  HOLD_CSS_VAR = '--hold-completion',
+  DEFAULT_HOLD_ROLLBACK_SPEED = 5,
+  HOLD_CSS_VAR = "--hold-completion",
+  HOLD_CSS_CLASS = "hold-active",
 
   EVENT_CLICK = "click",
   EVENT_HOLD = "hold",
@@ -83,12 +87,32 @@ function update(element, binding) {
   data.hasHold = typeof data.binding.holdCallback === "function"
 
   // if no arg is specified, this timeout is used to determine the type of click interaction - click(normal) or hold
-  if (typeof data.binding.holdDelay !== "number")
+  if (typeof data.binding.holdDelay !== "number") {
     data.binding.holdDelay = DEFAULT_HOLD_DELAY
+  }
+
+  // if it has hold event and rollback specified, set an appropriate rollback speed
+  if (data.hasHold && data.binding.holdRollback) { // off by default
+    data.holdRollbackSpeed = typeof data.binding.holdRollback === "number" ? Math.abs(data.binding.holdRollback) : DEFAULT_HOLD_ROLLBACK_SPEED
+  } else {
+    data.holdRollbackSpeed = 0
+  }
+  // if (data.hasHold) { // on by default
+  //   if (typeof data.binding.holdRollback === "number") {
+  //     data.holdRollbackSpeed = Math.abs(data.binding.holdRollback)
+  //   } else if (typeof data.binding.holdRollback === "boolean") {
+  //     data.holdRollbackSpeed = data.binding.holdRollback ? DEFAULT_HOLD_ROLLBACK_SPEED : 0
+  //   } else {
+  //     data.holdRollbackSpeed = DEFAULT_HOLD_ROLLBACK_SPEED
+  //   }
+  // } else {
+  //   data.holdRollbackSpeed = 0
+  // }
 
   // applicable to 'hold' arg only
-  if (typeof data.binding.repeatInterval !== "number")
+  if (typeof data.binding.repeatInterval !== "number") {
     data.binding.repeatInterval = DEFAULT_REPEAT_INTERVAL
+  }
 
   return data
 }
@@ -98,13 +122,16 @@ function update(element, binding) {
  * @param {HTMLElement} element An element
  */
 function remove(element) {
-  const data = element[ELEMENT_ID]
-  if (!data)
-    return
+  const id = element[ELEMENT_ID]
+  if (!id) return
+  const data = datas[id]
+  if (!data) return
+  // graceful cleanup (stop timers)
+  "mouseleave" in data.events && data.events.mouseleave()
   // remove events
-  updateEvents(data.id)
+  updateEvents(id)
   // forget this element
-  delete datas[data.id]
+  delete datas[id]
   delete element[ELEMENT_ID]
 }
 
@@ -115,8 +142,7 @@ function remove(element) {
  */
 function updateEvents(id, events = {}) {
   const data = datas[id]
-  if (!data)
-    return
+  if (!data) return
   // remove previous events
   for (const event in data.events)
     data.element.removeEventListener(event, data.events[event])
@@ -133,19 +159,25 @@ export default {
 
     const data = update(el, binding)
 
+    // this function should be checked on new CEF
+    // on current one, it returns { button: 0, buttons: 0 } for LMB which is incorrect, it should be { button: 0, buttons: 1 }
+    const approveEvent = evt => evt.button === 0 || evt.fromController
+
     updateEvents(data.id, {
       mousedown: e => {
+        if (!approveEvent(e)) return
+        el.classList.toggle(HOLD_CSS_CLASS, true)
         // set default event to 'click' if allowed
-        if (canInvokeEventType(EVENT_CLICK))
-          detectedEventType = EVENT_CLICK
-        if (data.hasHold)
-          startHoldDelayTimer()
+        canInvokeEventType(EVENT_CLICK) && (detectedEventType = EVENT_CLICK)
+        data.hasHold && startHoldDelayTimer(e)
       },
       mouseup: e => {
+        if (!approveEvent(e)) return
+        el.classList.toggle(HOLD_CSS_CLASS, false)
         stopHoldDelayTimer()
         switch (detectedEventType) {
           case EVENT_CLICK:
-            doAction(EVENT_CLICK)
+            doAction(EVENT_CLICK, e)
             break
           case EVENT_HOLD:
             stopHoldTimer()
@@ -153,7 +185,7 @@ export default {
         }
         detectedEventType = null
       },
-      mouseleave: e => {
+      mouseleave: () => {
         stopHoldDelayTimer()
         switch (detectedEventType) {
           case EVENT_HOLD:
@@ -162,6 +194,7 @@ export default {
         }
         detectedEventType = null
       },
+      blur: () => data.events.mouseleave(),
     })
 
     let detectedEventType
@@ -169,26 +202,43 @@ export default {
 
     let holdDelayCompletion = 0
     let holdDelayCompletionStep
-    let holdDelayCompletionTimer
+    let holdDelayCompletionTimer, holdDelayCompletionRollbackTimer
 
     let holdTimer
 
-    function startHoldDelayTimer() {
-      holdDelayCompletionStep = 100 * HOLD_ANIM_UPDATE_TIME_MS / data.binding.holdDelay
+    function startHoldDelayTimer(e) {
+      holdDelayCompletionStep = HOLD_ANIM_UPDATE_TIME_MS / data.binding.holdDelay
       holdDelayCompletionTimer = setInterval(updateHoldDelayCompletion, HOLD_ANIM_UPDATE_TIME_MS)
+      holdDelayCompletionRollbackTimer && clearInterval(holdDelayCompletionRollbackTimer)
       holdDelayTimer = setTimeout(() => {
         detectedEventType = EVENT_HOLD
-        startHoldTimer()
+        startHoldTimer(e)
       }, data.binding.holdDelay)
     }
 
     function stopHoldDelayTimer() {
       holdDelayCompletionTimer && clearInterval(holdDelayCompletionTimer)
-      updateHoldDelayCompletion(0)
+      if (holdDelayCompletion > 0 && data.holdRollbackSpeed > 0) {
+        startHoldRollbackTimer()
+      } else {
+        updateHoldDelayCompletion(0)
+      }
       if (holdDelayTimer) {
         clearTimeout(holdDelayTimer)
         holdDelayTimer = null
       }
+    }
+
+    function startHoldRollbackTimer() {
+      holdDelayCompletionRollbackTimer = setInterval(() => {
+        holdDelayCompletion -= holdDelayCompletionStep * data.holdRollbackSpeed
+        if (holdDelayCompletion > 0) {
+          updateHoldDelayCompletion(holdDelayCompletion)
+        } else {
+          updateHoldDelayCompletion(0)
+          clearInterval(holdDelayCompletionRollbackTimer)
+        }
+      }, HOLD_ANIM_UPDATE_TIME_MS)
     }
 
     function updateHoldDelayCompletion(value = undefined) {
@@ -197,16 +247,18 @@ export default {
       } else {
         holdDelayCompletion = value
       }
-      el.style.setProperty(HOLD_CSS_VAR, holdDelayCompletion + "%")
+      if (holdDelayCompletion > 1) holdDelayCompletion = 1
+      el.style.setProperty(HOLD_CSS_VAR, holdDelayCompletion)
     }
 
-    function startHoldTimer() {
-      clearInterval(holdDelayCompletionTimer)
+    function startHoldTimer(e) {
+      holdDelayCompletionTimer && clearInterval(holdDelayCompletionTimer)
+      holdDelayCompletionRollbackTimer && clearInterval(holdDelayCompletionRollbackTimer)
       updateHoldDelayCompletion()
-      doAction(EVENT_HOLD)
+      doAction(EVENT_HOLD, e)
       if (data.binding.repeatInterval) {
         holdTimer = setInterval(() => {
-          doAction(EVENT_HOLD)
+          doAction(EVENT_HOLD, e)
         }, data.binding.repeatInterval)
       }
     }
@@ -218,10 +270,10 @@ export default {
       }
     }
 
-    function doAction(eventType) {
+    function doAction(eventType, originalEvent) {
       const callback = getCallback(eventType)
-      if (eventType == EVENT_HOLD && holdDelayCompletion < 100) updateHoldDelayCompletion(100)
-      if (callback) eventType == EVENT_HOLD ? setTimeout(callback, 100) : callback()
+      if (eventType == EVENT_HOLD && holdDelayCompletion < 1) updateHoldDelayCompletion(1)
+      if (callback) eventType == EVENT_HOLD ? setTimeout(() => callback(originalEvent), 100) : callback(originalEvent)
     }
 
     function getCallback(arg) {

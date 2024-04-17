@@ -10,6 +10,7 @@ M.damage = 0
 M.damageExt = 0
 M.lowpressure = false
 M.deformGroupDamage = {}
+M.deformGroupsTriggerBeam = {}
 
 M.activeParts = {}
 
@@ -200,6 +201,17 @@ end
 
 local function breakMaterial(beam)
   material.switchBrokenMaterial(beam)
+
+  local deformGroup = beam.deformGroup
+  if deformGroup then
+    if type(deformGroup) == "table" then
+      for _, g in ipairs(deformGroup) do
+        M.deformGroupsTriggerBeam[g] = M.deformGroupsTriggerBeam[g] or beam.cid
+      end
+    else
+      M.deformGroupsTriggerBeam[deformGroup] = M.deformGroupsTriggerBeam[deformGroup] or beam.cid
+    end
+  end
 end
 
 local function broadcastCouplerVisibility(visibleTags)
@@ -900,7 +912,7 @@ local function init()
   wheelBrokenBeams = {}
   couplerBreakGroupCache = {}
 
-  beamDamageTracker = {}
+  table.clear(beamDamageTracker)
   skeletonStateTimer = 0.25
   beamDamageTrackerDirty = false
 
@@ -935,18 +947,19 @@ local function init()
   breakGroupCache = {}
   brokenBreakGroups = {}
   M.deformGroupDamage = {}
+  table.clear(M.deformGroupsTriggerBeam)
   initTimer = 0
 
   autoCouplingActive = false
   autoCouplingTimer = 0
   autoCouplingTimeoutTimer = 0
 
-  attachedCouplers = {}
+  table.clear(attachedCouplers)
   transmitCouplers = {}
   recievedElectrics = {}
   M.updateRemoteElectrics = nop
 
-  couplerCache = {}
+  table.clear(couplerCache)
   couplerTags = {}
   hasActiveCoupler = false
 
@@ -1146,25 +1159,28 @@ local function beamDeformed(id, ratio)
     end
   end
 
-  if v.data.beams[id] then
-    local b = v.data.beams[id]
+  local b = v.data.beams[id]
+  if b then
     if b.partOrigin and partDamageData[b.partOrigin] then
       partDamageData[b.partOrigin].beamsDeformed = partDamageData[b.partOrigin].beamsDeformed + 1
     end
 
     if b.deformSwitches then
-      breakMaterial(b)
+      material.switchBrokenMaterial(b)
     end
 
-    if b.deformGroup then
-      if type(b.deformGroup) == "table" then
-        for _, g in ipairs(b.deformGroup) do
+    local deformGroup = b.deformGroup
+    if deformGroup then
+      if type(deformGroup) == "table" then
+        for _, g in ipairs(deformGroup) do
+          M.deformGroupsTriggerBeam[g] = M.deformGroupsTriggerBeam[g] or b.cid
           local group = M.deformGroupDamage[g]
           group.eventCount = group.eventCount + 1
           group.damage = group.eventCount * group.invMaxEvents
         end
       else
-        local group = M.deformGroupDamage[b.deformGroup]
+        M.deformGroupsTriggerBeam[deformGroup] = M.deformGroupsTriggerBeam[deformGroup] or b.cid
+        local group = M.deformGroupDamage[deformGroup]
         group.eventCount = group.eventCount + 1
         group.damage = group.eventCount * group.invMaxEvents
       end
@@ -1447,6 +1463,9 @@ M.getVehicleState = getVehicleState
 M.getPartDamageData = getPartDamageData
 M.exportPartDamageData = exportPartDamageData
 M.isPhysicsStepUsed = isPhysicsStepUsed
+M.deformedBeams = beamDamageTracker
+M.couplerCache = couplerCache
+M.attachedCouplers = attachedCouplers
 
 M.setPartCondition = setPartCondition
 M.getPartCondition = getPartCondition

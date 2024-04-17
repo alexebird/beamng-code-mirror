@@ -22,8 +22,8 @@ local newLuaQuatxyzw
 local LuaVec3 = {}
 LuaVec3.__index = LuaVec3
 
-local ffifound, ffi = pcall(require, 'ffi')
-if ffifound then
+local _, ffi = pcall(require, 'ffi')
+if ffi then
   -- FFI available, so use it
   ffi.cdef [[
     struct __luaVec3_t {double x, y, z;};
@@ -39,7 +39,7 @@ else
   end
 end
 
--- Vector 3d --
+--MARK: vec3
 local tmpv1, tmpv2 = newLuaVec3xyz(0, 0, 0), newLuaVec3xyz(0, 0, 0)
 
 function vec3(x, y, z)
@@ -134,8 +134,8 @@ function LuaVec3.__mul(a, b)
 end
 
 function LuaVec3.__div(a,b)
-    b = 1 / b
-    return newLuaVec3xyz(b * a.x, b * a.y, b * a.z)
+    local c = 1 / b
+    return newLuaVec3xyz(c * a.x, c * a.y, c * a.z)
 end
 
 function LuaVec3.__eq(a, b)
@@ -283,8 +283,8 @@ function LuaVec3:triangleClosestPoint(a, b, c)
 
   local va = d3 * d6 - d5 * d4
   if va <= 0 and d4 >= d3 and d5 >= d6 then
-    local d4d3 = d4 - d3
-    return b + (d4d3 / (d4d3 + d5 - d6)) * (c - b)
+    d4 = d4 - d3
+    return b + (d4 / (d4 + d5 - d6)) * (c - b)
   end
 
   local denom = va + vb + vc
@@ -311,8 +311,8 @@ function LuaVec3:inPolygon(...)
 end
 
 function LuaVec3:projectToOriginPlane(pnorm)
-  local t = self.x * pnorm.x + self.y * pnorm.y + self.z * pnorm.z
-  return newLuaVec3xyz(self.x - t * pnorm.x, self.y - t * pnorm.y, self.z - t * pnorm.z)
+  local t = self.x*pnorm.x + self.y*pnorm.y + self.z*pnorm.z
+  return newLuaVec3xyz(self.x - t*pnorm.x, self.y - t*pnorm.y, self.z - t*pnorm.z)
 end
 
 -- self is a plane' point
@@ -359,6 +359,8 @@ end
 function LuaVec3:componentMul(b)
   return newLuaVec3xyz(self.x * b.x, self.y * b.y, self.z * b.z)
 end
+
+--MARK: vec3 set
 
 function LuaVec3:setMin(a)
   local x, y, z = a:xyz()
@@ -413,13 +415,14 @@ end
 function LuaVec3:setLerp(from, to, t)
   local x, y, z = from:xyz()
   local bx, by, bz = to:xyz()
-  self.x, self.y, self.z = x + (bx-x) * t, y + (by-y) * t, z + (bz-z) * t  -- monotonic
+  local t1 = 1 - t
+  self.x, self.y, self.z = x*t1 + bx*t, y*t1+ by*t, z*t1 + bz*t  -- preserves from and to, non monotonic
 end
 
 function LuaVec3:setCross(a, b)
   local x, y, z = a:xyz()
   local bx, by, bz = b:xyz()
-  self.x, self.y, self.z = y * bz - z * by, z * bx - x * bz, x * by - y * bx
+  self.x, self.y, self.z = y*bz - z*by, z*bx - x*bz, x*by - y*bx
 end
 
 function LuaVec3:setRotate(q, a)
@@ -429,14 +432,28 @@ function LuaVec3:setRotate(q, a)
   self:set(push3(x,y,z) - push3(tx,ty,tz) * q.w + push3(q):cross(push3(tx,ty,tz)))
 end
 
+--http://bediyap.com/programming/convert-quaternion-to-euler-rotations/
+function LuaVec3:setEulerYXZ(q)
+  local wxsq = q.w*q.w - q.x*q.x
+  local yzsq = q.z*q.z - q.y*q.y
+  self.x, self.y, self.z = math.atan2(2*(q.x*q.y+q.w*q.z), wxsq-yzsq), math.asin(max(min(-2*(q.y*q.z-q.w*q.x), 1), -1)), math.atan2(2*(q.x*q.z+q.w*q.y), wxsq+yzsq)
+end
+
+function LuaVec3:setProjectToOriginPlane(pnorm, a)
+  a = a or self
+  local x,y,z = a:xyz()
+  local px,py,pz = pnorm:xyz()
+  local t = x*px + y*py + z*pz
+  self.x, self.y, self.z = x - t*px, y - t*py, z - t*pz
+end
+
 -- Returns quat (-w) from self->v. Both vecs should be normalized
 function LuaVec3:getRotationTo(v)
   local w = 1 + self:dot(v)
   local qv
 
   if (w < 1e-6) then
-    w = 0
-    qv = v:perpendicular()
+    w, qv = 0, v:perpendicular()
   else
     qv = self:cross(v)
   end
@@ -573,11 +590,11 @@ function randomState(v)
 end
 
 -- returns xnormals for the two lines: http://geomalgorithms.com/a07-_distance.html
-function closestLinePoints(l1p0, l1p1, l2p0, l2p1)
-  local ux, uy, uz, vx, vy, vz = l1p1.x - l1p0.x, l1p1.y - l1p0.y, l1p1.z - l1p0.z, l2p1.x - l2p0.x, l2p1.y - l2p0.y, l2p1.z - l2p0.z
+function closestLinePoints(l1p1, l1p2, l2p1, l2p2)
+  local ux, uy, uz, vx, vy, vz = l1p2.x - l1p1.x, l1p2.y - l1p1.y, l1p2.z - l1p1.z, l2p2.x - l2p1.x, l2p2.y - l2p1.y, l2p2.z - l2p1.z
   local uu, vv, uv = ux*ux + uy*uy + uz*uz, vx*vx + vy*vy + vz*vz, ux*vx + uy*vy + uz*vz
   local D = uu*vv - uv*uv
-  local rx, ry, rz = l1p0.x - l2p0.x, l1p0.y - l2p0.y, l1p0.z - l2p0.z
+  local rx, ry, rz = l1p1.x - l2p1.x, l1p1.y - l2p1.y, l1p1.z - l2p1.z
   local ru, rv = rx*ux + ry*uy + rz*uz, rx*vx + ry*vy + rz*vz
 
   if D < 1e-20 then
@@ -592,19 +609,18 @@ function closestLinePoints(l1p0, l1p1, l2p0, l2p1)
 end
 
 -- returns normalized line-local coordinates (xnorms) at which the distance between the two line segments is minimum
-function closestLineSegmentPoints(l1p0, l1p1, l2p0, l2p1)
-  local ux, uy, uz, vx, vy, vz = l1p1.x - l1p0.x, l1p1.y - l1p0.y, l1p1.z - l1p0.z, l2p1.x - l2p0.x, l2p1.y - l2p0.y, l2p1.z - l2p0.z
+function closestLineSegmentPoints(l1p1, l1p2, l2p1, l2p2)
+  local ux, uy, uz, vx, vy, vz = l1p2.x - l1p1.x, l1p2.y - l1p1.y, l1p2.z - l1p1.z, l2p2.x - l2p1.x, l2p2.y - l2p1.y, l2p2.z - l2p1.z
   local uu, vv, uv = ux*ux + uy*uy + uz*uz, vx*vx + vy*vy + vz*vz, ux*vx + uy*vy + uz*vz
   local D = uu*vv - uv*uv
-  local rx, ry, rz = l1p0.x - l2p0.x, l1p0.y - l2p0.y, l1p0.z - l2p0.z
+  local rx, ry, rz = l1p1.x - l2p1.x, l1p1.y - l2p1.y, l1p1.z - l2p1.z
   local ru, rv = rx*ux + ry*uy + rz*uz, rx*vx + ry*vy + rz*vz
 
   if D < 1e-20 then
     local t = clamp(rv / (vv + 1e-30), 0, 1)
     return clamp((t*uv - ru) / (uu + 1e-30), 0, 1), t
   else
-    return clamp((clamp((uu*rv - uv*ru) / D, 0, 1) * uv - ru) / uu, 0, 1),
-           clamp((clamp((uv*rv - vv*ru) / D, 0, 1) * uv + rv) / vv, 0, 1)
+    return clamp((clamp((uu*rv - uv*ru) / D, 0, 1)*uv - ru) / uu, 0, 1), clamp((clamp((uv*rv - vv*ru) / D, 0, 1)*uv + rv) / vv, 0, 1)
   end
 end
 
@@ -612,129 +628,137 @@ function linePointFromXnorm(p0, p1, xnorm)
   return newLuaVec3xyz(p0.x + (p1.x-p0.x) * xnorm, p0.y + (p1.y-p0.y) * xnorm, p0.z + (p1.z-p0.z) * xnorm)
 end
 
--- Stack vec3 --
+--MARK: push3
 
 local StackVec3 = {}
 StackVec3.__index = StackVec3
-local stackv3 = setmetatable({}, StackVec3)
-local stacki = 1
+local push3obj, stacki, stackv3 = setmetatable(StackVec3, StackVec3), 1, {}
+for i = 100, 1, -1 do stackv3[i] = newLuaVec3xyz(0,0,0) end
 
 function push3(x, y, z)
+  local s = stackv3[stacki]
   if rawequal(y, nil) then
-    stackv3[stacki], stackv3[stacki+1], stackv3[stacki+2] = x:xyz()
+    s.x, s.y, s.z = x:xyz()
   else
-    stackv3[stacki], stackv3[stacki+1], stackv3[stacki+2] = x, y, z
+    s.x, s.y, s.z = x, y, z
   end
-  stacki = stacki + 3
-  return stackv3
+  stacki = stacki + 1
+  return push3obj
 end
 
 function StackVec3:xyz()
-  stacki = stacki - 3
-  return stackv3[stacki], stackv3[stacki+1], stackv3[stacki+2]
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  return s.x, s.y, s.z
 end
 
 function StackVec3:__tostring()
-  stacki = stacki - 3
-  return string.format('stack3(%.10g,%.10g,%.10g)', stackv3[stacki], stackv3[stacki+1], stackv3[stacki+2])
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  return string.format('push3(%.10g,%.10g,%.10g)', s.x, s.y, s.z)
 end
 
 function StackVec3.__add(a, b)
   local bx, by, bz = b:xyz()
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = stackv3[stacki-3] + bx, stackv3[stacki-2] + by, stackv3[stacki-1] + bz
-  return stackv3
+  local s = stackv3[stacki-1]
+  s.x, s.y, s.z = s.x + bx, s.y + by, s.z + bz
+  return push3obj
 end
 
 function StackVec3.__sub(a, b)
   local bx, by, bz = b:xyz()
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = stackv3[stacki-3] - bx, stackv3[stacki-2] - by, stackv3[stacki-1] - bz
-  return stackv3
+  local s = stackv3[stacki-1]
+  s.x, s.y, s.z = s.x - bx, s.y - by, s.z - bz
+  return push3obj
 end
 
 function StackVec3.__unm(a)
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = -stackv3[stacki-3], -stackv3[stacki-2], -stackv3[stacki-1]
-  return stackv3
+  local s = stackv3[stacki-1]
+  s.x, s.y, s.z = -s.x, -s.y, -s.z
+  return push3obj
 end
 
 function StackVec3.__mul(a, b)
   b = type(a) == 'number' and a or b
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = stackv3[stacki-3]*b, stackv3[stacki-2]*b, stackv3[stacki - 1]*b
-  return stackv3
+  local s = stackv3[stacki-1]
+  s.x, s.y, s.z = s.x*b, s.y*b, s.z*b
+  return push3obj
 end
 
 function StackVec3.__div(a, b)
-  b = type(a) == 'number' and 1 / a or 1 / b
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = stackv3[stacki-3]*b, -stackv3[stacki-2]*b, -stackv3[stacki - 1]*b
-  return stackv3
+  local c = 1 / b
+  local s = stackv3[stacki-1]
+  s.x, s.y, s.z = s.x*c, s.y*c, s.z*c
+  return push3obj
 end
 
 function StackVec3:dot(a)
   local ax, ay, az = a:xyz()
-  stacki = stacki - 3
-  return stackv3[stacki] * ax + stackv3[stacki+1] * ay + stackv3[stacki+2] * az
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  return s.x * ax + s.y * ay + s.z * az
 end
 
 function StackVec3:cross(b)
   local bx, by, bz = b:xyz()
-  local ax, ay, az = stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1]
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx
-  return stackv3
+  local s = stackv3[stacki-1]
+  local ax, ay, az = s.x, s.y, s.z
+  s.x, s.y, s.z = ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx
+  return push3obj
 end
 
 function StackVec3:z0()
-  stackv3[stacki-1] = 0
-  return stackv3
+  stackv3[stacki-1].z = 0
+  return push3obj
 end
 
 function StackVec3:length()
-  stacki = stacki - 3
-  local ax, ay, az = stackv3[stacki], stackv3[stacki+1], stackv3[stacki+2]
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  local ax, ay, az = s.x, s.y, s.z
   return sqrt(ax*ax + ay*ay + az*az)
 end
 
 function StackVec3:squaredLength()
-  stacki = stacki - 3
-  local ax, ay, az = stackv3[stacki], stackv3[stacki+1], stackv3[stacki+2]
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  local ax, ay, az = s.x, s.y, s.z
   return ax*ax + ay*ay + az*az
 end
 
 function StackVec3:normalized()
-  local ax, ay, az = stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1]
+  local s = stackv3[stacki-1]
+  local ax, ay, az = s.x, s.y, s.z
   local r = 1 / (sqrt(ax*ax + ay*ay + az*az) + 1e-30)
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = stackv3[stacki-3] * r, stackv3[stacki-2] * r, stackv3[stacki-1] * r
-  return stackv3
+  s.x, s.y, s.z = ax * r, ay * r, az * r
+  return push3obj
 end
 
 function StackVec3:resized(m)
-  local ax, ay, az = stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1]
+  local s = stackv3[stacki-1]
+  local ax, ay, az = s.x, s.y, s.z
   local r = m / (sqrt(ax*ax + ay*ay + az*az) + 1e-30)
-  stackv3[stacki-3], stackv3[stacki-2], stackv3[stacki-1] = stackv3[stacki-3] * r, stackv3[stacki-2] * r, stackv3[stacki-1] * r
-  return stackv3
+  s.x, s.y, s.z = ax * r, ay * r, az * r
+  return push3obj
 end
 
 function StackVec3:distance(a)
   local ax, ay, az = a:xyz()
-  stacki = stacki - 3
-  local tmp = stackv3[stacki] - ax
-  local d = tmp * tmp
-  tmp = stackv3[stacki+1] - ay
-  d = d + tmp * tmp
-  tmp = stackv3[stacki+2] - az
-  return sqrt(d + tmp * tmp)
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  ax, ay, ax = ax - s.x, ay - s.y, az - s.z
+  return sqrt(ax*ax + ay*ay + az*az)
 end
 
 function StackVec3:squaredDistance(a)
   local ax, ay, az = a:xyz()
-  stacki = stacki - 3
-  local tmp = stackv3[stacki] - ax
-  local d = tmp * tmp
-  tmp = stackv3[stacki+1] - ay
-  d = d + tmp * tmp
-  tmp = stackv3[stacki+2] - az
-  return d + tmp * tmp
+  stacki = stacki - 1
+  local s = stackv3[stacki]
+  ax, ay, ax = ax - s.x, ay - s.y, az - s.z
+  return ax*ax + ay*ay + az*az
 end
 
--- Quaternion --
+--MARK: quat
 
 local LuaQuat = {}
 LuaQuat.__index = LuaQuat
@@ -765,6 +789,10 @@ end
 
 function LuaQuat:xyz()
   return self.x, self.y, self.z
+end
+
+function LuaQuat:xyzw()
+  return self.x, self.y, self.z, self.w
 end
 
 function LuaQuat:__tostring()
@@ -810,13 +838,13 @@ function LuaQuat:normalized()
 end
 
 function LuaQuat:inverse()
-  local InvSqNorm = -1 / (self:squaredNorm() + 1e-30)
-  self.x, self.y, self.z, self.w = self.x * InvSqNorm, self.y * InvSqNorm, self.z * InvSqNorm, -self.w * InvSqNorm
+  local invSqNorm = -1 / (self:squaredNorm() + 1e-30)
+  self.x, self.y, self.z, self.w = self.x * invSqNorm, self.y * invSqNorm, self.z * invSqNorm, -self.w * invSqNorm
 end
 
 function LuaQuat:inversed()
-  local InvSqNorm = -1 / (self:squaredNorm() + 1e-30)
-  return newLuaQuatxyzw(self.x * InvSqNorm, self.y * InvSqNorm, self.z * InvSqNorm, -self.w * InvSqNorm)
+  local invSqNorm = -1 / (self:squaredNorm() + 1e-30)
+  return newLuaQuatxyzw(self.x * invSqNorm, self.y * invSqNorm, self.z * invSqNorm, -self.w * invSqNorm)
 end
 
 function LuaQuat.__unm(a)
@@ -845,12 +873,13 @@ function LuaQuat.__sub(a, b)
 end
 
 function LuaQuat.__div(a, b)
-  if type(a) == 'number' then
-    return newLuaQuatxyzw(b.x / a, b.y / a, b.z / a, b.w / a)
-  elseif type(b) == 'number' then
+  if type(b) == 'number' then
     return newLuaQuatxyzw(a.x / b, a.y / b, a.z / b, a.w / b)
+  else
+    local q = newLuaQuatxyzw(a.x, a.y, a.z, a.w)
+    q:setMulInv2(q, b)
+    return q
   end
-  return a * b:inversed()
 end
 
 function LuaQuat.__add(a, b)
@@ -888,7 +917,7 @@ function LuaQuat:scale(a)
   return self
 end
 
-function LuaQuat:setFromEuler(x, y, z)
+function LuaQuat:setFromEuler(x, y, z) -- in radians
   x, y, z = x * 0.5, y * 0.5, z * 0.5
   local sx, cx, sy, cy, sz, cz  = math.sin(x), math.cos(x), math.sin(y), math.cos(y), math.sin(z), math.cos(z)
   local cycz, sysz, sycz, cysz = cy*cz, sy*sz, sy*cz, cy*sz
@@ -942,25 +971,39 @@ function LuaQuat:setFromDir(dir, up)
   self:normalize()
 end
 
-function LuaQuat:setQuatMulXYZW(ax, ay, az, aw, bx, by, bz, bw)
+function LuaQuat:setMulXYZW(ax, ay, az, aw, bx, by, bz, bw)
   self.x = aw*bx + ax*bw + ay*bz - az*by
   self.y = aw*by + ay*bw + az*bx - ax*bz
   self.z = aw*bz + az*bw + ax*by - ay*bx
   self.w = aw*bw - ax*bx - ay*by - az*bz
 end
 
-function LuaQuat:setQuatMul(a, b)
-  self:setQuatMulXYZW(a.x, a.y, a.z, a.w, b.x, b.y, b.z, b.w)
+function LuaQuat:setMul2(a, b)
+  if type(a) == 'number' then
+    self.x, self.y, self.z, self.w = b.x * a, b.y * a, b.z * a, b.w * a
+  elseif type(b) == 'number' then
+    self.x, self.y, self.z, self.w = a.x * b, a.y * b, a.z * b, a.w * b
+  else
+    self:setMulXYZW(a.x, a.y, a.z, a.w, b.x, b.y, b.z, b.w)
+  end
 end
 
---http://bediyap.com/programming/convert-quaternion-to-euler-rotations/
-function LuaQuat.toEulerYXZ(q)
-  local wxsq = q.w*q.w - q.x*q.x
-  local yzsq = q.z*q.z - q.y*q.y
-  return newLuaVec3xyz(
-    math.atan2(2*(q.x*q.y + q.w*q.z), wxsq - yzsq),
-    math.asin(max(min(-2*(q.y*q.z - q.w*q.x), 1), -1)),
-    math.atan2(2*(q.x*q.z + q.w*q.y), wxsq + yzsq))
+-- = a^-1 * b
+function LuaQuat:setInvMul2(a, b)
+  local invSqNorm = -1 / (a:squaredNorm() + 1e-30)
+  self:setMulXYZW(a.x * invSqNorm, a.y * invSqNorm, a.z * invSqNorm, -a.w * invSqNorm, b.x, b.y, b.z, b.w)
+end
+
+-- = a * b^-1
+function LuaQuat:setMulInv2(a, b)
+  local invSqNorm = -1 / (b:squaredNorm() + 1e-30)
+  self:setMulXYZW(a.x, a.y, a.z, a.w, b.x * invSqNorm, b.y * invSqNorm, b.z * invSqNorm, -b.w * invSqNorm)
+end
+
+function LuaQuat:toEulerYXZ()
+  local v = newLuaVec3xyz(0, 0, 0)
+  v:setEulerYXZ(self)
+  return v
 end
 
 function LuaQuat:toTorqueQuat()
@@ -989,11 +1032,13 @@ function quatFromAxisAngle(axle, angleRad)
   return newLuaQuatxyzw(fsin * axle.x, fsin * axle.y, fsin * axle.z, math.cos(angleRad))
 end
 
-function quatFromEuler(x, y, z)
+function quatFromEuler(x, y, z) -- in radians
   local q = newLuaQuatxyzw(0, 0, 0, 1)
   q:setFromEuler(x, y, z)
   return q
 end
+
+--MARK: generic
 
 -- returns -1, 1
 function sign2(x)
@@ -1017,6 +1062,7 @@ function guardZero(x) --branchless
   return 1 / max(min(1/x, 1e300), -1e300)
 end
 
+-- returns minValue when x is NaN
 function clamp(x, minValue, maxValue )
   return min(max(x, minValue), maxValue)
 end
@@ -1029,8 +1075,12 @@ function round(a)
   return floor(a+.5)
 end
 
+function roundNear(x, m)
+  return floor(.5 + x/m)*m
+end
+
 function isnan(a)
-  return not(a == a)
+  return a ~= a
 end
 
 function isinf(a)
@@ -1042,10 +1092,7 @@ function isnaninf(a)
 end
 
 function nanError(x)
-  if x ~= x then
-    error('NaN found')
-  end
-  return x
+  return x == x and x or error('NaN found')
 end
 
 -- Note: linearScale clamps
@@ -1117,6 +1164,8 @@ function bumpFun(x, peakLeftX, peakRightX, leftSlope, rightSlope, leftY, peakY, 
     ((rightY or 0)-peakY)*(1+sigmoid1(roundness*(x-peakRightX), (rightSlope or 1))))
 end
 
+--MARK: curves
+
 function cardinalSpline(p0, p1, p2, p3, t, s, d1, d2, d3)
   d1, d2, d3 = max(d1 or 1, 1e-30), d2 or 1, max(d3 or 1, 1e-30)
   s = (s or 0.5) * 2
@@ -1127,6 +1176,7 @@ function cardinalSpline(p0, p1, p2, p3, t, s, d1, d2, d3)
   return t*t_1sq*sd2 * m1 + tt*t_1*sd2 * m2 + t_1sq*(2*t+1) * p1 - tt*(2*t-3) * p2 + s*t_1*(t*t_1 + tt) * (p2 - p1)
 end
 
+-- x, y, z independent from each other (no distance needed)
 function catmullRom(p0, p1, p2, p3, t, s)
   return cardinalSpline(p0, p1, p2, p3, t, s or 0.5, 1, 1, 1)
 end
@@ -1150,6 +1200,20 @@ function monotonicSteffen(y0, y1, y2, y3, x0, x1, x2, x3, x)
   return y1 + xx1*(m1 + xrel*(delta1 - m1 + (xrel - 1)*(m1 + m2 - 2*delta1)))
 end
 
+function quadraticBezier(p1, p2, p3, t)
+  local t1 = 1-t
+  return t1*t1*p1 + 2*t*t1*p2 + t*t*p3
+end
+
+-- it can represent segments of any conic section: hyperbolas, parabolas, ellipses, and circles
+function conicBezier(p1, p2, p3, t, w)
+  w = w or 1
+  local t1 = 1-t
+  local t1t1, wtt12, tt = t1*t1, 2*w*t*t1, t*t
+  local d = 1/(t1t1 + wtt12 + tt)
+  return t1t1*d*p1 + wtt12*d*p2 + tt*d*p3
+end
+
 -- does not pass through points, smooths out the signal
 function biQuadratic(p0, p1, p2, p3, t)
   local p12 =  p1 + (p2 - p1) * (t * 0.5 + 0.25)
@@ -1160,6 +1224,8 @@ function biQuadratic(p0, p1, p2, p3, t)
     return p12 + (p2 + (p3 - p2) * (t * 0.5 - 0.25) - p12) * (t - 0.5)
   end
 end
+
+--MARK: geom
 
 function overlapsOBB_OBB(c1, x1, y1, z1, c2, x2, y2, z2)
   tmpv1:setSub2(c1, c2)

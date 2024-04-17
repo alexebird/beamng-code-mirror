@@ -6,8 +6,8 @@
         <div class="load-content">
           <div class="action-heading">create new file</div>
           <div class="action-entry">
-            <bng-input class="action-select" floating-label="save name" v-model="newSaveFilename" />
-            <!-- <bng-button class="action-btn" :disabled="!newSaveFilename" @click="onCreate">create</bng-button> -->
+            <BngInput class="action-select" floating-label="save name" v-model="newSaveFilename" />
+            <!-- <BngButton class="action-btn" :disabled="!newSaveFilename" @click="onCreate">create</BngButton> -->
             <button class="action-btn" :disabled="!newSaveFilename" @click="onCreate">create</button>
           </div>
           <div class="divider">
@@ -15,8 +15,8 @@
           </div>
           <div class="action-heading">load saved file</div>
           <div class="action-entry">
-            <bng-dropdown class="action-select" v-model="selectedSaveFile" :items="availableSaveFiles" />
-            <!-- <bng-button :disabled="!selectedSaveFile" @click="onLoad">load</bng-button> -->
+            <BngDropdown class="action-select" v-model="selectedSaveFile" :items="availableSaveFiles" />
+            <!-- <BngButton :disabled="!selectedSaveFile" @click="onLoad">load</BngButton> -->
             <button :disabled="!selectedSaveFile" @click="onLoad">load</button>
           </div>
         </div>
@@ -37,7 +37,7 @@ const props = defineProps({
   },
 })
 
-const emits = defineEmits(["load", "create"])
+const emit = defineEmits(["load", "create"])
 
 const newSaveFilename = ref(null)
 const selectedSaveFile = ref(null)
@@ -45,11 +45,11 @@ const selectedSaveFile = ref(null)
 const availableSaveFiles = computed(() => (props.saveFiles ? props.saveFiles.map(x => ({ label: x.name, value: x.location })) : []))
 
 const onLoad = async () => {
-  emits("load", selectedSaveFile.value)
+  emit("load", selectedSaveFile.value)
 }
 
 const onCreate = () => {
-  emits("create", newSaveFilename.value)
+  emit("create", newSaveFilename.value)
 }
 </script>
 

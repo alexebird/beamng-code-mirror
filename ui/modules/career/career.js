@@ -5,7 +5,7 @@ angular.module("beamng.stuff")
 .controller("CareerController", ["$scope", "$state", "$filter", "ConfirmationDialog", "toastr", "translateService", "MessageToasterService", "InputCapturer", "$timeout", "TasklistService", function($scope, $state, $filter, ConfirmationDialog, toastr, translateService, messageToasterService, InputCapturer, $timeout, TasklistService) {
 
   $scope.$on("allCareerSaveSlots", (scope, profiles) => {
-    // console.log("CAREER", profiles);
+    //console.log("CAREER", profiles);
     if (!Array.isArray(profiles)) {
       buildCards([]);
       return;

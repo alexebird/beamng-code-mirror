@@ -15,7 +15,7 @@ C.color = im.ImVec4(1, 1, 0, 0.75)
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'clear', description = "Reset the markers", impulse = true },
   { dir = 'in', type = { 'string', 'table', 'vec3' }, tableType = 'navgraphPath', name = 'target', description = "The target to navigate to. Can be a waypoint name, position or list of these things." },
-  { dir = 'in', type = 'color', name = 'color', hidden = true, default = { 0.2, 0.53, 1, 1 }, hardcoded = true, description = "Color of the markings (Optional)" },
+  { dir = 'in', type = 'color', name = 'color', hidden = true, default = { 0.2, 0.53, 1, 1 }, hardcoded = true, description = "Color of the markings (DEPRECATED!)" },
   { dir = 'in', type = 'number', name = 'cutOffDrivability', hidden = true, description = "The drivability value, above which the road is penalized in planning (Optional)" },
   { dir = 'in', type = 'number', name = 'penaltyAboveCutoff', hidden = true, description = "The penalty above the cutoff drivability (Optional)" },
   { dir = 'in', type = 'number', name = 'penaltyBelowCutoff', hidden = true, description = "The penalty below the cutoff drivability (Optional)" }
@@ -31,10 +31,10 @@ C.tags = { 'arrow', 'path', 'destination', 'navigation' }
 C.dependencies = { 'core_groundMarkers' }
 
 function C:init(mgr, ...)
-  self.data.step = 8
+  --self.data.step = 8
   self.data.fadeStart = 100
   self.data.fadeEnd = 150
-  self.data.color = { 0.2, 0.53, 1, 1 }
+  --self.data.color = { 0.2, 0.53, 1, 1 }
 end
 
 function C:drawMiddle(builder, style)
@@ -55,8 +55,8 @@ function C:work(args)
       else
         target = self.lastTarget
       end
-      core_groundMarkers.setFocus(target, self.data.step, self.data.fadeStart,
-          self.data.fadeEnd, ep, nil, self.pinIn.color.value, self.pinIn.cutOffDrivability.value,
+      core_groundMarkers.setFocus(target, nil, self.data.fadeStart,
+          self.data.fadeEnd, ep, nil, nil, self.pinIn.cutOffDrivability.value,
           self.pinIn.penaltyAboveCutoff.value, self.pinIn.penaltyBelowCutoff.value)
     end
   end

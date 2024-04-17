@@ -1,38 +1,38 @@
 <template>
   <h2>PropVal Demo</h2>
   <!-- Value Only -->
-  <span>Value Only:</span>
+  <p>Value Only:</p>
   <BngPropVal :valueLabel="VALUE" />
   <!-- Key / Value -->
-  <span>Key / Value:</span>
+  <p>Key / Value:</p>
   <BngPropVal :keyLabel="KEY" :valueLabel="VALUE" />
   <!-- Icon / Key / Value -->
-  <span>Icon / Key / Value:</span>
-  <BngPropVal :iconType="icons.general.beambuck" :keyLabel="KEY" :valueLabel="VALUE" />
+  <p>Icon / Key / Value:</p>
+  <BngPropVal :iconType="icons.beamCurrency" :keyLabel="KEY" :valueLabel="VALUE" />
   <!-- ShrinkNum true -->
-  <span>ShrinkNum true:</span>
-  <BngPropVal :shrinkNum="true" :valueLabel="1000000000000000" />
+  <p>ShrinkNum true:</p>
+  <BngPropVal :shrinkNum="true" :valueLabel="-123400000" />
+  <BngPropVal :shrinkNum="true" :valueLabel="745600000" />
   <!-- ShrinkNum false -->
-  <span>ShrinkNum false:</span>
-  <BngPropVal :shrinkNum="false" :valueLabel="1000000000000000" />
+  <p>ShrinkNum false:</p>
+  <BngPropVal :shrinkNum="false" :valueLabel="100000000000" />
   <!-- IconColor -->
-  <span>IconColor:</span>
-  <BngPropVal :iconType="icons.general.beambuck" :keyLabel="KEY" :valueLabel="VALUE" :iconColor="'var(--bng-orange-b400)'" />
+  <p>IconColor:</p>
+  <BngPropVal :iconType="icons.beamCurrency" :keyLabel="KEY" :valueLabel="VALUE" :iconColor="'var(--bng-orange-b400)'" />
   <!-- Valueless -->
-  <span>Empty value:</span>
-  <BngPropVal :iconType="icons.general.beambuck" keyLabel="Valueless" valueLabel="" />
+  <p>Empty value:</p>
+  <BngPropVal :iconType="icons.beamCurrency" keyLabel="Valueless" valueLabel="" />
 </template>
 
 <script setup>
-import { BngPropVal } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngPropVal, icons } from "@/common/components/base"
 
 const KEY = "key is here"
 const VALUE = "value is here"
 </script>
 
 <style scoped>
-span {
+p {
   color: #666;
 }
 </style>

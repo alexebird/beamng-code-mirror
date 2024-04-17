@@ -1,30 +1,27 @@
 <template>
   <div class="input-entry">
-    <bng-multiline-input
+    <BngMultilineInput
       external-label="Multiline"
       :lines="3"
-      :leading-icon="icons.general.offbtn"
+      :leading-icon="icons.bus"
       :initial-value="'hello world blah blah blah some text here'"
-      :trailing-icon="icons.general.offbtn"
-      floating-label="Floating Label"
-    ></bng-multiline-input>
+      :trailing-icon="icons.bus"
+      floating-label="Floating Label" />
   </div>
   <div class="input-entry">
-    <bng-multiline-input
+    <BngMultilineInput
       external-label="Scalable Demo"
       :scalable="true"
       :lines="3"
-      :leading-icon="icons.general.offbtn"
+      :leading-icon="icons.bus"
       :initial-value="'hello world blah blah blah some text here'"
-      :trailing-icon="icons.general.offbtn"
-      floating-label="Floating Label"
-    ></bng-multiline-input>
+      :trailing-icon="icons.bus"
+      floating-label="Floating Label" />
   </div>
 </template>
 
 <script setup>
-import { BngMultilineInput } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngMultilineInput, icons } from "@/common/components/base"
 </script>
 
 <style scoped lang="scss">

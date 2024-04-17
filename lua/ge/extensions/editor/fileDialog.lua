@@ -412,7 +412,7 @@ local function onEditorGui()
 
   if not overwriteDialog then
     --TODO: convert to modal popup
-    if im.Begin(fileDialogTitle) then
+    if im.Begin(fileDialogTitle, nil, im.WindowFlags_MenuBar) then
       -- Menu Bar
       if im.BeginMenuBar() then
         if im.BeginMenu("Favourites") then

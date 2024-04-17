@@ -12,7 +12,6 @@ C.icon = ui_flowgraph_editor.nodeIcons.ui
 C.description = "Displays one of several number inputs."
 C.category = 'repeat_instant'
 
-C.todo = ""
 C.pinSchema = {
   { dir = 'in', type = 'flow', name = 'set', hidden = true, description = 'When this has inflow, the internal value will be set to setVal.' },
   { dir = 'in', type = 'number', name = 'setVal', hidden = true, hardcoded = true, default = 0, description = 'The value will be set to this initially.' },

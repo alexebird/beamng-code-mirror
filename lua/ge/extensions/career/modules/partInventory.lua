@@ -56,7 +56,7 @@ local function sellPart(partId)
   local part = partInventory[partId]
   if not part or part.location ~= 0 then return end
   local partName = part.missingFile and "(Missing File)" or part.description.description or "(Unnamed Part)"
-  career_modules_playerAttributes.addAttribute("money", career_modules_valueCalculator.getPartValue(part), {label = "Sold Part: " .. partName})
+  career_modules_playerAttributes.addAttributes({money=career_modules_valueCalculator.getPartValue(part)}, {tags={"partsSold","selling"},label = "Sold Part: " .. partName})
   Engine.Audio.playOnce('AudioGui','event:>UI>Career>Buy_01')
   partInventory[partId] = nil
   if partInventoryOpen then
@@ -293,12 +293,29 @@ local function installParts(partIds, inventoryId)
   return true
 end
 
+local function getPartsOfVehicle(inventoryId)
+  local result = {}
+  for partId, part in pairs(partInventory) do
+    if part.location == inventoryId then table.insert(result, part) end
+  end
+  return result
+end
+
 local function doesPartFitVehicle(inventoryId, part)
   local vehObjId = career_modules_inventory.getVehicleIdFromInventoryId(inventoryId)
   if not vehObjId then return false end
-  local vehicleData = extensions.core_vehicle_manager.getVehicleData(vehObjId)
   local vehObj = be:getObjectByID(vehObjId)
-  return (vehObj:getJBeamFilename() == part.vehicleModel) and vehicleData.chosenParts[part.slot]
+  if vehObj:getJBeamFilename() ~= part.vehicleModel then return false end
+
+  local vehicleParts = getPartsOfVehicle(inventoryId)
+  for _, partInVehicle in ipairs(vehicleParts) do
+    if partInVehicle.description and partInVehicle.description.slotInfoUi then
+      for slotName, _ in pairs(partInVehicle.description.slotInfoUi) do
+        if part.slot == slotName then return true end
+      end
+    end
+  end
+  return false
 end
 
 local function generateAndGetPartsFromVehicle(inventoryId, allAvailableParts)
@@ -382,9 +399,7 @@ local function movePart(to, partId)
     partsBefore = getPartIdsFromVehicle(to)
     installParts({partId}, to)
   end
-
-  -- The part couldnt be moved
-  return false
+  career_modules_log.addLog(string.format("Moved part %d from %d to %d", partId, from, to), "partInventory")
 end
 
 local function updateVehicleMaps()
@@ -456,6 +471,7 @@ local function addNewPartsToInventory(inventoryId)
   for partName, part in pairs(newParts) do
     addPartToInventory(part)
   end
+  career_modules_log.addLog(string.format("Added new vehicles' parts to inventory %d", inventoryId), "partInventory")
   return newParts
 end
 
@@ -476,8 +492,10 @@ local function debugMenu()
           imgui.BeginDisabled()
           disabled = true
         end
-        if imgui.Button(part.description.description .. "##inVehicle") then
-          movePart(0, partId)
+        if part.description.description then
+          if imgui.Button(part.description.description .. "##inVehicle") then
+            movePart(0, partId)
+          end
         end
         if disabled then imgui.EndDisabled() end
       end
@@ -507,7 +525,7 @@ local function debugMenu()
       imgui.TableNextColumn()
       imgui.Text(part.vehicleModel)
       imgui.TableNextColumn()
-      imgui.Text(part.description.description)
+      imgui.Text(part.description.description or "missing")
       imgui.TableNextColumn()
       imgui.Text("" .. part.partCondition["odometer"])
       imgui.TableNextColumn()
@@ -700,9 +718,9 @@ local function openMenu(_originComputerId)
   originComputerId = _originComputerId
 
   if currentVehicleInventoryId then
-    career_modules_inventory.updatePartConditions(nil, currentVehicleInventoryId, function() guihooks.trigger('ChangeState', {state = 'menu.partInventory', params = {}}) end)
+    career_modules_inventory.updatePartConditions(nil, currentVehicleInventoryId, function() guihooks.trigger('ChangeState', {state = 'partInventory', params = {}}) end)
   else
-    guihooks.trigger('ChangeState', {state = 'menu.partInventory', params = {}})
+    guihooks.trigger('ChangeState', {state = 'partInventory', params = {}})
   end
 end
 
@@ -732,7 +750,7 @@ local function onComputerAddFunctions(menuData, computerFunctions)
 
   local computerFunctionData = {
     id = "partInventory",
-    label = "My Parts",
+    label = "Parts Inventory",
     callback = function() openMenu(menuData.computerFacility.id) end,
     disabled = menuData.tutorialPartShoppingActive or menuData.tutorialTuningActive
   }

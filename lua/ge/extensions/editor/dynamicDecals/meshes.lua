@@ -56,7 +56,7 @@ local function setup(tool_in)
   api = extensions.editor_api_dynamicDecals
   settings = extensions.editor_dynamicDecals_settings
 
-  tool.registerSection("Meshes (Experimental)", sectionGui, 1050, false, {})
+  -- tool.registerSection("Meshes (Experimental)", sectionGui, 1050, false, {})
 end
 
 M.registerEditorPreferences = registerEditorPreferences

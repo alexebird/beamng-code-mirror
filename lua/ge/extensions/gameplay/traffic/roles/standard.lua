@@ -40,6 +40,12 @@ function C:init()
         self.veh:setAiMode('stop')
       end
       self.flags.askInsurance = nil
+    end,
+    disabled = function (args)
+      if self.veh.isAi then
+        be:getObjectByID(self.veh.id):queueLuaCommand('ai.setMode("stop")')
+      end
+      self.state = 'disabled'
     end
   }
 
@@ -152,6 +158,10 @@ end
 function C:onTrafficTick(tickTime)
   if self.state == 'disabled' then return end
 
+  if self.veh.isAi and self.state ~= 'disabled' and self.veh.state == 'active' and self.veh.damage > self.veh.damageLimits[3] then
+    self:setAction('disabled')
+  end
+
   local targetVeh = self.targetId and gameplay_traffic.getTrafficData()[self.targetId]
   self.targetVisible = self:checkTargetVisible()
   self.targetNear = (targetVeh and self.veh:getInteractiveDistance(targetVeh.pos, true) <= 6400) and true or false
@@ -209,6 +219,21 @@ function C:onTrafficTick(tickTime)
       if self.state ~= 'none' and self.veh.pos:squaredDistance(targetVeh.pos) >= 14400 then -- check if state needs to be reset
         self:resetAction()
       end
+    end
+  end
+
+  if self.veh.speed >= 6 and next(map.objects[self.veh.id].states) then -- lightbar triggers all traffic lights to change to the red state
+    -- this exists here until we have a way to properly recognize emergency vehicles (lightbar exists)
+    if map.objects[self.veh.id].states.lightbar then
+      self:freezeTrafficSignals(true)
+    else
+      if self.flags.freezeSignals then
+        self:freezeTrafficSignals(false)
+      end
+    end
+  else
+    if self.flags.freezeSignals then
+      self:freezeTrafficSignals(false)
     end
   end
 end

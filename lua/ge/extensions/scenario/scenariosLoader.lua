@@ -319,7 +319,7 @@ local function getList(subdirectory, includeAll)
   end
   local additionalAttributes, additionalAttributesSortedKeys = gameplay_missions_missions.getAdditionalAttributes()
   for _, m in ipairs(gameplay_missions_missions.get()) do
-    if m.startTrigger.level and m.isAvailableAsScenario then
+    if m.startTrigger.level and core_levels.getLevelByName(m.startTrigger.level) and m.isAvailableAsScenario then
       local diffString = additionalAttributes.difficulty.valuesByKey[m.additionalAttributes.difficulty] and additionalAttributes.difficulty.valuesByKey[m.additionalAttributes.difficulty].translationKey
       local scenarioData = {
         name = m.name,

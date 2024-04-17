@@ -69,13 +69,13 @@ local function _workMain(job)
       -- Replace the vehicle
       job.yield()
       log("I", logTag, "1")
-      local oldVehicle = be:getPlayerVehicle(0)
+      local oldVehicle = getPlayerVehicle(0)
       core_vehicles.replaceVehicle(vehName, {config = config})
       job.yield()
       local newVehicle = oldVehicle
       while newVehicle == oldVehicle or newVehicle == nil do
         job.yield()
-        newVehicle = be:getPlayerVehicle(0)
+        newVehicle = getPlayerVehicle(0)
       end
       log("I", logTag, "4")
 

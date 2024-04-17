@@ -38,10 +38,10 @@ function C:work()
   if self.pinIn.vehId.value then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   if veh then
-    --core_vehicleBridge.executeAction(be:getPlayerVehicle(0),'setIgnitionLevel', 0)
+    --core_vehicleBridge.executeAction(getPlayerVehicle(0),'setIgnitionLevel', 0)
     core_vehicleBridge.executeAction(veh,'setIgnitionLevel', self.pinIn.mode.value)
   end
 end

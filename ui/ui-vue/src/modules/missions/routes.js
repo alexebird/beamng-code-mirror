@@ -1,9 +1,18 @@
-import MissionDetails from "./views/details"
+// Mission related routes
+import * as views from "./views"
 
 export default [
   {
-    path: "/mission/details",
-    name: "mission-details",
-    component: MissionDetails,
+    path: "/mission",
+    children: [
+
+      // Details
+      {
+        path: "details",
+        name: "mission-details",
+        component: views.MissionDetails,
+      },
+      
+    ],
   },
 ]

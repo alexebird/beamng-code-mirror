@@ -245,7 +245,7 @@ local function resetParameters()
     lookAheadKv = 0.6,
     applyWidthMarginOffset = true,
     planErrorSmoothing = true,
-    springForceIntegratorDispLim = 0.1
+    springForceIntegratorDispLim = 0.1 -- node displacement force magnitude limit
   }
 end
 resetParameters()
@@ -647,7 +647,7 @@ local function driveToTarget(targetPos, throttle, brake, targetSpeed)
       local speedDif = twt.targetSpeed - twt.dirState[1] * sign2(dirVel) * aiSpeed
       local steering = twt.steerSmoother:get(twt.dirState[2], dt)
       local pbrake = 0 -- * clamp(sign2(0.83 + ai.upVec:dot(gravityDir)), 0, 1) -- >= 10 deg
-      local throttle, brake
+      local throttle, brake = 0, 0
       if twt.dirState[1] == -1 then
         throttle = clamp(-speedDif * 0.4, 0, 0.4)
         brake = clamp(speedDif * 0.2, 0, 1)
@@ -1127,7 +1127,11 @@ local function getEdgeLaneConfig(inNode, outNode)
       lanes = string.rep("+", numOfLanes)
     else
       local numOfLanes = max(1, math.floor(numOfLanesFromRadius(mapData.radius[inNode], mapData.radius[outNode]) * 0.5))
-      lanes = string.rep("-", numOfLanes)..string.rep("+", numOfLanes)
+      if mapmgr.rules.rightHandDrive then
+        lanes = string.rep("+", numOfLanes)..string.rep("-", numOfLanes)
+      else
+        lanes = string.rep("-", numOfLanes)..string.rep("+", numOfLanes)
+      end
     end
   end
 
@@ -1484,7 +1488,7 @@ local function buildNextRoute(plan, path)
   local newNodeRangeLeftIdx -- index of left most lane in range
   local newNodeRangeRightIdx -- index of right most lane in range
 
-  if driveInLaneFlag then
+  if driveInLaneFlag and newNode.inEdgeLanes then
     -- Consider lanes comming into newNode, scale/translate planNode lateral position and lane limits and add them to the in lane configuration as appropriate
     local inLaneConfig, planNodeLatPos, planNodelaneLimLeft, planNodelaneLimRight, planNodeRangeLeft, planNodeRangeRight, planNodeHalfWidth = processNodeIncommingLanes(newNode, plan[planCount]) -- lateral coordinates in [-r, r]
 
@@ -1672,6 +1676,17 @@ local function createNewRoute(path)
     lastLaneChangeIdx = 2, -- path node up to which we have checked for a posible lane change
     pathDists = {0} -- distance from beggining of path to node at index i
   }
+end
+
+local function isVehicleStopped(v)
+  if v.isParked then
+    return true
+  elseif v.states.ignitionLevel == 0 or v.states.ignitionLevel == 1 then
+    return true
+  elseif v.states.hazard_enabled == 1 and v.vel:squaredLength() < 10 then
+    return true
+  end
+  return false
 end
 
 local function planAhead(route, baseRoute)
@@ -2182,7 +2197,9 @@ local function planAhead(route, baseRoute)
         if minSqDist < square((ai.width + limWidth) * 0.8) then
           local velProjOnSeg = max(0, v.vel:dot(nDir))
 
-          if v.isParked then
+          local vehicleIsStopped = isVehicleStopped(v)
+
+          if vehicleIsStopped then
             local distToParked = 0
             for ii = 2, i do
               distToParked = distToParked + plan[i].length
@@ -2220,7 +2237,7 @@ local function planAhead(route, baseRoute)
             if minSqDist < square((ai.width + limWidth) * 0.51)  then
               -- obj.debugDrawProxy:drawSphere(0.25, v.posFront, color(0,0,255,255))
               -- obj.debugDrawProxy:drawSphere(0.25, plPosFront, color(0,0,255,255))
-              if not v.isParked then
+              if not vehicleIsStopped then
                 table.remove(trafficTable, j)
                 trafficTableLen = trafficTableLen - 1
               end
@@ -2354,6 +2371,7 @@ local function planAhead(route, baseRoute)
     local n = plan[i]
     local roadHalfWidth = n.radiusOrig * n.chordLength
 
+    -- Apply a force towards the center of the lane when driving in lane
     local dispToLeftRange, dispToRightRange = 0, 0
     if driveInLaneFlag then
       local rangeLeft = (2 * n.rangeLeft - 1) * roadHalfWidth
@@ -2364,7 +2382,10 @@ local function planAhead(route, baseRoute)
     end
 
     local k = n.normal:dot(forces[i])
-    local displacement = dispToLeftRange - dispToRightRange + fsign(k) * min(abs(k), parameters.springForceIntegratorDispLim) -- displacement distance per frame (lower value means better stability)
+    local displacement = dispToLeftRange - dispToRightRange + sign(k) * min(abs(k), parameters.springForceIntegratorDispLim) -- displacement distance per frame (lower value means better stability)
+    -- Prevents node displacement direction switching, improves on instabilities.
+    displacement = displacement * max(0, sign2(displacement * (n.dispDir or 0)))
+    n.dispDir = sign(displacement)
 
     local roadLimLeft = min(0, -roadHalfWidth + aiWidthMargin) -- should be non-positive
     local roadLimRight = max(0, roadHalfWidth - aiWidthMargin) -- should be non-negative
@@ -3078,90 +3099,98 @@ local function trafficActions()
 
   -- intersections & turn signals
   if not trafficStates.intersection.node then
-    local dist = aiPos:distance(mapData.positions[path[plan[1].pathidx]])
-    local minLen = getMinPlanLen(100) -- limit the distance to look ahead for intersections
-    local tempData = {}
     trafficStates.intersection.block = false
 
-    for i = plan[1].pathidx, #path - 1 do
-      if trafficStates.intersection.prevNode == path[i] or dist > minLen then break end -- vehicle is still within previous intersection, or distance is too far
-
+    local startIdx = plan[1].wp and plan[1].pathidx - 1 or plan[1].pathidx
+    for i = startIdx, #path - 1 do
       local nid1, nid2 = path[i], path[i + 1]
-      local n1Pos, n2Pos = mapData.positions[nid1], mapData.positions[nid2]
-      local prevNode = i > 1 and path[i - 1] -- use previous path node if it exists
-      local nDir = prevNode and (n1Pos - mapData.positions[prevNode]):normalized() or aiDirVec
+      if not nid1 then
+        nid1 = plan[1].wp -- just in case the ai is at the very start of the plan
+      end
 
-      if not tempData.node and signalsData then -- defined intersections
-        local sNodes = signalsData.nodes
-        if sNodes[nid1] then -- node from current path was found in the signals dict
-          for j, signal in ipairs(sNodes[nid1]) do
-            if nDir:dot(signal.dir) > 0.9 then -- if signal direction is valid
-              -- insert lane check here if applicable
-              tempData = {node = nid1, nextNode = nid2, nodeIdx = j, pos = signal.pos, dir = signal.dir, action = 1}
+      if nid1 and nid2 then
+        if trafficStates.intersection.prevNode == nid1 then break end -- vehicle is still within previous intersection
+
+        local n1Pos, n2Pos = mapData.positions[nid1], mapData.positions[nid2]
+        local prevNode = path[i - 1] or plan[1].wp -- use previous path node if it exists
+        if prevNode and not mapData.graph[nid1][prevNode] then prevNode = nil end
+
+        if signalsData and signalsData[nid1] and signalsData[nid1][nid2] then -- nodes from current path match the signals dict
+            -- TODO: check the array for the ideal signal to use
+            -- lane check as well, if applicable
+          local bestSignal = signalsData[nid1][nid2][1]
+          local nDir = (n2Pos - n1Pos):z0(); nDir:normalize()
+          trafficStates.intersection = {node = nid1, nextNode = nid2, nodeIdx = 1, pos = bestSignal.pos, dir = nDir, action = bestSignal.action, block = false}
+        end
+
+        if not trafficStates.intersection.turnDir and tableSize(mapData.graph[nid1]) > 2 then -- auto intersections
+          -- we should try to get the effective curvature of the path after this point to determine turn signals
+          local nDir = aiDirVec
+          local linkDir = (n2Pos - n1Pos):z0(); linkDir:normalize()
+          local drivability = 1
+          if prevNode then
+            nDir = (n1Pos - mapData.positions[prevNode]):z0(); nDir:normalize()
+            drivability = mapData.graph[nid1][prevNode].drivability
+          end
+          local absDotDir = abs(nDir:dot(linkDir))
+
+          if drivability < 1 then
+            for _, edgeData in pairs(mapData.graph[nid1]) do
+              if edgeData.drivability > drivability then
+                absDotDir = 0
+                break
+              end
+            end
+          end
+
+          if absDotDir < 0.707 then -- junction turn or drivability difference
+            if not trafficStates.intersection.node then
+              local pos = n1Pos - nDir * (max(3, mapData.radius[nid1]) + 2)
+              trafficStates.intersection = {node = nid1, nextNode = nid2, turnNode = nid1, turnDir = linkDir, pos = pos, dir = nDir, action = 3, block = false}
+            else
+              trafficStates.intersection.turnNode = nid1
+              trafficStates.intersection.turnDir = linkDir
             end
           end
         end
       end
 
-      if not tempData.turnDir and tableSize(mapData.graph[nid1]) > 2 then -- auto intersections
-        -- we should try to get the effective curvature of the path after this point to determine turn signals
-        local linkDir = (n2Pos - n1Pos):z0(); linkDir:normalize()
-        local drivability = prevNode and mapData.graph[nid1][prevNode].drivability or 1
-        local linkMainRoad = false
-
-        if drivability < 1 then
-          for _, edgeData in pairs(mapData.graph[nid1]) do
-            if edgeData.drivability > drivability then
-              linkMainRoad = true
-              break
-            end
-          end
-        end
-
-        if abs(nDir:dot(linkDir)) < 0.7 or linkMainRoad then -- junction turn or drivability difference
-          if not tempData.node then
-            local pos = n1Pos - nDir * (max(3, mapData.radius[nid1]) + 2)
-            tempData = {node = nid1, nextNode = nid2, turnNode = nid1, dir = nDir, turnDir = linkDir, pos = pos, action = 0.1}
-          else
-            tempData.turnNode = nid1
-            tempData.turnDir = linkDir
-          end
-        end
-      end
-
-      if tempData.node then
-        trafficStates.intersection = tableMerge(trafficStates.intersection, tempData) -- fill intersection table and continue
+      if trafficStates.intersection.node then
+        trafficStates.intersection.turn = 0
+        trafficStates.intersection.timer = 0
         if trafficStates.intersection.turnDir then
-          trafficStates.intersection.turnDirDot = trafficStates.intersection.dir:dot(trafficStates.intersection.turnDir)
-          if abs(trafficStates.intersection.turnDirDot) < 0.707 then
-            trafficStates.intersection.turn = -sign2(trafficStates.intersection.dir:cross(gravityDir):dot(trafficStates.intersection.turnDir)) -- turn detection
+          if abs(trafficStates.intersection.dir:dot(trafficStates.intersection.turnDir)) < 0.707 then
+            trafficStates.intersection.turn = -sign2(trafficStates.intersection.dir:cross(gravityDir):dot(trafficStates.intersection.turnDir))
           end
         end
         break
       end
-
-      dist = dist + n1Pos:distance(n2Pos)
     end
   else
     if not trafficStates.action.forcedStop then
-      local signalsRef = trafficStates.intersection.nodeIdx and signalsData.nodes[trafficStates.intersection.node][trafficStates.intersection.nodeIdx]
+      local interData = trafficStates.intersection
+      local signalsRef = interData.nodeIdx and signalsData[interData.node][interData.nextNode][interData.nodeIdx]
       if signalsRef then
-        trafficStates.intersection.action = signalsRef.action or 1 -- get action from referenced table
+        trafficStates.intersection.action = signalsRef.action or 0 -- get action from referenced table
       else
-        trafficStates.intersection.action = trafficStates.intersection.action or 1 -- default action ("go")
+        trafficStates.intersection.action = trafficStates.intersection.action or 0 -- default action ("go")
       end
 
-      --local sColor = (intersection.action and intersection.action <= 0.1) and color(255,0,0,160) or color(0,255,0,160)
-      --obj.debugDrawProxy:drawSphere(1, intersection.pos, sColor)
-      --obj.debugDrawProxy:drawText(intersection.pos + vec3(0, 0, 1), color(0,0,0,255), tostring(intersection.turn))
+      --local sColor = interData.action == 0 and color(0,255,0,160) or color(255,255,0,160)
+      --obj.debugDrawProxy:drawSphere(1, interData.pos, sColor)
+      --obj.debugDrawProxy:drawText(interData.pos + vec3(0, 0, 1), color(0,0,0,255), tostring(interData.turn))
 
       local stopSeg
       local bestDist = math.huge
-      local distSq = aiPos:squaredDistance(trafficStates.intersection.pos)
+      local distSq = aiPos:squaredDistance(interData.pos)
       local turnValue = mapmgr.rules.rightHandDrive and -1 or 1 -- curb turn is left or right depending on RHD
 
-      if ((trafficStates.intersection.pos + trafficStates.intersection.dir * 4) - aiPos):dot(trafficStates.intersection.dir) >= 0 then -- vehicle position is at the stop pos (with extra distance, to be safe)
-        if trafficStates.intersection.action <= 0.1 or (trafficStates.intersection.action == 0.5 and square(brakeDist) < distSq) then -- red light or other stop condition
+      if not interData.proximity then -- checks if intersection was reached (needs improvement)
+        interData.proximity = distSq <= 400
+      end
+
+      if ((interData.pos + interData.dir * 4) - aiPos):dot(interData.dir) >= 0 then -- vehicle position is at the stop pos (with extra distance, to be safe)
+        if interData.action == 3 or interData.action == 2 or (interData.action == 1 and square(brakeDist) < distSq) then -- red light or other stop condition
           for i = 1, #plan - 1 do -- get best plan node to set as a stopping point
             -- currently checks every frame due to plan segment updates
             local dist = plan[i].pos:squaredDistance(trafficStates.intersection.pos)
@@ -3170,30 +3199,33 @@ local function trafficActions()
               stopSeg = i
             end
           end
-          trafficStates.intersection.block = false
-        else
-          trafficStates.intersection.block = aiSpeed <= 1 and distSq <= 400 and trafficStates.intersection.turn ~= -turnValue -- blocked at green light and not a left turn
         end
 
-        if trafficStates.intersection.action <= 0.1 then
+        if interData.action == 3 or interData.action == 2 then
           if stopSeg and stopSeg <= 2 and aiSpeed <= 1 then -- stopped at stopping point
-            trafficStates.intersection.timer = trafficStates.intersection.timer + dt
+            interData.timer = interData.timer + dt
           end
-          local waitTime = abs(trafficStates.intersection.turnDirDot or 0) >= 0.5 and 0 or parameters.trafficWaitTime
-          if trafficStates.intersection.timer >= waitTime then
-            if trafficStates.intersection.action == 0 then
-              if mapmgr.rules.turnOnRed and trafficStates.intersection.turn == turnValue then -- right turn on red allowed
-                trafficStates.intersection.nodeIdx = nil
-                trafficStates.intersection.action = 1
+          local waitTime = parameters.trafficWaitTime
+          if interData.timer >= waitTime then
+            if interData.action == 2 then
+              if mapmgr.rules.turnOnRed and interData.turn == turnValue then -- right turn on red allowed
+                interData.nodeIdx = nil
+                interData.action = 0
               end
             else
-              trafficStates.intersection.nodeIdx = nil
-              trafficStates.intersection.action = 1
+              interData.nodeIdx = nil
+              interData.action = 0
             end
           end
         end
       else
-        trafficStates.intersection = {timer = 0, turn = 0, block = false, prevNode = trafficStates.intersection.node} -- after this is reset, the next intersection can be searched for
+        if interData.proximity then
+          interData.nodeIdx = nil
+          interData.action = 0
+          if distSq > 400 then
+            trafficStates.intersection = {timer = 0, turn = 0, block = false, prevNode = interData.node} -- temp data until next intersection search
+          end
+        end
       end
 
       plan.stopSeg = stopSeg
@@ -3493,7 +3525,7 @@ local function updateGFX(dtGFX)
 
   misc.logData()
 
-  if max(lastCommand.throttle, lastCommand.throttle) > 0.5 and aiSpeed < 1 then
+  if lastCommand.throttle > 0.5 and aiSpeed < 1 then
     aiCannotMoveTime = aiCannotMoveTime + dt
   else
     aiCannotMoveTime = 0

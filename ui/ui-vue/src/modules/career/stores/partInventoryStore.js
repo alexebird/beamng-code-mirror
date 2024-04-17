@@ -33,12 +33,7 @@ export const usePartInventoryStore = defineStore("partInventory", () => {
     events.off("openNewPartsPopup")
   }
 
-  // Lua events
-  events.on("partInventoryData", data => {
-    partInventoryData.value = data
-  })
-
-  events.on("openNewPartsPopup", newPartIds => {
+  function openNewPartsPopup(newPartIds) {
     newPartsPopupOpen.value = true
 
     newParts.value = []
@@ -51,16 +46,24 @@ export const usePartInventoryStore = defineStore("partInventory", () => {
         }
       }
     }
+  }
+
+  // Lua events
+  events.on("partInventoryData", data => {
+    partInventoryData.value = data
   })
 
+  events.on("openNewPartsPopup", openNewPartsPopup)
+
   return {
-    partInventoryData,
+    closeMenu,
+    closeNewPartsPopup,
+    dispose,
     newParts,
     newPartsPopupOpen,
-    requestInitialData,
-    closeNewPartsPopup,
-    closeMenu,
+    openNewPartsPopup,
     partInventoryClosed,
-    dispose,
+    partInventoryData,
+    requestInitialData,
   }
 })

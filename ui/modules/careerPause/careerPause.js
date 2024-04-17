@@ -43,7 +43,8 @@ angular.module('beamng.stuff')
   }
 
   $scope.exitingCareerSwitch = function() {
-    $scope.exitingCareer = !$scope.exitingCareer
+    $state.go("menu.mainmenu");
+    //$scope.exitingCareer = !$scope.exitingCareer
   }
 
   $scope.goToentry = function(type, missionId) {
@@ -271,28 +272,29 @@ angular.module('beamng.stuff')
 .directive('bngCareerEntryCard', ['$rootScope', function ($rootScope) {
     return {
       template:
-      `    <div class="career-pause-entry-card">
-      <div class="entry-image" ng-if="entry.cover" style="background-image:url({{entry.cover}})"></div>
-      <div class="entry-image unknown" ng-if=!entry.cover >?</div>
-      <div class="entry-description">
-        <div layout="row" class="entry-description-header">
-          <div class="entry-rating" ng-if="entry.rating.type === 'attempts'">
-            <span class="entry-rating-attempts-value">
-              {{entry.rating.attempts ? entry.rating.attempts : 0}}
-            </span>
-            <span>attempts</span>
-          </div>
+      `
+      <div class="career-pause-entry-card">
+        <div class="entry-image" ng-if="entry.cover" style="background-image:url({{entry.cover}})"></div>
+        <div class="entry-image unknown" ng-if=!entry.cover >?</div>
+        <div class="entry-description">
+          <div layout="row" class="entry-description-header">
+            <div class="entry-rating" ng-if="entry.rating.type === 'attempts'">
+              <span class="entry-rating-attempts-value">
+                {{entry.rating.attempts ? entry.rating.attempts : 0}}
+              </span>
+              <span>attempts</span>
+            </div>
 
-          <div class="entry-type">{{entry.cardTypeLabel | contextTranslate}}</div>
-        </div>
-        <div layout="row">
-          <h4 class="entry-name">{{entry.name || entry.title | contextTranslate}}</h4>
-        </div>
-        <div ng-transclude>
+            <div class="entry-type">{{entry.cardTypeLabel | contextTranslate}}</div>
+          </div>
+          <div layout="row">
+            <h4 class="entry-name">{{entry.name || entry.title | contextTranslate}}</h4>
+          </div>
+          <div ng-transclude>
+          </div>
         </div>
       </div>
-    </div>
-`,
+      `,
       replace: true,
       transclude: true,
       scope: {

@@ -1965,6 +1965,11 @@ local function fitSplineToTraj(tr)
 end
 
 local function onEditorGui()
+
+  if not isScriptAIEditor then
+    return
+  end
+
   -- Compute the scenario interval.
   local numTrajectories = 0
   for k, tr in pairs(trajectories) do
@@ -2042,7 +2047,7 @@ local function onEditorGui()
       vehWinData.isRecording[ctr] = false
     end
     ctr = ctr + 1
-end
+  end
   local numVehicles = #sceneVehicles
 
   -- Display the Main Tool Window.
@@ -3150,7 +3155,8 @@ local function onEditorInitialized()
     icon = editor.icons.simobject_path_node,
     iconTooltip = "ScriptAI Editor",
     auxShortcuts = {},
-    hideObjectIcons = true }
+    hideObjectIcons = true,
+    sortOrder = 9000 }
   editor.registerWindow(toolWinData.name, toolWinData.winSize)
   editor.registerWindow(vehWinData.name, vehWinData.winSize)
   editor.registerWindow(trajWinData.name, trajWinData.winSize)

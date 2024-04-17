@@ -12,14 +12,14 @@ C.description = 'Adds together values whenever it is triggered. Can be reset by 
 C.category = 'repeat_instant'
 
 C.pinSchema = {
-    { dir = 'in', type = 'flow', name = 'add', description = "Triggering this pin will cause this node to add from the value pin to its own value." },
-    { dir = 'in', type = 'flow', name = 'reset', description = "Triggering this pin will reset the value back to the default. Has priority over add.", impulse = true },
-    { dir = 'in', type = 'number', name = 'value', description = "This value will be added to the stack." },
-    { dir = 'out', type = 'flow', name = 'changed', description = "Triggers when the value inside has changed.", impulse = true },
-    { dir = 'out', type = 'number', name = 'result', description = "The current value." },
+  { dir = 'in', type = 'flow', name = 'add', description = "Triggering this pin will cause this node to add from the value pin to its own value." },
+  { dir = 'in', type = 'flow', name = 'reset', description = "Triggering this pin will reset the value back to the default. Has priority over add.", impulse = true },
+  { dir = 'in', type = 'number', name = 'value', default = 1, description = "This value will be added to the stack (default is 1)." },
+  { dir = 'out', type = 'flow', name = 'changed', description = "Triggers when the value inside has changed.", impulse = true },
+  { dir = 'out', type = 'number', name = 'result', description = "The current value." }
 }
 
-C.tags = {'sum','points'}
+C.tags = {'add', 'increase', 'sum', 'points'}
 
 function C:init()
   self.data.currentSum = 0
@@ -45,7 +45,7 @@ function C:work()
   self.pinOut.changed.value = false
 
   if self.pinIn.add.value then
-    v = v + (self.pinIn.value.value or 0)
+    v = v + (self.pinIn.value.value or 1)
     self.pinOut.changed.value = true
   end
 

@@ -2,13 +2,13 @@
   <!-- <div @click="toggleOpen">{{ model.name }} ({{ level }}) {{ model.mask && "*** has mask but shouldn't have ***"}}</div> -->
   <div bng-nav-item class="layer-node" :class="{ hidden: model.hidden, active: selectedNodeId === model.uid }" tabindex="1" @click.self="$emit('nodeClicked', model.uid)">
     <div class="node-expand">
-      <bng-icon span :type="icons.general.arrow_small_left" @click="$emit('expandClicked', model.uid)" />
+      <BngOldIcon span :type="icons.general.arrow_small_left" @click="$emit('expandClicked', model.uid)" />
     </div>
     <div class="node-info">{{ model.name }}</div>
     <div class="node-img-wrapper">
       <AspectRatio class="node-img" ratio="4:3"></AspectRatio>
       <div class="node-indicators" v-if="showIndicators">
-        <bng-icon :type="icons.decals.general.hide" />
+        <BngOldIcon :type="icons.decals.general.hide" />
       </div>
     </div>
   </div>
@@ -16,7 +16,7 @@
 
 <script setup>
 import { computed, inject, onBeforeMount, watch, reactive } from "vue"
-import { BngIcon } from "@/common/components/base"
+import { BngOldIcon } from "@/common/components/base"
 import { icons } from "@/assets/icons"
 import { AspectRatio } from "@/common/components/utility"
 import { LayerType } from "../enums/layerType"

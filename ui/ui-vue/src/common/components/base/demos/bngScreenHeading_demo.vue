@@ -1,21 +1,21 @@
 <template>
   <div class="demo-entry">
     <label>Demo with divider</label>
-    <bng-screen-heading :preheadings="locations" :divider="true"> BNG Screen Heading Content </bng-screen-heading>
+    <BngScreenHeading :preheadings="locations" :divider="true"> BNG Screen Heading Content </BngScreenHeading>
   </div>
   <div class="demo-entry">
     <label>Demo without divider</label>
-    <bng-screen-heading :preheadings="locations"> BNG Screen Heading Content </bng-screen-heading>
+    <BngScreenHeading :preheadings="locations"> BNG Screen Heading Content </BngScreenHeading>
   </div>
   <div class="demo-entry">
     <label>Demo Ribbon</label>
-    <bng-screen-heading :preheadings="locations" type="ribbon"> BNG Screen Heading Content </bng-screen-heading>
+    <BngScreenHeading :preheadings="locations" type="ribbon"> BNG Screen Heading Content </BngScreenHeading>
   </div>
   <div class="demo-entry">
     <label>Demo Multiline</label>
-    <bng-screen-heading :preheadings="locations" :divider="true" type="line" style="max-width: 40em">
+    <BngScreenHeading :preheadings="locations" :divider="true" type="line" style="max-width: 40em">
       If I’m multi-line, then background should behave like a block
-    </bng-screen-heading>
+    </BngScreenHeading>
   </div>
 </template>
 

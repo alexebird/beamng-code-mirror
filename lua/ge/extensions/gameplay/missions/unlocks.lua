@@ -70,7 +70,7 @@ local function updateUnlockStatus(missions)
     counts.visible = counts.visible + (mission.unlocks.visible and 1 or 0)
   end
 
-  log("I", "", "Processed unlock status of missions: ".. counts.startable.."/"..#missions .. " startable missions, " .. counts.visible.."/"..#missions.." visible missions.")
+  log("D", "", "Processed unlock status of missions: ".. counts.startable.."/"..#missions .. " startable missions, " .. counts.visible.."/"..#missions.." visible missions.")
 end
 
 

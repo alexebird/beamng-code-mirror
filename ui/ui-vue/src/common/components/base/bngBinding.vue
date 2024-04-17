@@ -4,13 +4,12 @@
     <!-- control uses a generic representation -->
     <kbd :class="{light: !dark, dark: dark}" v-if="viewerObj && !viewerObj.special">
       <span>
-        <bng-icon span class="bng-binding-icon" :title="viewerObj.icon" :type="viewerObj.icon" :color="dark ? 'rgb(250, 250, 250)': '#000'"/>
-        <!-- <md-icon :astyle="{color: (dark ? 'white' : 'black')}">{{ viewerObj.icon }}</md-icon> -->
+        <BngIcon class="bng-binding-icon" :title="viewerObj.icon" :type="icons[viewerObj.icon]" :color="dark ? 'rgb(250, 250, 250)': '#000'"/>
         <span>{{ viewerObj.control.toUpperCase().replace(/( |-)/g, ' + ')}}</span>
       </span>
     </kbd>
     <!-- control uses a dedicated svg -->
-    <bng-icon span class="bng-binding-icon" :title="viewerObj.ownIcon" :type="viewerObj.ownIcon" :color="dark ? '#000': 'rgb(250, 250, 250)'" v-if="viewerObj && viewerObj.special"/>
+    <BngIcon class="bng-binding-icon" :title="viewerObj.ownIcon" :type="icons[viewerObj.ownIcon]" :color="dark ? '#000': 'rgb(250, 250, 250)'" v-if="viewerObj && viewerObj.special"/>
     <!-- control is not assigned, fallback to empty display -->
     <kbd :class="{light: !dark, dark: dark}" v-if="!viewerObj && showUnassigned">
       <span><span class="n-a">[N/A]</span></span>
@@ -20,6 +19,7 @@
 
 <script setup>
 import { BngIcon } from '@/common/components/base'
+import { icons } from '@/common/components/base/bngIcon.vue'
 import { computed } from "vue"
 import useControls from "@/services/controls"
 
@@ -56,7 +56,8 @@ const display = computed(() => {
     margin-right:0.2em;
     min-width: 1em;
     padding: .1em .3em;
-    font: monospace;
+    font-family: "Noto Sans Mono", var(--fnt-defs);
+    font-weight: 600;
     text-align: center;
     text-decoration: none;
     -moz-border-radius: .3em;
@@ -69,19 +70,21 @@ const display = computed(() => {
     & > span{
       text-transform: uppercase;
       display:inline-flex;
+      align-items: baseline;
       & > span {
-        font-size: 0.8em;
-        line-height: 1.6em;
-        padding-bottom: 0.1em;
+        font-size: 0,8em;
+        line-height: 1.5em;
+        // padding-bottom: 0.1em;
         position: relative;
-        top: 0.1em;
-        padding-right: 0.2em;
+        padding-right: 0.25em;
       }
       & > span.n-a {
         margin: 0;
-        top: -0.1em;
         padding-right: 0;
       }
+    }
+    .bng-binding-icon {
+      font-size: 1.25em;
     }
   }
 
@@ -102,12 +105,13 @@ kbd.light, .light-keys kbd, .key.light, .light-keys .key {
   border-color: rgba(0, 0, 0, 0.20);
 }
 
-  .bng-binding-icon {
-    min-width: 1.4em;
-    min-height: 1.4em;
-    margin: 0.1em;
-    display: inline-block;
-    vertical-align: middle;
-  }
+.bng-binding-icon {
+  line-height: 1em;
+  font-size: 1.6em;
+  display: inline-block;
+  vertical-align: baseline;
+  transform: translateY(0.0625em);
+  font-weight: 400;
+}
 
 </style>

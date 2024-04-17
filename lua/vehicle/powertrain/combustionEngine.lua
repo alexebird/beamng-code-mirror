@@ -7,7 +7,7 @@ local M = {}
 M.outputPorts = {[1] = true} --set dynamically
 M.deviceCategories = {engine = true}
 
-local delayLine = require("delayLine")
+local delayLine = rerequire("delayLine")
 
 local max = math.max
 local min = math.min
@@ -1478,7 +1478,7 @@ local function initSounds(device, jbeamData)
         -- Audio Debug (engine)
         -- print (string.format("       ENGINE idleRPM = %4.0f / maxRPM = %5.0f", jbeamData.idleRPM, jbeamData.maxRPM))
         -- print (string.format("       ENGINE idleRPM = %4.0f / limiterRPM = %5.0f / maxRPM = %5.0f", jbeamData.idleRPM, jbeamData.revLimiterRPM, jbeamData.maxRPM))
-        -- print (string.format("%s  / maingain %4.2fdB / Muffling %.2f / lowShelf %.0f %4.2fdB / highShelf %4.0f %.2fdB / eqLow %.0f %.2fdB/ eqHigh %4.0f %.2fdB / eqFundamental %.2fdB", sampleName, main_gain, intakeMuffling, eq_a_freq, eq_a_gain, eq_b_freq, eq_b_gain, eq_c_freq, eq_c_gain, eq_d_freq, eq_d_gain, eq_e_gain))
+        -- print (string.format("%s  / maingain %4.2fdB / Muffling %.2f / onLoadGain %.2f / offLoadGain %.2f / lowShelf %.0f %4.2fdB / highShelf %4.0f %.2fdB / eqLow %.0f %.2fdB/ eqHigh %4.0f %.2fdB / eqFundamental %.2fdB", sampleName, main_gain, intakeMuffling, onLoadGain, offLoadGain, eq_a_freq, eq_a_gain, eq_b_freq, eq_b_gain, eq_c_freq, eq_c_gain, eq_d_freq, eq_d_gain, eq_e_gain))
 
         local params = {
           base_gain = main_gain,
@@ -1567,7 +1567,7 @@ local function initSounds(device, jbeamData)
         local exhaustMuffling = device.exhaustAudioMufflingMinCoef + device.exhaustAudioMufflingCoefRange * (1 - maxExhaustAudioOpennessCoef)
 
         -- Audio Debug (exhaust)
-        -- print (string.format("%s / maingain %4.2fdB / Muffling %.2f / lowShelf %.0fhz %4.2fdB / highShelf %4.0fhz %.2fdB / eqLow %.0fhz %.2fdB/ eqHigh %4.0fhz %.2fdB / eqFundamental %.2fdB ",sampleName, main_gain, exhaustMuffling, eq_a_freq, eq_a_gain, eq_b_freq, eq_b_gain, eq_c_freq, eq_c_gain, eq_d_freq, eq_d_gain, eq_e_gain))
+        -- print (string.format("%s / maingain %4.2fdB / Muffling %.2f / onLoadGain %.2f / offLoadGain %.2f / lowShelf %.0fhz %4.2fdB / highShelf %4.0fhz %.2fdB / eqLow %.0fhz %.2fdB/ eqHigh %4.0fhz %.2fdB / eqFundamental %.2fdB ",sampleName, main_gain, exhaustMuffling, onLoadGain, offLoadGain, eq_a_freq, eq_a_gain, eq_b_freq, eq_b_gain, eq_c_freq, eq_c_gain, eq_d_freq, eq_d_gain, eq_e_gain))
 
         local params = {
           base_gain = main_gain,
@@ -2033,12 +2033,12 @@ local function new(jbeamData)
   --dump(jbeamData)
 
   local thermalsFileName = jbeamData.thermalsLuaFileName or "powertrain/combustionEngineThermals"
-  device.thermals = require(thermalsFileName)
+  device.thermals = rerequire(thermalsFileName)
   device.thermals.init(device, jbeamData)
 
   if jbeamData.turbocharger and v.data[jbeamData.turbocharger] then
     local turbochargerFileName = jbeamData.turbochargerLuaFileName or "powertrain/turbocharger"
-    device.turbocharger = require(turbochargerFileName)
+    device.turbocharger = rerequire(turbochargerFileName)
     device.turbocharger.init(device, v.data[jbeamData.turbocharger])
   else
     device.turbocharger = {reset = nop, updateGFX = nop, updateFixedStep = nop, updateSounds = nop, initSounds = nop, resetSounds = nop, getPartCondition = nop, isExisting = false}
@@ -2046,7 +2046,7 @@ local function new(jbeamData)
 
   if jbeamData.supercharger and v.data[jbeamData.supercharger] then
     local superchargerFileName = jbeamData.superchargerLuaFileName or "powertrain/supercharger"
-    device.supercharger = require(superchargerFileName)
+    device.supercharger = rerequire(superchargerFileName)
     device.supercharger.init(device, v.data[jbeamData.supercharger])
   else
     device.supercharger = {reset = nop, updateGFX = nop, updateFixedStep = nop, updateSounds = nop, initSounds = nop, resetSounds = nop, getPartCondition = nop, isExisting = false}
@@ -2054,7 +2054,7 @@ local function new(jbeamData)
 
   if jbeamData.nitrousOxideInjection and v.data[jbeamData.nitrousOxideInjection] then
     local nitrousOxideFileName = jbeamData.nitrousOxideLuaFileName or "powertrain/nitrousOxideInjection"
-    device.nitrousOxideInjection = require(nitrousOxideFileName)
+    device.nitrousOxideInjection = rerequire(nitrousOxideFileName)
     device.nitrousOxideInjection.init(device, v.data[jbeamData.nitrousOxideInjection])
   else
     device.nitrousOxideInjection = {reset = nop, updateGFX = nop, updateSounds = nop, initSounds = nop, resetSounds = nop, registerStorage = nop, getAddedTorque = nop, getPartCondition = nop, isExisting = false}

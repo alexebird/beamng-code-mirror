@@ -6,16 +6,15 @@
         <div class="layer-selector-drawer">
           <LayerSelector :layers-data="layersData" :disabled="disableLayerSelector" @nodeClicked="selectLayer">
             <template #header>
-              <bng-button
+              <BngButton
                 tabindex="1"
                 class="new-decal"
                 accent="outlined"
                 @click="onNewLayer"
                 :disabled="!editorState.enableAddLayerButton || disableLayerSelector"
-              >
-                <BngIcon glyph="&#xBEACE;" />
+                :icon="icons.plus">
                 <span class="label">Add Layer</span>
-              </bng-button>
+              </BngButton>
             </template>
           </LayerSelector>
         </div>
@@ -27,8 +26,7 @@
             @undo="undo"
             @cameraClicked="changeCameraView"
             @exportSkin="onToggleShowExportSkin(true)"
-            @exit="goBack"
-          />
+            @exit="goBack" />
           <div class="layer-settings" v-if="showLayerActionsAndSettings">
             <LayerSettings
               v-if="showLayerSettings"
@@ -41,8 +39,7 @@
               @valueChanged="updateConfiguredLayer"
               @settingClicked="onSettingClicked"
               @save="onSaveLayerSettings"
-              @cancel="onCancelLayerSettings"
-            />
+              @cancel="onCancelLayerSettings" />
             <div class="layer-subsetting-selector" bng-ui-scope="layer-subsettings" v-if="editorState.showLayerSubsettings">
               <BngActionsDrawer
                 v-bng-on-ui-nav:back,menu="closeSubsettingsWindow"
@@ -52,8 +49,7 @@
                 :headerActions="headerActions"
                 :grouped="true"
                 @actionClick="texture => onTextureSelected(texture)"
-                @headerActionClicked="closeSubsettingsWindow"
-              />
+                @headerActionClicked="closeSubsettingsWindow" />
             </div>
           </div>
           <div class="layer-actions" bng-ui-scope="layer-actions" v-if="showLayerActions">
@@ -64,8 +60,7 @@
               :showHeaderActions="showHeaderActions"
               :header-actions="headerActions"
               @action-click="onLayerActionClicked"
-              @headerActionClicked="onHeaderActionClicked"
-            />
+              @headerActionClicked="onHeaderActionClicked" />
           </div>
         </div>
         <div v-if="editorState.showExportWindow" class="export-view">
@@ -73,8 +68,7 @@
             bng-ui-scope="export-skin"
             v-bng-on-ui-nav:back,menu="() => onToggleShowExportSkin(false)"
             @cancel="onToggleShowExportSkin(false)"
-            @export="onExportSkin"
-          />
+            @export="onExportSkin" />
         </div>
       </div>
     </div>
@@ -99,7 +93,7 @@ import { storeToRefs } from "pinia"
 import useVehicles from "@/services/vehicles"
 import useDecalStore from "../stores/decalsStore"
 import { LayoutSingle } from "@/common/layouts"
-import { BngScreenHeading, BngActionsDrawer, BngButton, BngIcon } from "@/common/components/base"
+import { BngScreenHeading, BngActionsDrawer, BngButton, BngIcon, icons } from "@/common/components/base"
 import { LayerSelector, LayerSettings } from "../components"
 import { LayerType } from "../enums/layerType"
 import GlobalActions from "../components/GlobalActions.vue"
@@ -111,7 +105,8 @@ import { useUINavScope } from "@/services/uiNav"
 const uiNavScope = useUINavScope("decal-editor")
 
 const store = useDecalStore()
-const { current: vehicle } = useVehicles()
+const vehicles = useVehicles()
+const { current: vehicle } = vehicles
 const { layersData, selectedLayerId, contextActions, configuredLayer, textureResources, history } = storeToRefs(store)
 const {
   selectLayer,
@@ -157,7 +152,7 @@ const editorState = reactive({
 
 const goBack = () => window.bngVue.gotoGameState("decals-loader")
 
-const disableLayerSelector = computed(() => editorState.showExportWindow || editorState.showLayerActions && (!selectedLayerId.value || configuredLayer.value))
+const disableLayerSelector = computed(() => editorState.showExportWindow || (editorState.showLayerActions && (!selectedLayerId.value || configuredLayer.value)))
 
 const showLayerActionsAndSettings = computed(() => (configuredLayer.value && !editorState.showLayerSubsettings) || editorState.showLayerSubsettings)
 
@@ -282,7 +277,6 @@ watch([showLayerSettings, showLayerActions, () => editorState.showLayerSubsettin
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/modules/mixins";
 .decals-editor {
   display: flex;
   flex-direction: column;

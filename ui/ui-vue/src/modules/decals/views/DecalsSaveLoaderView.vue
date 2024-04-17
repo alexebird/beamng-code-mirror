@@ -18,7 +18,7 @@
             <template v-if="currentSaveFile">Save changes to file (overwrite)?</template>
             <template v-else>Save changes to new file</template>
           </div>
-          <bng-input
+          <BngInput
             ref="saveFilenameInput"
             v-model="saveFilename"
             v-bng-tooltip:left="filenameValid && !filenameValid.valid ? filenameValid.description : null"
@@ -28,16 +28,16 @@
             :validate="() => filenameValid.valid"
           />
           <div class="save-controls">
-            <bng-button accent="text" @click="goBack">Cancel</bng-button>
-            <bng-button accent="attention" @click="onCancel">Exit</bng-button>
-            <bng-button :disabled="!saveFilename || !filenameValid.valid" @click="onSave">Save</bng-button>
+            <BngButton accent="text" @click="goBack">Cancel</BngButton>
+            <BngButton accent="attention" @click="onCancel">Exit</BngButton>
+            <BngButton :disabled="!saveFilename || !filenameValid.valid" @click="onSave">Save</BngButton>
           </div>
         </div>
         <div v-else>
           <div class="load-content">
             <span class="text">Load and edit an existing save file or create new.</span>
             <div class="controls">
-              <bng-dropdown
+              <BngDropdown
                 bng-nav-item
                 class="select-control"
                 v-model="selectedSaveFile"
@@ -45,9 +45,9 @@
                 :disabled="!availableSaveFiles || availableSaveFiles.length === 0"
               >
                 <template v-if="!availableSaveFiles || availableSaveFiles.length === 0" #display> No available files </template>
-              </bng-dropdown>
-              <bng-button :disabled="!selectedSaveFile" @click="onLoad">Load File</bng-button>
-              <bng-button @click="store.createSaveFile">Create New</bng-button>
+              </BngDropdown>
+              <BngButton :disabled="!selectedSaveFile" @click="onLoad">Load File</BngButton>
+              <BngButton @click="store.createSaveFile">Create New</BngButton>
             </div>
           </div>
         </div>

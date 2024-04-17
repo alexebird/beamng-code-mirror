@@ -5,23 +5,20 @@ import { lua, useBridge } from "@/bridge"
 export const useVehicleInventoryStore = defineStore("vehicleInventory", () => {
   const { events } = useBridge()
 
+  // *** There seems to be something wrong below - data.currentVehicleId always seems to be undefined ***
+  // ****************************************************************************************************
+
   // States
   let vehicleInventoryData = ref({})
   let vehIdToChooseAfterRepairPopup = ref(0)
 
   const filteredVehicles = computed(() => {
-    let vehicles = []
     const data = vehicleInventoryData.value
-    if (data.vehicles === undefined || data.vehicles === null) {
-      return vehicles
-    }
-    for (const [vehId, vehicle] of Object.entries(data.vehicles)) {
-      if (data.currentVehicleId === vehicle.id) {
-        vehicle.niceName = vehicle.niceName + " (Current Vehicle)"
-      }
-      vehicles.push(vehicle)
-    }
-    return vehicles
+    if (!data.vehicles) return []
+    Object.values(data.vehicles).forEach(vehicle => {
+      if (data.currentVehicleId === vehicle.id) vehicle.niceName = vehicle.niceName + " (Current Vehicle)"
+    })
+    return Object.values(data.vehicles)
   })
 
   let menuOpen = false

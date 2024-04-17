@@ -22,7 +22,7 @@ function C:workOnce()
   if self.pinIn.vehId.value then
     obj = be:getObjectByID(self.pinIn.vehId.value)
   else
-    obj = be:getPlayerVehicle(0)
+    obj = getPlayerVehicle(0)
   end
 
   if obj then

@@ -90,7 +90,11 @@ local function getVehicleValue(configInfo, vehicle)
   local sumPartValues = 0
   for slot, partName in pairs(addedParts) do
     local part = career_modules_partInventory.getPart(vehicle.id, slot)
-    sumPartValues = sumPartValues + 0.5 * getPartValue(part)
+    if not part then
+      log("E", "valueCalculator", "Couldnt find part " .. partName .. ", in slot " .. slot .. " of vehicle " .. vehicle.id)
+    else
+      sumPartValues = sumPartValues + 0.5 * getPartValue(part)
+    end
   end
 
   for slot, partName in pairs(removedParts) do

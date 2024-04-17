@@ -71,9 +71,13 @@ local function isAvailable(extPath)
 
   -- Note(AK): DO not mess with package tables e.g. package.preload
   for _, searcher in ipairs(package.searchers or package.loaders) do
-    local loader = searcher(extPath)
-    if type(loader) == 'function' then
-      return true
+    local state, loader = xpcall(function() return searcher(extPath) end, debug.traceback)
+    if state == false then
+      log('E', "", "Unable to load extension '"..tostring(extPath).."':\n"..loader)
+    else
+      if type(loader) == 'function' then
+        return true
+      end
     end
   end
   return false
@@ -677,7 +681,7 @@ end
 
 local function hookFast(funcName, ...)
   -- This is performance sensitive, please disable transient debug code
-  -- dump("Extension Hook: " .. func .. " : " .. dumps(... or {}))
+  -- dump("Extension Hook: " .. funcName .. " : " .. dumps(... or {}))
   local funcList = luaExtensionFuncs[funcName]
   if funcList == nil then
     -- rebuild the cache for the function from all loaded modules

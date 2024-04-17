@@ -10,7 +10,8 @@ local logTag = 'traffic'
 local traffic, trafficAiVehsList, trafficIdsSorted, player, rolesCache = {}, {}, {}, {}, {}
 local mapNodes, mapRules
 local vehPool, vehPoolId
-local trafficVehicle = require('lua/ge/extensions/gameplay/traffic/vehicle')
+local trafficVehicle = require('gameplay/traffic/vehicle')
+local route = require('gameplay/route/route')()
 
 -- const vectors --
 local vecUp = vec3(0, 0, 1)
@@ -23,8 +24,8 @@ local random = math.random
 
 --------
 local queuedVehicle = 0
-local respawnTicks = 0
 local globalSpawnDist = 0 -- dynamic respawn distance ahead for all traffic vehicles
+local globalSpawnDir = 0 -- dynamic respawn direction bias for all traffic vehicles
 local state = 'off'
 local worldLoaded = false
 
@@ -44,16 +45,6 @@ local debugColors = {
   red = ColorF(0.5, 0, 0, 1),
   blackAlt = ColorI(0, 0, 0, 255),
   greenAlt = ColorI(0, 64, 0, 255)
-}
-
-local commonPaintsCache = {}
-local commonPaints = {
-  {0.83, 0.83, 0.83, 1}, -- white
-  {0, 0, 0, 1}, -- black
-  {0.33, 0.33, 0.33, 1}, -- grey
-  {0.65, 0.65, 0.65, 1}, -- silver
-  {0, 0.1, 0.42, 1}, -- blue
-  {0.58, 0.12, 0.12, 1} -- red
 }
 
 M.debugMode = false -- visual and logging debug mode
@@ -85,70 +76,6 @@ local function getIdealSpawnAmount(amount, ignoreAdjust) -- gets the ideal amoun
   return amount - vehCount
 end
 
-local function colorDifference(c1, c2) -- returns the color difference value
-  -- https://stackoverflow.com/questions/9018016/how-to-compare-two-colors-for-similarity-difference/9085524#9085524
-  local avg = (c1[1] + c2[1]) * 0.5
-  local r = c1[1] - c2[1]
-  local g = c1[2] - c2[2]
-  local b = c1[3] - c2[3]
-  return math.sqrt(bit.rshift(((512 + avg) * r * r), 8) + 4 * g * g + bit.rshift(((767 - avg) * b * b), 8))
-end
-
-local function getRandomPaint(vehId, commonChance) -- gets a random paint name, with a bias for real world paints
-  local obj = be:getObjectByID(vehId or 0)
-  local model = obj and obj.jbeam or 'pessima' -- safe default
-  local config = obj and tostring(obj.partConfig)
-  local paint
-  commonChance = commonChance or 0
-
-  local modelData = core_vehicles.getModel(model).model
-  if modelData and modelData.paints then
-    local paintNames = tableKeys(modelData.paints)
-
-    if random() <= commonChance then -- if true, selects a color that is typically found in the real world
-      local n = math.ceil(square(random()) * 6 - 0.2) -- default paint plus six common paints
-      -- default paint chance: 18%
-      if commonPaints[n] then
-        local bestVal = math.huge
-        local bestPaint
-        local c = commonPaints[n]
-        local c1 = {c[1] * 255, c[2] * 255, c[3] * 255}
-
-        for k, v in pairs(modelData.paints) do
-          local bc = v.baseColor
-          if bc[1] == c[1] and bc[2] == c[2] and bc[3] == c[3] then -- exact match (ends the loop early)
-            paint = k
-            bestPaint = nil
-            break
-          else
-            local c2 = {bc[1] * 255, bc[2] * 255, bc[3] * 255}
-            local val = colorDifference(c1, c2)
-            if val < bestVal then
-              bestVal = val
-              bestPaint = k
-            end
-          end
-        end
-
-        if bestPaint then
-          paint = bestPaint
-        end
-      else
-        if config then
-          local _, configKey = path.splitWithoutExt(config)
-          local configData = core_vehicles.getModel(model).configs[configKey]
-          paint = configData and configData.defaultPaintName1 or modelData.defaultPaintName1
-        else
-          paint = 'Pearl White' -- fallback
-        end
-      end
-    else -- selects any color
-      paint = paintNames[random(#paintNames)]
-    end
-  end
-  return paint
-end
-
 local function getNumOfTraffic(activeOnly) -- returns current amount of AI traffic
   return (activeOnly and vehPool) and #vehPool.activeVehs or #trafficAiVehsList
 end
@@ -174,19 +101,18 @@ local function setMapData() -- updates all map related data
 end
 
 local function checkSpawnPos(pos, camRadius, plRadius, vehRadius) -- tests if the spawn point interferes with other vehicles
-  vehRadius = vehRadius or 15
-  camRadius = min(100, camRadius or 100)
-  plRadius = min(100, plRadius or 100)
-
-  if pos:squaredDistance(core_camera.getPosition()) < square(camRadius) then
+  if pos:squaredDistance(core_camera.getPosition()) < square(min(40, camRadius or 80)) then
     return false
   end
+
+  vehRadius = vehRadius or 15
+  plRadius = min(40, plRadius or 80)
 
   for _, v in ipairs(getAllVehicles()) do
     local vehId = v:getId()
     if v:getActive() then
       local vPos = traffic[vehId] and traffic[vehId].pos or v:getPosition() -- traffic pos can be more accurate here
-      local relSpeed = max(0, v:getVelocity():dot((pos - vPos):normalized()))
+      local relSpeed = clamp(v:getVelocity():dot((pos - vPos):normalized()), 0, 70)
       local radius = v:isPlayerControlled() and plRadius or vehRadius
       if pos:squaredDistance(vPos) < square(square(relSpeed) / 20 + radius) then
         return false
@@ -199,18 +125,19 @@ end
 
 local function findSpawnPoint(startPos, startDir, minDist, maxDist, extraArgs) -- finds and returns a spawn point on the map
   setMapData()
+  route:clear()
+  route.dirMult = 1
   extraArgs = type(extraArgs) == 'table' and extraArgs or {}
   startDir = startDir:z0():normalized()
-  minDist = minDist or 80  -- minimum distance along path to check for spawn points
-  maxDist = maxDist or 240 -- maximum distance along path to check for spawn points
+  minDist = minDist or 100  -- minimum distance along path to check for spawn points
+  maxDist = maxDist or 300 -- maximum distance along path to check for spawn points
 
-  local innerDist = 0 -- current distance along valid spawn segment of spawn path (starting from the minimum distance)
   local maxLoopCount = 50
-  local status = 'working'
-  local road = {}
 
   local lateralDist = extraArgs.lateralDist or 0 -- lateral (side) distance from the start to use for searching for a path (such as divided highways)
-  local pathRandomization = extraArgs.pathRandom or 1
+  local pathRandomization = extraArgs.pathRandom or 1 -- randomization of spawn path ahead
+  local maxRayCheckDist = extraArgs.maxRaycastDist or (minDist + maxDist) * 0.5 -- maximum distance to use the static raycast check
+
   local width = extraArgs.width or 2
   local length = extraArgs.length or 5
   local minDrivability = extraArgs.minRoadDrivability or 0.25
@@ -229,7 +156,7 @@ local function findSpawnPoint(startPos, startDir, minDist, maxDist, extraArgs) -
   end
   local n1, n2 = map.findClosestRoad(startPos)
 
-  if n1 and mapNodes[n1] then
+  if n1 then
     if not extraArgs.ignoreRoadCheck then
       local firstLink = mapNodes[n1].links[n2] or mapNodes[n2].links[n1]
       if firstLink and (firstLink.type == 'private' or firstLink.drivability < minDrivability) then -- start link is invalid, search for another one
@@ -269,76 +196,39 @@ local function findSpawnPoint(startPos, startDir, minDist, maxDist, extraArgs) -
 
     -- spawn point is along path in direction set by startDir, with possible branching
     local path = map.getGraphpath():getRandomPathG(n1, startDir, maxDist, pathRandomization, 1, false)
-    local pathDist = map.getPathLen(path)
-    local pathCount = #path
-    local offset = linePointFromXnorm(p1, p2, clamp(startPos:xnormOnLine(p1, p2), 0, 1)):distance(p1)
-    local drivabilityCheck = math.sqrt(random()) -- to test with drivability
+    local firstPos = linePointFromXnorm(p1, p2, clamp(startPos:xnormOnLine(p1, p2), 0, 1))
+    local lastPos = mapNodes[path[#path]].pos
+    route:setupPath(firstPos, lastPos)
+
+    local road = route:stepAhead(minDist, true) or {} -- if nil, uses safe fallback
+    road.n1 = road.n1 or n1
+    road.n2 = road.n2 or n2
+    road.pos = road.pos or firstPos
+    road.xnorm = road.xnorm or 0
+    road.dir = (mapNodes[road.n2].pos - mapNodes[road.n1].pos):normalized()
+    road.normal = (mapNodes[road.n1].normal + mapNodes[road.n2].normal):normalized()
+    road.radius = lerp(mapNodes[road.n1].radius, mapNodes[road.n2].radius, road.xnorm)
+
+    local vecUp2 = vec3(0, 0, 2)
     local loopCount = 1
 
-    while status == 'working' do
-      if loopCount > maxLoopCount then
-        status = 'loopLimit'
-        break
-      end
-      if minDist + innerDist >= pathDist then -- extend pathDist
-        local pathNode1, pathNode2 = path[pathCount], path[pathCount - 1]
-        local tempDir = (mapNodes[pathNode1].pos - mapNodes[pathNode2].pos):normalized()
-        local newPath = map.getGraphpath():getRandomPathG(pathNode1, tempDir, 100, pathRandomization, 1, false)
-        local tempDist = map.getPathLen(newPath)
-        table.remove(newPath, 1)
-        pathDist = pathDist + tempDist
-        path = arrayConcat(path, newPath)
-      end
-
-      table.clear(road)
-      road.n1, road.n2, road.xnorm = map.getNodesFromPathDist(path, offset + minDist + innerDist) -- it may be possible to optimize this
-
-      if road.n1 and road.n2 and mapNodes[road.n1] and mapNodes[road.n2] then
-        road.link = mapNodes[road.n1].links[road.n2] or mapNodes[road.n2].links[road.n1]
-        if road.link then
-          local pos1, pos2 = mapNodes[road.n1].pos, mapNodes[road.n2].pos
-          road.pos = linePointFromXnorm(pos1, pos2, road.xnorm)
-          road.rot = (pos2 - pos1):normalized()
-          road.normal = (mapNodes[road.n1].normal + mapNodes[road.n2].normal):normalized()
-          road.radius = lerp(mapNodes[road.n1].radius, mapNodes[road.n2].radius, road.xnorm)
-        else
-          table.clear(road)
-        end
-      else
-        table.clear(road)
-      end
-
-      if road.n1 then
-        -- spawn check fails if road is not suitable enough
-        local linkDrivability = road.link.drivability
-        local linkCoef = road.link.oneWay and 0.5 or clamp(road.radius / 2, 0.5, 1) -- radius coefficient
+    while loopCount <= maxLoopCount do
+      -- spawn check fails if road is not suitable enough
+      local link = mapNodes[road.n1].links[road.n2] or mapNodes[road.n2].links[road.n1]
+      if link then
+        local validSpawn = true
+        local linkDrivability = clamp(link.drivability, 0, 1)
+        local linkCoef = link.oneWay and 0.5 or clamp(road.radius / 2, 0.5, 1) -- radius coefficient
 
         if not extraArgs.ignoreRoadCheck then
-          if road.link.type == 'private' then
-            status = 'roadTypeFail'
-            break
-          end
-
-          if linkDrivability < max(minDrivability, drivabilityCheck)
-          or linkDrivability > maxDrivability
-          or road.radius < max(minRadius, (width + max(0, (length - 5) / 20)) * linkCoef)
-          or road.radius > maxRadius then
-            status = 'roadTestFail'
-            break
+          if link.type == 'private' or linkDrivability < minDrivability or linkDrivability > maxDrivability
+          or road.radius < max(minRadius, (width + max(0, (length - 5) / 20)) * linkCoef) or road.radius > maxRadius then
+            validSpawn = false
           end
         end
 
-        if extraArgs.useAutoLimits and startDir:dot(road.pos - startPos) >= 0 then
-          maxDist = maxDist + clamp(square(startPos.z - road.pos.z) / 8, 0, 200) or 0 -- augments final distance with camera height if looking at point
-        end
-        local currDist = minDist + innerDist
-        local foundSpawn = false
-
-        if extraArgs.ignoreRaycast or currDist >= maxDist then
-          foundSpawn = true
-        else
-          foundSpawn = true
-          local posUp = road.pos + vecUp * 2 -- raise height a bit to "look" over hills
+        if validSpawn and road.pos:squaredDistance(startPos) <= square(maxRayCheckDist) then
+          local posUp = road.pos + vecUp2 -- raise height a bit to "look" over hills
           local rayDirVecCross = (posUp - startPos):z0():normalized():cross(vecUp) -- side vector to test for narrow objects such as lampposts
 
           for i = -1, 1 do -- three point check for static raycast (checks for thin statics such as trees)
@@ -347,20 +237,23 @@ local function findSpawnPoint(startPos, startDir, minDist, maxDist, extraArgs) -
             rayDirVec = rayDirVec / (rayDistMax + 1e-30)
             local rayDist = castRayStatic(startPos, rayDirVec, rayDistMax) -- tests if spawn point is blocked by ray from start position
             if rayDist >= rayDistMax then
-              foundSpawn = false
+              validSpawn = false
               break
             end
           end
         end
 
-        if foundSpawn then
+        if validSpawn then
           if M.debugMode then
-            log('I', logTag, 'Spawn point found at distance: '..currDist)
+            log('I', logTag, 'Spawn point found at distance: '..tostring(road.pos:distance(startPos)))
           end
-          foundSpawn = checkSpawnPos(road.pos, minDist, minDist) -- ensure valid spawn point
+          local checkDist = min(80, minDist)
+          validSpawn = checkSpawnPos(road.pos, checkDist, checkDist) -- ensure valid spawn point
+          if not validSpawn then
+          end
         end
 
-        if foundSpawn then
+        if validSpawn then
           road.startPos = startPos
           road.startDir = startDir
 
@@ -370,62 +263,65 @@ local function findSpawnPoint(startPos, startDir, minDist, maxDist, extraArgs) -
           end
           return road
         end
-
-        innerDist = innerDist + max(15, road.link.speedLimit) -- higher speed limit = bigger gaps
       end
+
+      if road.pos:squaredDistance(lastPos) < 1 then break end
+
+      -- step ahead along the route
+      local nextRoad = route:stepAhead(max(15, link and link.speedLimit or 15)) -- higher speed limit means bigger steps ahead along the route
+      if not nextRoad then break end
+      road.n1 = nextRoad.n1 or road.n1
+      road.n2 = nextRoad.n2 or road.n2
+      road.pos = nextRoad.pos
+      road.xnorm = nextRoad.xnorm
+      road.dir = (mapNodes[road.n2].pos - mapNodes[road.n1].pos):normalized()
+      road.normal = (mapNodes[road.n1].normal + mapNodes[road.n2].normal):normalized()
+      road.radius = lerp(mapNodes[road.n1].radius, mapNodes[road.n2].radius, road.xnorm)
+
       loopCount = loopCount + 1
     end
-  else
-    status = 'spawnPathFail'
   end
 
   if M.debugMode then
-    log('W', logTag, 'Spawn point failed! Reason: '..status)
+    log('W', logTag, 'Spawn point failed!')
   end
 end
 
 local function placeOnRoad(spawnData, placeData) -- sets a position and rotation on road
+  placeData = placeData or {}
   local pos
-  local rot = spawnData.rot or (mapNodes[spawnData.n2].pos - mapNodes[spawnData.n1].pos):normalized()
+  local dir = spawnData.dir or (mapNodes[spawnData.n2].pos - mapNodes[spawnData.n1].pos):normalized()
   local radius = spawnData.radius
   if not radius then
     radius = mapNodes[spawnData.n1] and lerp(mapNodes[spawnData.n1].radius, mapNodes[spawnData.n2].radius, 0.5) or vars.minRoadRadius
   end
+
   local roadWidth = radius * 2
   local laneWidth = roadWidth >= 6.1 and 3.05 or 2.4 -- gets modified for very narrow roads
-  local slope = rot:dot(vecUp)
-  local dirBias = placeData and placeData.dirBias or 0 -- negative = away from you, positive = towards you
+  local dirBias = placeData.dirBias or 0 -- negative = away from you, positive = towards you
   local legalSide = mapRules.rightHandDrive and -1 or 1
-  local origRot = rot
-  if spawnData.startPos and spawnData.startDir then
-    if (spawnData.pos - spawnData.startPos):dot(spawnData.startDir) < 0 then
-      dirBias = min(1, dirBias + 0.5) -- vehicles spawning on the path behind should mostly drive towards you
-    end
-  end
+  local origDir = dir
+  local link = mapNodes[spawnData.n1].links[spawnData.n2] or mapNodes[spawnData.n2].links[spawnData.n1]
 
   local laneCount = max(1, math.floor(roadWidth / laneWidth)) -- estimated number of lanes (this will change when real lanes exist)
-  if spawnData.link and not spawnData.link.oneWay and laneCount % 2 ~= 0 then -- two way roads currently have an even amount of expected lanes
+  if link and not link.oneWay and laneCount % 2 ~= 0 then -- two way roads currently have an even amount of expected lanes
     laneCount = max(1, laneCount - 1)
   end
   local laneChoice, roadDir, offset
 
-  if spawnData.link and spawnData.link.oneWay then
-    laneChoice = random(laneCount)
-    roadDir = spawnData.link.inNode == spawnData.n1 and 1 or -1 -- spawn facing the correct way
-    if vars.enablePrivateRoads then
+  if link and link.oneWay then
+    roadDir = link.inNode == spawnData.n1 and 1 or -1 -- spawn facing the correct way
+    if link.type == 'private' then
       laneChoice = roadDir == -1 and 1 or laneCount -- temp hack for private road racetracks
+    else
+      laneChoice = random(laneCount)
     end
   else
     if laneCount == 1 then
       roadDir = 1 -- always spawn facing forwards on narrow roads
       laneChoice = 1
     else
-      -- if road is steep, try spawning facing downhill; TODO: boost vehicle uphill
-      --if math.abs(slope) > 0.15 then
-        --roadDir = -sign2(slope)
-      --else
       roadDir = dirBias > random() * 2 - 1 and -1 or 1
-      --end
 
       local laneMin = roadDir == -1 and 1 or max(1, math.floor(laneCount * 0.5) + 1)
       local laneMax = roadDir == -1 and max(1, math.floor(laneCount * 0.5)) or laneCount
@@ -439,14 +335,15 @@ local function placeOnRoad(spawnData, placeData) -- sets a position and rotation
     roadDir = placeData.roadDir or roadDir
   end
 
-  pos = spawnData.pos + origRot:z0():cross(vecUp) * offset
-  rot = rot * roadDir
+  pos = spawnData.pos + origDir:z0():cross(vecUp) * offset
+  dir = dir * roadDir
 
   local surfaceHeight = be:getSurfaceHeightBelow((pos + vecUp * 2.5))
   if surfaceHeight >= -1e6 then
     pos.z = surfaceHeight
   end
-  return pos, rot
+
+  return pos, dir
 end
 
 local function getNextSpawnPoint(id, spawnData, placeData) -- sets the new spawn point of a vehicle
@@ -456,36 +353,40 @@ local function getNextSpawnPoint(id, spawnData, placeData) -- sets the new spawn
       local spawnValue = traffic[id] and traffic[id].respawn.finalSpawnValue or 1
       if spawnValue > 0 then
         local freeCamMode = commands.isFreeCamera() or not traffic[playerId]
-        local dirVec = freeCamMode and core_camera.getForward() or vec3(traffic[playerId].vel) / (traffic[playerId].speed + 1e-30)
-        local speedValue = freeCamMode and 40 or min(120, traffic[playerId].speed * 2)
-        local addedDist = globalSpawnDist * clamp(2 - spawnValue, 0, 1.5)
-        local minDist = clamp(80 / spawnValue + speedValue, 40, 200) + addedDist
-        local maxDist = clamp(minDist * 2.5, 140, 400) + addedDist
-        local maxRandomValue = traffic[id] and traffic[id].respawn.spawnRandomization or 1
-        local maxLateralDist = maxRandomValue * 0.25
-        dirVec:setAdd(dirVec:cross(vecUp):normalized() * (random() * maxRandomValue * 2 - maxRandomValue)) -- small randomization of start direction
+        local dirVec = freeCamMode and core_camera.getForward() or traffic[playerId].vel / (traffic[playerId].speed + 1e-30)
+        local speedValue = freeCamMode and 40 or min(100, square(traffic[playerId].speed * 0.125))
+        local addedDist = speedValue
+        if freeCamMode then -- if free camera, the added distance is based on height from ground (can make vehicles respawn further away)
+          addedDist = core_camera.getPosition().z - max(-1e6, be:getSurfaceHeightBelow(core_camera.getPosition()))
+          addedDist = clamp(square(addedDist) / 10, 0, 250)
+        end
+        if spawnValue == 1 then
+          addedDist = addedDist + globalSpawnDist
+        end
+
+        local minDist = clamp(100 / spawnValue, 40, 400) + addedDist
+        local maxDist = clamp(minDist * 3, 120, 1200)
+        local spawnRandomValue = traffic[id] and traffic[id].respawn.spawnRandomization or 1
+        local maxLateralDist = spawnRandomValue * max(30, 100 - speedValue) * 0.2
+        dirVec:setAdd(dirVec:cross(vecUp):normalized() * (random() * spawnRandomValue * 2 - spawnRandomValue)) -- small randomization of start direction
 
         local extraArgs = {}
-        extraArgs.lateralDist = random(speedValue * -maxLateralDist, speedValue * maxLateralDist)
-        extraArgs.pathRandom = freeCamMode and 1 or clamp((100 - speedValue) / 60, 0, maxRandomValue)
+        extraArgs.lateralDist = lerp(-maxLateralDist, maxLateralDist, random())
+        extraArgs.pathRandom = freeCamMode and 1 or clamp((100 - speedValue) / 80, 0, spawnRandomValue)
         extraArgs.ignoreRoadCheck = vars.enablePrivateRoads
-        extraArgs.useAutoLimits = true
+        local minRoadDrivability = vars.minRoadDrivability or 0.25
 
-        local prevPos = vec3()
         if traffic[id] then
           extraArgs.width, extraArgs.length = traffic[id].width, traffic[id].length
-          extraArgs.minRoadDrivability = clamp(traffic[id].drivability, vars.minRoadDrivability or 0.25, 1)
+          minRoadDrivability = clamp(traffic[id].drivability, minRoadDrivability, 1)
           extraArgs.minRoadRadius = vars.minRoadRadius
-          prevPos:set(traffic[id].respawn.pos)
         end
 
         for i = 1, 2 do
+          -- with this drivability check, roads with a drivability < 1 will have a much lower chance of being usable
+          extraArgs.minRoadDrivability = max(minRoadDrivability, 1 - square(min(0.8, random()) * 1.25 - 1))
+
           spawnData = findSpawnPoint(core_camera.getPosition(), dirVec, minDist, maxDist, extraArgs)
-          if spawnData then
-            if spawnData.pos:squaredDistance(prevPos) < 400 then-- tries to prevent same spawn point as last time
-              spawnData = findSpawnPoint(spawnData.pos, dirVec, minDist, maxDist, extraArgs)
-            end
-          end
 
           if spawnData then break end
           dirVec = -dirVec -- try reverse search direction once
@@ -496,22 +397,46 @@ local function getNextSpawnPoint(id, spawnData, placeData) -- sets the new spawn
 
   if spawnData then
     -- adjust global respawn distance based on road network density value based on this spawn point
-    local baseDensity = clamp(spawnData.radius, 2, 10)
-    if not spawnData.link or not spawnData.link.oneWay then
-      baseDensity = baseDensity * 0.5
-    end
-    local densityValue = #map.getGraphpath():getBranchNodesAround(spawnData.n1, 200)
-    densityValue = 10 / (baseDensity * densityValue) + (random() - 0.5)
-    if densityValue < 1 then
-      globalSpawnDist = max(0, globalSpawnDist - 40)
-    else
-      globalSpawnDist = globalSpawnDist + 20 * (densityValue - 1)
-      if globalSpawnDist >= 200 then globalSpawnDist = 0 end -- reset value if threshold reached
+    local branchNodeCount = #map.getGraphpath():getBranchNodesAround(spawnData.n1, 200)
+    local maxDist = (500 - spawnData.radius * 25) / max(2, branchNodeCount) -- max global respawn distance varies with the road width and branches
+    globalSpawnDist = globalSpawnDist + random() * 25
+    if globalSpawnDist >= maxDist then globalSpawnDist = 0 end -- reset value if threshold reached
+
+    globalSpawnDir = globalSpawnDir <= 0 and 0.6 or -0.6
+    globalSpawnDir = globalSpawnDir + random() * 0.2 -- random stronger bias for respawning in the incoming direction
+
+    if not placeData then
+      local dirBias = traffic[id] and traffic[id].respawn.spawnDirBias or 0
+      if dirBias == 0 then
+        dirBias = globalSpawnDir
+      end
+
+      if spawnData.startDir:dot(spawnData.pos - spawnData.startPos) < 0 then
+        dirBias = min(1, dirBias + 0.8) -- vehicles respawning on the path behind should mostly drive towards you
+      end
+
+      placeData = {dirBias = dirBias}
     end
 
-    local pos, rot = placeOnRoad(spawnData, placeData)
+    local pos, dir = placeOnRoad(spawnData, placeData)
     local normal = map.surfaceNormal(pos, 1)
-    rot = quatFromDir(vecY:rotated(quatFromDir(rot, normal)), normal)
+    local rot = quatFromDir(vecY:rotated(quatFromDir(dir, normal)), normal)
+
+    if traffic[id] then
+      -- speed boost after respawning
+      if traffic[id].hasTrailer then -- has trailer
+        traffic[id].respawnSpeed = -1 -- this possibly helps with attaching trailer
+      elseif (tableSize(map.getGraphpath().graph[spawnData.n2]) > 2 and pos:squaredDistance(mapNodes[spawnData.n2].pos) < 400) then -- is near intersection
+        traffic[id].respawnSpeed = nil
+      else
+        traffic[id].respawnSpeed = max(3.333, dir:dot(vecUp) * 30) -- 12 km/h, or higher if uphill is steep enough
+        local link = mapNodes[spawnData.n1].links[spawnData.n2] or mapNodes[spawnData.n2].links[spawnData.n1]
+        if link then
+          traffic[id].respawnSpeed = max(traffic[id].respawnSpeed, (link.speedLimit - 8.333) * 0.5) -- bigger speed boost at higher speed limits
+        end
+      end
+    end
+
     return pos, rot
   end
 end
@@ -521,14 +446,12 @@ local function respawnVehicle(id, pos, rot, strict) -- moves the vehicle to a ne
   if not obj or not pos or not rot then return end
 
   if not strict then
-    spawn.safeTeleport(obj, pos, rot, true) -- this is slower, but prevents vehicles from spawning inside static geometry
+    spawn.safeTeleport(obj, pos, rot, true, nil, false) -- this is slower, but prevents vehicles from spawning inside static geometry
   else
     obj:setPositionRotation(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w)
     obj:autoplace(false)
     obj:resetBrokenFlexMesh()
   end
-
-  respawnTicks = 5
 
   if traffic[id] then
     traffic[id].pos = vec3(pos)
@@ -651,7 +574,7 @@ local function processNextSpawn(id, ignorePool) -- processes the next vehicle re
     end
   end
 
-  newPos, newRot = getNextSpawnPoint(newId, nil, {dirBias = traffic[newId].respawn.spawnDirBias})
+  newPos, newRot = getNextSpawnPoint(newId)
   if newPos then
     if vehPool.allVehs[newId] == 0 then -- TODO: something seems to fail here if the vehicle got force reloaded and was inactive
       vehPool:setVeh(newId, true)
@@ -674,8 +597,8 @@ end
 
 local function resetTrafficVars() -- resets traffic variables to default
   vars = {
-    spawnValue = 1,
-    spawnDirBias = 0.2,
+    spawnValue = 1, -- as the default value, globalSpawnDist will dynamically adjust the random respawn distance from player
+    spawnDirBias = 0, -- as the default value, globalSpawnDir will dynamically adjust the random respawn direction
     baseAggression = 0.3,
     minRoadDrivability = 0.25,
     minRoadRadius = 1.2,
@@ -1003,12 +926,13 @@ local function createPoliceGroup(amount, allMods) -- creates a group of police v
   return core_multiSpawn.createGroup(amount, params)
 end
 
-local function spawnTraffic(amount, group) -- spawns a defined group of vehicles and sets them as traffic
+local function spawnTraffic(amount, group, options) -- spawns a defined group of vehicles and sets them as traffic
   amount = amount or max(1, getAmountFromSettings() - #getAllVehiclesByType())
   group = group or core_multiSpawn.createGroup(amount)
+  options = type(options) == 'table' and options or {}
   state = 'spawning'
 
-  return core_multiSpawn.spawnGroup(group, amount, {name = 'autoTraffic', mode = 'traffic', gap = 20, ignoreJobSystem = not worldLoaded, ignoreAdjust = not worldLoaded})
+  return core_multiSpawn.spawnGroup(group, amount, {name = 'autoTraffic', mode = options.mode or 'traffic', gap = options.gap or 20, pos = options.pos, rot = options.rot, ignoreJobSystem = not worldLoaded, ignoreAdjust = not worldLoaded})
 end
 
 local function setupTraffic(amount, policeRatio, options) -- prepares a group of vehicles for traffic
@@ -1106,6 +1030,11 @@ local function setupTraffic(amount, policeRatio, options) -- prepares a group of
   if amount > 0 and trafficGroup and trafficGroup[1] then
     spawnProcess.group = trafficGroup
     spawnProcess.amount = amount
+
+    local multiSpawnOptions = {}
+    multiSpawnOptions.pos = options.pos
+    multiSpawnOptions.rot = options.rot
+    if next(multiSpawnOptions) then spawnProcess.multiSpawnOptions = multiSpawnOptions end
     state = 'loading'
 
     createTrafficPool()
@@ -1237,13 +1166,11 @@ local function doTraffic(dt, dtSim) -- various logic for traffic; also handles w
   if queuedVehicle > vehCount then
     queuedVehicle = 1
   end
-
-  if respawnTicks > 0 then
-    respawnTicks = respawnTicks - 1 -- optimization to prevent rapid succession of respawning vehicles
-  end
 end
 
 local function doDebug() -- general debug visuals
+  local linePoint = core_camera.getPosition() + core_camera.getForward()
+  linePoint.z = linePoint.z - 1
   for id, veh in pairs(traffic) do
     local obj = be:getObjectByID(id)
     if obj:getActive() then
@@ -1253,17 +1180,7 @@ local function doDebug() -- general debug visuals
       if veh.state == 'fadeIn' then lineColor = debugColors.red end
 
       if veh.debugLine then
-        local focusPos = vec3(veh.focusPos)
-        local z = be:getSurfaceHeightBelow((focusPos + vecUp * 4))
-
-        if z >= -1e6 then
-          focusPos.z = z
-        elseif core_terrain.getTerrain() then
-          focusPos.z = core_terrain.getTerrainHeight(focusPos)
-        end
-
-        debugDrawer:drawLine(veh.pos, player.camPos + player.camDirVec - vecUp, lineColor)
-        debugDrawer:drawSphere(focusPos, 0.25, debugColors.green)
+        debugDrawer:drawLine(veh.pos, linePoint, lineColor)
       end
 
       if veh.debugText then
@@ -1324,7 +1241,7 @@ end
 
 local function onUpdate(dtReal, dtSim)
   if state == 'loading' then
-    spawnTraffic(spawnProcess.amount, spawnProcess.group)
+    spawnTraffic(spawnProcess.amount, spawnProcess.group, spawnProcess.multiSpawnOptions)
   end
 
   -- these hooks activate the frame after the first or last traffic vehicle gets inserted or removed
@@ -1360,6 +1277,8 @@ end
 local function onTrafficStarted()
   setMapData()
   state = 'on'
+  globalSpawnDist = 0
+  globalSpawnDir = 0
   vehPool._updateFlag = true -- acts like a frame delay for the vehicle pooling system
 
   if gameplay_walk.isWalking() then -- check for player unicycle
@@ -1367,14 +1286,6 @@ local function onTrafficStarted()
   end
   for _, veh in ipairs(getAllVehiclesByType()) do -- check for player vehicles to insert into traffic
     checkPlayer(veh:getId())
-  end
-
-  local n1, n2 = map.findClosestRoad(core_camera.getPosition())
-  if n1 then
-    local link = mapNodes[n1].links[n2] or mapNodes[n2].links[n1]
-    if link and link.type == 'private' and link.oneWay and min(mapNodes[n1].radius, mapNodes[n2].radius) >= 5 then
-      vars.enablePrivateRoads = true -- special feature that enables AI to drive on racetracks
-    end
   end
 end
 
@@ -1401,7 +1312,7 @@ end
 local function onUiWaitingState()
   if spawnProcess.waitForUi and not spawnProcess.trafficSetup and not spawnProcess.parkingSetup then
     if settings.getValue('trafficParkedVehicles') then
-      spawnProcess.parkingSetup = gameplay_parking.setupVehicles(nil, {checkParkingSpots = true})
+      spawnProcess.parkingSetup = gameplay_parking.setupVehicles()
     else
       spawnProcess.parkingSetup = false
     end
@@ -1488,7 +1399,6 @@ M.deactivate = deactivate
 M.toggle = toggle
 M.refreshVehicles = refreshVehicles
 
-M.getRandomPaint = getRandomPaint
 M.forceTeleport = forceTeleport
 M.forceTeleportAll = scatterTraffic
 M.scatterTraffic = scatterTraffic

@@ -1,16 +1,15 @@
 <!-- bngSelect - a select box control -->
 <template>
   <div class="bng-select">
-    <bng-button
+    <BngButton
       :disabled="disable || isLeftDisabled"
       tabindex="1"
       accent="text"
       @click="changeIndex(-1)"
-      :icon="icons.arrow.large.left"
+      :icon="icons.arrowLargeLeft"
       v-bng-sound-class="'bng_click_hover_generic'"
       :mute="$attrs.mute"
-      data-testid="previous-btn"
-    ></bng-button>
+      data-testid="previous-btn"></BngButton>
     <template v-if="slots.display">
       <slot name="display"></slot>
     </template>
@@ -18,16 +17,15 @@
       <span class="label select">{{ current.label }}</span>
       <label flavour></label>
     </template>
-    <bng-button
+    <BngButton
       :disabled="disable || isRightDisabled"
       tabindex="1"
       accent="text"
       @click="changeIndex(1)"
-      :icon="icons.arrow.large.right"
+      :icon="icons.arrowLargeRight"
       v-bng-sound-class="'bng_click_hover_generic'"
       :mute="$attrs.mute"
-      data-testid="next-btn"
-    ></bng-button>
+      data-testid="next-btn"></BngButton>
   </div>
 </template>
 
@@ -35,8 +33,7 @@
 import { ref, computed, watch, useSlots } from "vue"
 import { clamp } from "@/utils/maths"
 import { vBngSoundClass } from "@/common/directives"
-import { BngButton, BngLottie, BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { BngButton, icons } from "@/common/components/base"
 
 const findOptionValue = (valueToFind, opts) =>
   Math.max(
@@ -59,8 +56,12 @@ const isRightDisabled = props.loop ? false : computed(() => index.value == props
 const emit = defineEmits(["valueChanged"])
 
 defineExpose({
-  goNext() { changeIndex(1) },
-  goPrev() { changeIndex(-1) },
+  goNext() {
+    changeIndex(1)
+  },
+  goPrev() {
+    changeIndex(-1)
+  },
 })
 
 const props = defineProps({
@@ -69,14 +70,8 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  disable: {
-    type: Boolean,
-    default: false,
-  },
-  loop: {
-    type: Boolean,
-    default: false,
-  },
+  disable: Boolean,
+  loop: Boolean,
   config: {
     type: Object,
     // default is for super simple options where opt = label = value
@@ -106,7 +101,7 @@ function changeIndex(offset) {
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/modules/mixins";
+@import "@/styles/modules/density";
 .bng-select {
   $b-rad: $border-rad-1;
   display: flex;

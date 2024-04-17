@@ -8,7 +8,7 @@ import { lua, useBridge } from "@/bridge"
 const API = lua.extensions.ui_dynamicDecals
 
 export default defineStore("decals", () => {
-  const bridge = useBridge()
+  const { events } = useBridge()
 
   /** Start Editor Setup */
   const resources = ref(null)
@@ -24,7 +24,7 @@ export default defineStore("decals", () => {
           items: decalTextures[category].textures.map((x, index) => ({
             id: index + 1,
             name: x.name,
-            src: x.location,
+            externalSrc: x.location,
             value: x.location,
           })),
         }
@@ -105,6 +105,7 @@ export default defineStore("decals", () => {
           resetOnApply: currentDecalSettings.value.resetOnApply,
         })
         createConfiguredLayerWatchers()
+        API.toggleStampActionMap(true)
         break
       case "fill":
         updateConfiguredLayer({
@@ -146,6 +147,7 @@ export default defineStore("decals", () => {
     disposeConfiguredLayerWatchers()
     currentAction.value = null
     configuredLayer.value = null
+    API.toggleStampActionMap(false)
   }
 
   const createOrUpdateLayer = () => {
@@ -218,7 +220,7 @@ export default defineStore("decals", () => {
     API.exportSkin(skinName)
   }
 
-  bridge.events.on("DynamicDecalsDataUpdated", data => {
+  events.on("DynamicDecalsDataUpdated", data => {
     if (!data || !data.layers || data.layers.length === 0) {
       layersData.value = {}
       return
@@ -235,18 +237,18 @@ export default defineStore("decals", () => {
     }
   })
 
-  bridge.events.on("DynamicDecalsLayerSelected", data => {
+  events.on("DynamicDecalsLayerSelected", data => {
     // console.log("DynamicDecalsLayerSelected", data)
     selectedLayer.value = data ? data : null
   })
 
-  bridge.events.on("DynamicDecalsHighlightedLayerChanged", data => {
+  events.on("DynamicDecalsHighlightedLayerChanged", data => {
     if (data && data.uid && data.highlighted) highlightedLayer.value = data.uid
 
     highlightedLayer.value = null
   })
 
-  bridge.events.on("DynamicDecalsLayerVisibilityUpdated", data => {
+  events.on("DynamicDecalsLayerVisibilityUpdated", data => {
     // console.log("DynamicDecalsLayerVisibilityUpdated", data)
     if (!data || !data.uid) return
 
@@ -261,7 +263,7 @@ export default defineStore("decals", () => {
     layer.enabled = data.visible
   })
 
-  bridge.events.on("DynamicDecalsLayerUpdated", data => {
+  events.on("DynamicDecalsLayerUpdated", data => {
     // console.log("DynamicDecalsLayerUpdated", data)
     if (!data || !data.uid) return
 
@@ -292,7 +294,7 @@ export default defineStore("decals", () => {
     Object.assign(currentLayer, data)
   })
 
-  bridge.events.on("DynamicDecalsResourcesUpdated", data => {
+  events.on("DynamicDecalsResourcesUpdated", data => {
     // console.log("DynamicDecalsResourcesUpdated", data)
 
     if (!data) resources.value = null
@@ -438,12 +440,12 @@ export default defineStore("decals", () => {
   }
 
   function dispose() {
-    bridge.events.off("DynamicDecalsResourcesUpdated")
-    bridge.events.off("DynamicDecalsLayerUpdated")
-    bridge.events.off("DynamicDecalsDataUpdated")
-    bridge.events.off("DynamicDecalsLayerSelected")
-    bridge.events.off("DynamicDecalsHighlightedLayerChanged")
-    bridge.events.off("DynamicDecalsLayerVisibilityUpdated")
+    events.off("DynamicDecalsResourcesUpdated")
+    events.off("DynamicDecalsLayerUpdated")
+    events.off("DynamicDecalsDataUpdated")
+    events.off("DynamicDecalsLayerSelected")
+    events.off("DynamicDecalsHighlightedLayerChanged")
+    events.off("DynamicDecalsLayerVisibilityUpdated")
 
     // if (configuredLayerWatcher) configuredLayerWatcher()
     // console.log("decalsStore disposed")

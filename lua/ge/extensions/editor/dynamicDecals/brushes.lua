@@ -630,7 +630,7 @@ local function setup(tool_in)
     -- jsonWriteFile(brushesPath, brushes, true)
   end
 
-  browser.registerBrowserTab("Brushes", browserTabGui, 20)
+  browser.registerBrowserTab("Brushes", browserTabGui, 30)
 end
 
 M.inspectorGui = inspectorGui

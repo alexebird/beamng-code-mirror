@@ -1555,6 +1555,7 @@ M.draw = function(value, property, guiId, editEnded, widgetOptions)
 end
 
 M.highlight = function(id, time)
+  highlightedWidgets = {}
   highlightedWidgets[id] = {time = time, setScroll = true}
 end
 

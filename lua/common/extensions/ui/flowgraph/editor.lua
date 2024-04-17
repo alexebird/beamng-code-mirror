@@ -195,7 +195,7 @@ local function shortValueString(value, tpe)
   end
   if tpe == nil or type(tpe) == 'table' or tpe == 'any' then
     -- guess type
-    if type(value) == 'bool' or type(value) == 'string' or type(value) == 'number' then
+    if type(value) == 'boolean' or type(value) == 'string' or type(value) == 'number' then
       tpe = type(value)
     elseif type(value) == 'table' then
       if #value == 3 then
@@ -210,7 +210,7 @@ local function shortValueString(value, tpe)
 
   if tpe == 'flow' then
     return (value and "Flowing" or "Not Flowing")
-  elseif tpe == 'string' or tpe == 'bool' then
+  elseif tpe == 'string' or tpe == 'bool' or tpe == 'boolean' then
     return (tostring(value):sub(0, 10) .. (tostring(value):len() > 10 and "..." or ""))
   elseif tpe == 'number' then
     return (string.format("%0.2f", value))
@@ -243,7 +243,7 @@ local function fullValueString(value, tpe)
   end
   if tpe == nil or type(tpe) == 'table' or tpe == 'any' then
     -- guess type
-    if type(value) == 'bool' or type(value) == 'string' or type(value) == 'number' then
+    if type(value) == 'boolean' or type(value) == 'string' or type(value) == 'number' then
       tpe = type(value)
     elseif type(value) == 'table' then
       if #value == 3 then
@@ -485,14 +485,14 @@ local function variableEditor(source, name, displayOptions)
             source:removeVariable(name)
             source.mgr.fgEditor.addHistory("Deleted Variable " .. name)
           end
-		  
+
           -- rename
           if im.Button("Rename Variable") then
             im.OpenPopup(source.id .. "-rename-" .. name)
           end
         end
       end
-	  
+
       -- rename variable popup
       if im.BeginPopup(source.id .. "-rename-" .. name) then
         im.PushItemWidth(150)
@@ -550,6 +550,7 @@ local function vehicleSelectorRefresh(self, onlyModel)
     end
   end
 end
+
 local matchStringFunction = require('/lua/ge/extensions/editor/util/searchUtil')().matchStringScore
 local function vehicleScoringFunction(elem, match)
   local modelNameScore = matchStringFunction(elem.info.modelName, match)

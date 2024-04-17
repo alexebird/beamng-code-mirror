@@ -11,12 +11,35 @@ local expressionParser = require("jbeam/expressionParser")
 local jbeamTableSchema = require('jbeam/tableSchema')
 
 local min, max = math.min, math.max
-local str_byte = string.byte
+local str_byte, str_sub, str_match, str_gmatch = string.byte, string.sub, string.match, string.gmatch
 
 local debugParts = false -- set this to true to dump the parts to disk for manual inspection
 
+-- lookup a value in a table using a path
+local function getValueFromPath(rootTable, path, enforcedFirstKey)
+  if enforcedFirstKey and rootTable then
+    local firstKey = str_match(path, "[^.]+")
+    if firstKey ~= enforcedFirstKey then
+      log('E', 'component', 'path not starting with "' .. tostring(enforcedFirstKey) .. '" [' .. tostring(path) .. '] - rejecting.')
+      return nil
+    end
+  end
+
+  local current = rootTable
+  for part in str_gmatch(path, "[^.]+") do
+    if current[part] ~= nil then
+      current = current[part]
+    else
+      -- The path does not exist in the table
+      return nil
+    end
+  end
+  return current
+end
+
+
 local function apply(data, vars)
-  if tableIsEmpty(vars) then return end
+  -- this is also doing components now, so always need to run
   local stackidx = 2
   local stack = {data}
   while stackidx > 1 do
@@ -31,7 +54,19 @@ local function apply(data, vars)
             d[key] = expressionParser.parseSafe(v, vars)
             --log('I', "jbeam.applyVariables", "set variable "..tostring(key).." to ".. tostring(data[key]))
           else
-            if secondChar ~= 43 and secondChar ~= 60 and secondChar ~= 62 then -- + < > we need to exlcude these because they are used as custom merging strategy indicators
+            -- component handling START
+            if secondChar == 62 and str_byte(v,3) == 62 then -- $>>
+              local componentKey = str_sub(v, 4)
+              local new_val = getValueFromPath(data, componentKey, 'components')
+              if new_val == nil then
+                log('E', 'component', 'path not found: "' .. tostring(componentKey) .. '"')
+                d[key] = nil
+              else
+                log('I', 'component', 'path processed: "' .. tostring(componentKey) .. '" = ' .. dumps(new_val))
+                d[key] = deepcopy(new_val)
+              end
+          -- component handling END
+          elseif secondChar ~= 43 and secondChar ~= 60 and secondChar ~= 62 then -- + < > we need to exlcude these because they are used as custom merging strategy indicators
               if vars[v] == nil then
                 log('E', "jbeam.applyVariables", "missing variable "..tostring(v))
                 d[key] = nil
@@ -169,9 +204,16 @@ local function _sanitizeVars(allVariables, userVars)
         vv.category, vv.subCategory = string.match(vv.category, "(.*)%.(.*)")
       end
 
-      --Make sure our value is actually inside the min/max limits
+      local valBeforeClamp = vv.val
+
       --we can't be sure that "min" is actually the smaller number and "max" the bigger one, so for clamping we need to find out which is which first
       vv.val = clamp(vv.val, min(vv.min, vv.max), max(vv.min, vv.max))
+
+      --Make sure our value is actually inside the min/max limits
+      if valBeforeClamp ~= vv.val then
+        log('W', 'variables', 'variable ' .. tostring(vv.name) .. ' value out of range! value ' .. tostring(valBeforeClamp) .. ' clamped to range [' .. tostring(vv.min) .. ',' .. tostring(vv.max) .. '] as ' .. tostring(vv.val))
+      end
+
       vars[vv.name] = vv
     else
       log('E', 'variables', 'variable ' .. tostring(vv.name) .. ' ignored, unknown type: ' .. tostring(vv.type))
@@ -194,16 +236,18 @@ end
 local function varMerge(dict, dest, src)
   local destEnd = #dest
   for _, v in ipairs(src) do
-    local placeIdx
     if dict[v.name] then
       -- dump({'val=',v.default, 'overwrites=', dest[dict[v.name]].default})
-      placeIdx = dict[v.name]
+      dest[dict[v.name]] = v
     else
-      destEnd = destEnd + 1
-      placeIdx = destEnd
-      dict[v.name] = placeIdx
+      if v.name then
+        destEnd = destEnd + 1
+        dict[v.name] = destEnd
+        dest[destEnd] = v
+      else
+        -- log('W', 'variables', 'anonymous variable ignored: ' .. dumps(v))
+      end
     end
-    dest[placeIdx] = v
   end
 end
 

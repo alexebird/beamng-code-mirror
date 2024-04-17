@@ -48,7 +48,7 @@ function C:SetAIDebugMode()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     veh = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
 
   local mode = 'off'

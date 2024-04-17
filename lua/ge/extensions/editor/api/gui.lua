@@ -68,7 +68,7 @@ local function createIconAtlas()
   local iconsCount = tableSize(editor.icons)
 
   if atlasInfo.iconDuplicates then
-    editor.logError("Duplicate editor icons: " .. tostring(atlasInfo.iconDuplicates))
+    log("E","createIconAtlas","Duplicate editor icons: " .. dumps(atlasInfo.iconDuplicates))
   end
 
   local iconsPerRow = atlasInfo.atlasWidth / icon_width
@@ -81,7 +81,7 @@ local function createIconAtlas()
     atlas:loadFile(atlasPath)
     iconsTex = imguiUtils.texObj(atlasPath)
   else
-    editor.logError("Cannot create GBitmap for icon atlas")
+    log("E","createIconAtlas","Cannot create GBitmap for icon atlas")
   end
 end
 
@@ -981,11 +981,16 @@ end
 local function checkAndTriggerWindowHooks(wndName, wnd)
   if not wnd or not wnd.visible then return end
   if wnd.backupVisible ~= wnd.visible[0] then
-    if wnd.visible[0] then
-      extensions.hook("onEditorToolWindowShow", wndName)
-    else
-      extensions.hook("onEditorToolWindowLostFocus", wndName)
-      extensions.hook("onEditorToolWindowHide", wndName)
+    -- guard against recursive calls
+    if not wnd.insideHookCall then
+      wnd.insideHookCall = true
+      if wnd.visible[0] then
+        extensions.hook("onEditorToolWindowShow", wndName)
+      else
+        extensions.hook("onEditorToolWindowLostFocus", wndName)
+        extensions.hook("onEditorToolWindowHide", wndName)
+      end
+      wnd.insideHookCall = nil
     end
   end
   wnd.backupVisible = wnd.visible[0]
@@ -1160,11 +1165,13 @@ end
 
 local function endWindow()
   local isWndVisible = table.remove(windowVisibleStack, #windowVisibleStack)
-  if isWndVisible then imgui.End() end
+  -- always call End (the only exception of Begin* End* pairs)
+  imgui.End()
 end
 
 local function endModalWindow()
   local isWndVisible = table.remove(modalWindowVisibleStack, #modalWindowVisibleStack)
+  -- only call if popup was visible
   if isWndVisible then imgui.EndPopup() end
 end
 

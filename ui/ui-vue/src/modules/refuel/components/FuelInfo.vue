@@ -1,6 +1,6 @@
 <template>
   <div class="cost">
-    <BngIcon class="beam-buck" :type="icons.general.beambuck"></BngIcon><span class="value">{{ units.beamBucks(totalCost) }}</span>
+    <BngUnit :beambucks="totalCost" />
   </div>
   <div class="price">
     <span class="per-unit">
@@ -15,16 +15,12 @@
 
 <script setup>
 import { computed } from "vue"
-import { BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
-import { useBridge } from "@/bridge"
+import { BngUnit } from "@/common/components/base"
 import { useRefuelStore } from "@/modules/refuel/refuelStore"
-
-const { units } = useBridge()
 
 const refuelStore = useRefuelStore()
 
-const displayPrice = computed(() => Math.round(refuelStore.convertToPricePerLocalUnit(props.pricePerUnit, refuelStore.currentEnergyType) * 100) + 0.9)
+const displayPrice = computed(() => Math.floor(refuelStore.convertToPricePerLocalUnit(props.pricePerUnit, refuelStore.currentEnergyType) * 100) + 0.9)
 
 const props = defineProps({
   totalCost: {
@@ -51,9 +47,9 @@ const props = defineProps({
 }
 .cost {
   text-align: center;
-  font-weight: 800;
-  font-style: italic;
-  font-size: 2.2em;
+  font-weight: 800 !important;
+  font-style: italic !important;
+  font-size: 2.2em !important;
   padding: 0 1rem;
   display: flex;
   align-items: center;

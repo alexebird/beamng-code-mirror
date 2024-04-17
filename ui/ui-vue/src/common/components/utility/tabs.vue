@@ -1,16 +1,15 @@
 <!-- Tabs -->
 <template>
   <div class="tab-container">
-    <ul class="tab-list">
-      <li bng-nav-item tabindex="0" v-for="(tab, i) in tabs" :key="i" @click="selectTab(i)" :class="tabHeaderClasses(tab)">{{ tab.heading }}</li>
-    </ul>
+    <TabList v-if="!slotHasTabList" :makeTabHeaderClasses="makeTabHeaderClasses" />
     <slot></slot>
   </div>
 </template>
 
 <script setup>
 
-import { shallowReactive, provide, onMounted, toRaw, watch } from "vue"
+import { shallowReactive, provide, onMounted, toRaw, watch, useSlots, computed } from "vue"
+import { TabList } from "@/common/components/utility"
 
 const
   tabs = shallowReactive([]),
@@ -18,14 +17,11 @@ const
   props = defineProps({
     makeTabHeaderClasses: Function,
     selectedIndex: Number,
-  })
+  }),
+  slots = useSlots(),
+  slotHasTabList = computed(() => slots.default().map(vn=>vn.type).includes(TabList))
 
-const tabHeaderClasses = tab => ({
-  'tab-item': true,
-  'tab-active-tab': tab.active,
-  ...(props.makeTabHeaderClasses && props.makeTabHeaderClasses(tab))
-})
-
+provide('tabs', tabs)
 
 let
   nextTabID = 0,
@@ -53,6 +49,16 @@ function selectTab(index) {
   selectedTab = newTab
   if (newTab && prevTab && newTab.id != prevTab.id) emit('change', newTab, prevTab)
 }
+provide('selectTab', selectTab)
+
+
+const goNext = () => selectTab((selectedTab.id+1) % tabs.length)
+const goPrev = () => selectTab((selectedTab.id+tabs.length-1) % tabs.length)
+
+defineExpose({
+  goNext,
+  goPrev
+})
 
 onMounted(() => {
   const
@@ -71,7 +77,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 
-  .tab-list {
+  .tab-list, :deep(.tab-list) {
     display: flex;
     flex-direction: row;
     align-items: flex-end;
@@ -130,7 +136,7 @@ onMounted(() => {
   }
 
 }
-  
+
 .bng-tabs {
 
   --tab-container-fg: white;
@@ -141,9 +147,9 @@ onMounted(() => {
 
   --tab-content-bg: var(--bng-black-o6);
 
-  --tab-list-corners: var(--bng-corners-3);
+  --tab-list-corners: var(--bng-corners-1);
   --tab-corners: var(--bng-corners-2);
-  --tab-content-corners: var(--bng-corners-2);
+  --tab-content-corners: var(--bng-corners-1);
 
   --tab-border: 0.125em solid var(--bng-cool-gray-700);
 
@@ -158,5 +164,5 @@ onMounted(() => {
   }
 
 }
-  
+
 </style>

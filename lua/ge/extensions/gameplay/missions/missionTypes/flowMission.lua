@@ -115,11 +115,7 @@ function C:getCommonSettingsData()
     table.insert(data, {
       key = 'setupModuleTraffic',
       label = 'missions.missions.general.userSettings.trafficEnabled',
-      type = 'select',
-      values = {
-        {l = 'ui.common.no', v = false},
-        {l = 'ui.common.yes', v = true},
-      },
+      type = 'bool',
       value = self.setupModules.traffic.useTraffic
     })
   end

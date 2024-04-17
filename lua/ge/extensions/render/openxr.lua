@@ -87,7 +87,6 @@ end
 local function saveSettings()
   settings.setValue("openXRuiEnabled"     , M.openXRuiEnabled[0])
   settings.setValue("openXRuiMode"        , M.openXRuiMode[0])
-  settings.setValue("openXRnearPlaneDist" , M.openXRnearPlaneDist[0])
   settings.setValue("openXRwindowViewMode", M.openXRwindowViewMode[0])
   settings.setValue("openXRdebugEnabled"  , M.openXRdebugEnabled[0])
 end
@@ -99,7 +98,6 @@ local function onSettingsChanged()
   M.openXRimguiEnabled   = settings.getValue("openXRimguiEnabled")
   M.openXRuiEnabled      = im.BoolPtr(settings.getValue("openXRuiEnabled"))
   M.openXRuiMode         = im.IntPtr(settings.getValue("openXRuiMode"))
-  M.openXRnearPlaneDist  = im.FloatPtr(settings.getValue("openXRnearPlaneDist"))
   M.openXRwindowViewMode = im.IntPtr(settings.getValue("openXRwindowViewMode"))
   M.openXRdebugEnabled   = im.BoolPtr(settings.getValue("openXRdebugEnabled"))
 
@@ -153,7 +151,6 @@ local function onUpdate(dtReal, dtSim, dtRaw)
       M.center()
     end
 
-    changed = im.DragFloat("Near plane dist##openXRnearPlaneDist", M.openXRnearPlaneDist, 0.05, 0.05, 10, "%.2f m") or changed
     changed = im.Combo2("2D screen view##openXRwindowViewMode", M.openXRwindowViewMode, "Empty (fastest)\0Between eyes (slowest)\0Reuse left eye\0Reuse right eye\0") or changed
     changed = im.Checkbox("Display user interface (CEF)", M.openXRuiEnabled) or changed
     im.Text("   ") im.SameLine()

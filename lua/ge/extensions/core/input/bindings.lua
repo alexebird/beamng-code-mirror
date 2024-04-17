@@ -12,6 +12,7 @@ M.devices = {}
 M.bindings = {}
 M.assignedPlayers = {}
 local actionToControl = nil
+local usedBindingFiles = nil -- nil = not tracking
 
 -- when bindings go through the UI, javascript side is introducing bugs in their fields; we attempt to clean that up here
 local function fixBuggyBindingFromUISide(binding)
@@ -180,6 +181,9 @@ local function readBindingsFromDisk(paths, vehicleName, ignoreRemoved)
       if not success then
         log('E', 'bindings', "Error decoding json content from file "..dumps(path)..": "..dumps(fileData))
         fileData = nil
+      end
+      if usedBindingFiles then
+        table.insert(usedBindingFiles, path)
       end
     else
       log('E', 'bindings', "Error parsing bindings in file "..path..": cannot open file")
@@ -547,15 +551,13 @@ local function getBindings(devname, guid, productName, pidvid, vehicleName, defa
   result.name = productName
   result.devicetype = devicetype
 
-
-
   -- we set an active flag on the bindings depending on what actions are used in the jbeam file
   if vehicleId then
-    local vdata = extensions.core_vehicle_manager.getVehicleData(vehicleId)
+    local vd = extensions.core_vehicle_manager.getVehicleData(vehicleId)
     -- now with the new inputmap.json file format: filter the bindings that are present...
-    if vdata and vdata.vdata and vdata.vdata.inputActions and vdata.vdata.actionsEnabled then
+    if vd and vd.vdata and vd.vdata.inputActions and vd.vdata.actionsEnabled then
       local enabledActionsMap = {}
-      for _, t in pairs(vdata.vdata.actionsEnabled) do
+      for _, t in pairs(vd.vdata.actionsEnabled) do
         enabledActionsMap[t.name] = true
       end
 
@@ -568,7 +570,7 @@ local function getBindings(devname, guid, productName, pidvid, vehicleName, defa
           if not enabledActionsMap[actionClean] then
             b.unused = true
           end
-          vdata.vdata.inputActions[actionClean].bound = true
+          vd.vdata.inputActions[actionClean].bound = true
         end
       end
 
@@ -594,7 +596,7 @@ local function getAllBindings(devices, assignedPlayers, vehicleId)
     local contents = getBindings(devname, info[1], info[2], info[3], nil, false)
 
     -- vehicle specific bindings
-    local vehicle = be:getPlayerVehicle(player)
+    local vehicle = getPlayerVehicle(player)
     if vehicle then
       local vehicleName = vehicle:getJBeamFilename()
       local vehicleContents = getBindings(devname, info[1], info[2], info[3], vehicleName, false, vehicleId)
@@ -650,7 +652,7 @@ local function notifyUI(reason)
   guihooks.trigger('AssignedPlayersChanged', M.assignedPlayers)
 
   -- strip actions from vehicles other than currently focused one (since those will show up with no bindings)
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local vehicleName = vehicle and vehicle:getJBeamFilename()
   local currentActions = {}
   for actionName,action in pairs(core_input_actions.getActiveActions()) do
@@ -679,25 +681,19 @@ local function notifyGE(reason)
 
   -- ok, now look at all vehicles, which global actionmaps they use and update them
   local activeActions = core_input_actions.getActiveActions()
-  for i = 0, be:getObjectCount() - 1 do
-    local veh = be:getObject(i)
-    if veh then
-      local vehId = veh:getId()
-      local vData = extensions.core_vehicle_manager.getVehicleData(vehId)
-      if vData and vData.vdata and vData.vdata.triggerEventLinksDict then
-        for _, actionList in pairs(vData.vdata.triggerEventLinksDict) do
-          for _, linkList in pairs(actionList) do
-            for _, lnk in pairs(linkList) do
-              if lnk.namespace == 'common' then
-                -- find the correction action
-                lnk.inputAction = core_input_actions.upgradeAction(lnk.inputAction)
-                for actionName, action in pairs(activeActions) do
-                  if actionName == lnk.inputAction then
-                    action.namespace = 'common'
-                    vData.vdata.inputActions[lnk.inputAction] = action
-                    lnk.commonLua = true -- mark as being resolved within lua
-                  end
-                end
+  for _,veh in ipairs(getAllVehicles()) do
+    local vd = extensions.core_vehicle_manager.getVehicleData(veh:getId())
+    for _, actionList in pairs(vd and vd.vdata and vd.vdata.triggerEventLinksDict or {}) do
+      for _, linkList in pairs(actionList) do
+        for _, lnk in pairs(linkList) do
+          if lnk.namespace == 'common' then
+            -- find the correction action
+            lnk.inputAction = core_input_actions.upgradeAction(lnk.inputAction)
+            for actionName, action in pairs(activeActions) do
+              if actionName == lnk.inputAction then
+                action.namespace = 'common'
+                vd.vdata.inputActions[lnk.inputAction] = action
+                lnk.commonLua = true -- mark as being resolved within lua
               end
             end
           end
@@ -820,7 +816,7 @@ local function saveBindingsToDisk(data)
 
   -- first we initialize them as empty. this forces empty inputmaps to be saved too (instead of being ignored because UI didn't mention the vehicle in incoming data)
   local inputmaps = { none=deepcopy(inputmapTemplate) }
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if vehicle then
     inputmaps[vehicle:getJBeamFilename()] = deepcopy(inputmapTemplate)
   end
@@ -858,7 +854,7 @@ local function resetBindings(desiredDevName)
   -- vehicle specific bindings
   for devname,info in pairs(M.devices) do
     if resetAllDevices or devname == desiredDevName then
-      local vehicle = be:getPlayerVehicle(M.assignedPlayers[devname])
+      local vehicle = getPlayerVehicle(M.assignedPlayers[devname])
       if vehicle then
         local vehicleName = vehicle:getJBeamFilename()
         resetDeviceBindings(devname, info[1], info[2], info[3], vehicleName)
@@ -892,10 +888,10 @@ end
 
 local function setMenuActionMapEnabled(enabled)
   if M.isMenuActive == enabled then return end
-  if not scenetree.MenuActionMap then return end
-  scenetree.MenuActionMap:setEnabled(enabled)
-  if not scenetree._UINavActionMap then return end
-  scenetree._UINavActionMap:setEnabled(enabled)
+  if scenetree.MenuActionMap then scenetree.MenuActionMap:setEnabled(enabled)
+  else log("E", "", "Unable to setMenuActionMapEnabled:setEnabled("..dumps(enabled)..")") end
+  if scenetree._UINavActionMap then scenetree._UINavActionMap:setEnabled(enabled)
+  else log("E", "", "Unable to _UINavActionMap:setEnabled("..dumps(enabled)..")") end
   M.isMenuActive = enabled
   guihooks.trigger('UINavMapEnabled', enabled)
 end
@@ -969,6 +965,11 @@ local function setFFBSafetyData(data)
   FFBSafetyDataNotifyUI()
 end
 
+local function getUsedBindingsFiles()
+  usedBindingFiles = {}
+  reloadBindings()
+  return usedBindingFiles
+end
 
 M.onFirstUpdate = onFirstUpdate
 M.resetBindings = resetBindings
@@ -986,5 +987,6 @@ M.updateGFX = updateGFX
 M.getControlForAction = getControlForAction
 M.setFFBSafetyData = setFFBSafetyData
 M.FFBSafetyDataRequest = FFBSafetyDataRequest
+M.getUsedBindingsFiles = getUsedBindingsFiles
 
 return M

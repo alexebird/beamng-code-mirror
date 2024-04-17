@@ -27,11 +27,20 @@ function C:init(missionEditor)
   self.showInCareerCheckbox = im.BoolPtr(false)
   self.showInFreeroamCheckbox = im.BoolPtr(false)
 
+
+
   self.copiedStars = {}
   self.attributeOptions = {'money','beamXP','bonusStars'}
+  self.branchOptions = {"(none)"}
+  self.skillOptions = {"(none)"}
   extensions.load('career_branches')
   for _, branch in ipairs(career_branches.getSortedBranches()) do
     table.insert(self.attributeOptions, branch.attributeKey)
+    if branch.isSkill then
+      table.insert(self.skillOptions, branch.id)
+    else
+      table.insert(self.branchOptions, branch.id)
+    end
   end
 end
 
@@ -208,7 +217,7 @@ function C:drawAddReward(key)
       self.mission.careerSetup.starRewards[key] = self.mission.careerSetup.starRewards[key] or {}
       table.insert(self.mission.careerSetup.starRewards[key], {
         attributeKey = addKey,
-        rewardAmount = 0
+        rewardAmount = 0,
       })
       inputBuffers["addReward--"..key] = nil
     end
@@ -337,6 +346,32 @@ function C:drawCareerSetup()
     self.mission.careerSetup.showInFreeroam = self.showInFreeroamCheckbox[0]
     self.mission._dirty = true
   end
+
+
+  im.PushItemWidth(200)
+  if im.BeginCombo("Branch", self.mission.careerSetup.branch or "(none)") then
+    for _, branch in ipairs(self.branchOptions) do
+      if im.Selectable1(branch, branch == self.mission.careerSetup.branch) then
+        self.mission.careerSetup.branch = branch
+        self.mission._dirty = true
+      end
+    end
+    im.EndCombo()
+  end
+  if im.BeginCombo("Skill", self.mission.careerSetup.skill or "(none)") then
+    for _, skill in ipairs(self.skillOptions) do
+      if im.Selectable1(skill, skill == self.mission.careerSetup.skill) then
+        self.mission.careerSetup.skill = skill
+        self.mission._dirty = true
+      end
+    end
+    im.EndCombo()
+  end
+  im.PopItemWidth()
+
+
+
+
   im.Separator()
   im.HeaderText("Stars")
 

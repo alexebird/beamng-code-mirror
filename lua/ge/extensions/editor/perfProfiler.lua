@@ -416,6 +416,7 @@ local function drawMetadataWindow()
       jsonWriteFile(metadataFile.filepath, file )
     end
     im.Separator()
+    im.Text(dumpsz(metadataFile.meta or {}, 1))
     im.Text(dumpsz(metadataFile, 1))
   end
   editor.endWindow()

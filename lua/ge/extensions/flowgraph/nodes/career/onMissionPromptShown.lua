@@ -33,7 +33,7 @@ function C:work(args)
   table.clear(self.flags)
 end
 
-function C:onOpenViewDetailPrompt(data)
+function C:onActivityAcceptUpdate(data)
   self.flags.shownPrompt = true
 end
 

@@ -277,7 +277,6 @@ M.sendCurrentLevelMissionsToBigmap = function()
     table.sort(elementsAsPois,gameplay_missions_unlocks.depthIdSort)
     for i, poi in ipairs(elementsAsPois) do gr.elements[i] = elementsAsPois[i].id end
   end
-  dumpz(groupData["delivery_facility"], 2)
   -- build premade filters
 
   local filterQuickTravel = {
@@ -418,7 +417,7 @@ M.sendCurrentLevelMissionsToBigmap = function()
     for _, grName in ipairs(branchOrdered) do table.insert(data.filterData, filterBranchIndividuals[grName]) end
     --table.insert(data.filterData, allGroupsFilter)
 
-    if career_modules_delivery_deliveryManager.isDeliveryModeActive() then
+    if career_modules_delivery_general.isDeliveryModeActive() then
       data.selectedFilterKey = "delivery"
       table.insert(data.filterData, filterDelivery)
     end

@@ -6,21 +6,18 @@
       'with-icon': icon,
       'is-installed': !!data.installed,
     }"
-    role=“button”
-    v-bng-disabled="data.disabled"
-  >
-    <BngIcon class="icon" v-if="icon" :type="data.icon || iconDefs.general.unknown" />
-    <div :class="{
-      'pictograms': true,
-      'with-cat': !!data.category,
-    }">
-      <BngCondition
-        :integrity="'integrity' in data ? data.integrity : 1.0"
-        :color="data.color || '#000'"
-      />
-      <BngIcon v-if="data.category" glyph="&#xBEA9F;" />
+    role="“button”"
+    v-bng-disabled="data.disabled">
+    <BngIcon class="icon" v-if="icon" :type="data.icon || icons.noNameControllerButton" />
+    <div
+      :class="{
+        pictograms: true,
+        'with-cat': !!data.category,
+      }">
+      <BngCondition :integrity="'integrity' in data ? data.integrity : 1.0" :color="data.color || '#000'" />
+      <BngIcon v-if="data.category" class="category" :type="icons.listIndented" />
     </div>
-    <div :class="['info', !!data.description ? 'with-desc' : 'without-desc' ]">
+    <div :class="['info', !!data.description ? 'with-desc' : 'without-desc']">
       <div class="tags" v-if="data.tags">
         <span v-for="tag in data.tags">{{ tag }}</span>
       </div>
@@ -39,8 +36,7 @@ export default {
 
 <script setup>
 import { vBngDisabled, vBngTooltip } from "@/common/directives"
-import { BngCondition, BngIcon } from "@/common/components/base"
-import { icons as iconDefs } from "@/common/components/base/bngIcon.vue"
+import { BngCondition, BngIcon, icons } from "@/common/components/base"
 
 defineProps({
   data: {
@@ -64,9 +60,7 @@ defineProps({
     type: String,
     default: "tile",
   },
-  containerWidth: {
-    type: Number,
-  },
+  containerWidth: Number,
 })
 </script>
 
@@ -112,7 +106,7 @@ defineProps({
     margin-left: 0.5em;
   }
   > .icon {
-    margin-left: 0.375em;
+    margin-left: 0.2em;
   }
   > *:last-child {
     margin-right: 0.5em;
@@ -141,9 +135,10 @@ defineProps({
 }
 
 .icon {
-  flex: 0 0 3em;
-  width: 3em;
-  height: 3em;
+  flex: 0 0 1em;
+  width: 1em;
+  height: 1em;
+  font-size: 3em;
 }
 .part-tile-row .icon {
   flex: 0 0 auto;
@@ -158,6 +153,11 @@ defineProps({
   padding: 0.2em;
   border-radius: 0.2em;
   background-color: rgba(#000, 0.8);
+  // &.with-cat {
+  // }
+  .category {
+    font-size: 1.25em;
+  }
 }
 .part-tile-row .pictograms {
   flex: 0 0 auto;
@@ -190,6 +190,7 @@ defineProps({
     font-weight: 400;
   }
   .tags {
+    display: none;
     position: absolute;
     top: -1.5em;
     left: 0;
@@ -199,13 +200,13 @@ defineProps({
       padding: 0 0.2em;
       margin-right: 0.2em;
       background-color: rgba(#000, 0.8);
-      border: 1px solid #2F4858;
+      border: 1px solid #2f4858;
       border-radius: 0.2em;
       font-size: 0.8em;
       font-weight: 500;
       &:hover {
         border: 1px solid rgba(#000, 0.8);
-        background-color: #2F4858;
+        background-color: #2f4858;
       }
     }
   }

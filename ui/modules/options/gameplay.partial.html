@@ -30,11 +30,6 @@
   <md-checkbox ng-model="options.data.values.enableGasStationsInFreeroam" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
 </md-list-item>
 
-<md-list-item ng-hide="options.shipping" md-no-ink>
-  <p><md-icon class="material-icons">bug_report</md-icon>Enable crash camera</p>
-  <md-checkbox ng-model="options.data.values.enableCrashCam" ng-change="options.applyState()" bng-sound-class="bng_checkbox_generic"></md-checkbox>
-</md-list-item>
-
 <md-divider></md-divider>
 <md-list-item layout="column" layout-align="start start"><p><h3>{{:: 'ui.options.aids' | translate}}</h3></p></md-list-item>
 <md-list-item layout class="bng-short-select-item">

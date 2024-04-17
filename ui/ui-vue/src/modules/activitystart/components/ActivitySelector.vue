@@ -5,17 +5,16 @@
         v-for="activity in activities"
         :key="activity"
         class="activity-icon"
-        :class="{ highlighted: activity.value === value }"
-        @click="onValueChanged(activity.value)"
-      >
-      <BngSpriteIcon
-        :src="'map_'+ activity.icon" style="width:100%; height:100%" /></div>
+        :class="{ highlighted: activity.value === selectedValue }"
+        @click="onValueChanged(activity.value)">
+        <BngSpriteIcon :src="'map_' + activity.icon" style="width: 100%; height: 100%" />
+      </div>
     </div>
     <BngSelect ref="selectComponent" class="selector-control" mute loop value :options="activityOptions" :config="selectConfig" @valueChanged="onValueChanged">
       <template #display>
         <div class="selector-display">
           <span>{{ selectedOption.label }}</span>
-          <BngDivider class="vertical-divider" />
+          <BngDivider />
           <span>{{ activities.length }}</span>
         </div>
       </template>
@@ -31,7 +30,7 @@ const selectConfig = {
 </script>
 
 <script setup>
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 import { BngSelect, BngDivider, BngSpriteIcon } from "@/common/components/base"
 import { getAssetURL } from "@/utils"
 
@@ -47,14 +46,24 @@ const props = defineProps({
 
 const selectComponent = ref()
 
-const emits = defineEmits(["valueChanged"])
+const emit = defineEmits(["valueChanged"])
 
 const activityOptions = computed(() => props.activities.map((x, index) => ({ label: index + 1, value: x.value })))
-const selectedOption = computed(() => (activityOptions.value ? activityOptions.value.find(x => x.value === props.value) : {}))
+const selectedOption = computed(
+  () => (activityOptions.value ? activityOptions.value.find(x => x.value === selectedValue.value) : null) || { label: "?", value: selectedValue.value }
+)
+const selectedValue = ref(1)
+
+watch(
+  () => props.value,
+  val => (selectedValue.value = val || props.activities[0].value),
+  { immediate: true }
+)
 
 const onValueChanged = value => {
+  selectedValue.value = value
   console.log("onValueChanged", value)
-  emits("valueChanged", value)
+  emit("valueChanged", value)
 }
 
 defineExpose({
@@ -66,7 +75,7 @@ const defaultMissionIcon = computed(() => `url("${getAssetURL("icons/temp_debug/
 </script>
 
 <style scoped lang="scss">
-@import "@/styles/modules/mixins";
+@import "@/styles/modules/density";
 
 .activity-selector {
   display: flex;

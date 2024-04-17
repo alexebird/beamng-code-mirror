@@ -23,9 +23,9 @@ local plHistory = {} -- claims, tickets ...
 local plPoliciesData = {} -- the player's saved insurance policies data
 local insuredInvVehs = {} -- inventoryVehId with insurance id {invVehId : policyId}
 
--- sounds id to play
-local paySoundId
-local repairSoundId
+-- to calculate distance driven
+local vec3Zero = vec3(0,0,0)
+local lastPos = vec3(0,0,0)
 
 -- helpers
 -- this table represents the most commonly accessed insurance data of the current vehicle the player is driving
@@ -40,19 +40,19 @@ local repairOptions = {
       repairName = translateLanguage("insurance.repairOptions.repairNoInsurance.name", "insurance.repairOptions.repairNoInsurance.name", true),
       priceOptions = {
         { -- one choice
-          {type = "", price = {money = { amount = repairDetails.price, canBeNegative = false}}}
+          {text = "", price = {money = { amount = repairDetails.price, canBeNegative = false}}}
         }
       }
     }
   end,
   normalRepair = function(invVehInfo)
     return {
-      repairTime = plPoliciesData[insuredInvVehs[tostring(invVehInfo.id)]].perks.repairTime,
+      repairTime = M.getPlPerkValue(insuredInvVehs[tostring(invVehInfo.id)], "repairTime"),
       isPolicyRepair = true,
       repairName = translateLanguage("insurance.repairOptions.normalRepair.name", "insurance.repairOptions.normalRepair.name", true),
       priceOptions = {
         { -- one choice
-          {type = "deductible", price = {money = { amount = M.getActualRepairPrice(insuredInvVehs[tostring(invVehInfo.id)]), canBeNegative = true}}}
+          {text = "", price = {money = { amount = M.getActualRepairPrice(insuredInvVehs[tostring(invVehInfo.id)]), canBeNegative = true}}}
         }
       }
     }
@@ -64,12 +64,11 @@ local repairOptions = {
       repairName = translateLanguage("insurance.repairOptions.quickRepair.name", "insurance.repairOptions.quickRepair.name", true),
       priceOptions = {
         {
-          {type = "deductible", price = {money = { amount = M.getActualRepairPrice(insuredInvVehs[tostring(invVehInfo.id)]), canBeNegative = true}}},
-          {type = "extra", price = {money = { amount = 1000, canBeNegative = true}}}
+          {text = "", price = {money = { amount = M.getActualRepairPrice(insuredInvVehs[tostring(invVehInfo.id)]), canBeNegative = true}}},
+          {text = "as extra fee", price = {money = { amount = 1000, canBeNegative = true}}}
         },
         {
-          {type = "deductible", price = {money = { amount = M.getActualRepairPrice(insuredInvVehs[tostring(invVehInfo.id)]), canBeNegative = false}}},
-          {type = "extra", price = {bonusStars = { amount = 1, canBeNegative = false}}}
+          {text = "", price = {bonusStars = { amount = 1, canBeNegative = false}}}
         }
       }
     }
@@ -101,7 +100,7 @@ local gestures = {
         value = plPolicyData.bonus,
       })
 
-      M.showUIMessage(string.format("Insurance policy '%s' score decreased to %0.2f due to not having submitted any claim for a while", availablePolicies[plPolicyData.id].name, plPolicyData.bonus))
+      ui_message(string.format("Insurance policy '%s' score decreased to %0.2f due to not having submitted any claim for a while", availablePolicies[plPolicyData.id].name, plPolicyData.bonus))
     end
   end,
   freeRepair = function(data)
@@ -118,30 +117,14 @@ local gestures = {
         time = os.time(),
       })
 
-      M.showUIMessage(string.format("Insurance policy '%s' has given you a repair forgiveness due to not having submitted any claim for a while", availablePolicies[plPolicyData.id].name))
+      ui_message(string.format("Insurance policy '%s' has given you a repair forgiveness due to not having submitted any claim for a while", availablePolicies[plPolicyData.id].name))
     end
   end
 }
 
-local function setupSounds()
-  paySoundId = paySoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Buy_01')
-  repairSoundId = repairSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Missions>Vehicle_Recover')
-end
-
-local function activateSound(soundId)
-  local sound = scenetree.findObjectById(soundId)
-  if sound then
-    sound:play(-1)
-  end
-end
-
-local function showUIMessage(message)
-  local helper = {
-    ttl = 5,
-    msg = message,
-    category = "flowgraph"
-  }
-  guihooks.trigger('Message',helper)
+-- helper
+local function getPlPerkValue(policyId, perkName)
+  return availablePolicies[policyId].perks[perkName].changeability.changeParams.choices[plPoliciesData[policyId].perks[perkName]]
 end
 
 local function savePoliciesData(currentSavePath)
@@ -152,7 +135,31 @@ local function savePoliciesData(currentSavePath)
     plHistory = plHistory,
   }
 
-  jsonWriteFile(currentSavePath .. "/career/"..plInsuranceDataFileName..".json", dataToSave, true)
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/"..plInsuranceDataFileName..".json", dataToSave, true)
+end
+
+-- change the current applicable insurance to the one of the switched vehicle's
+-- only works with owned vehicle
+local function initDistDrivenSinceLastPay()
+  local newid = be:getPlayerVehicleID(0)
+  if newid == -1 then return end
+
+  if gameplay_walk.isWalking() then
+    currApplicablePolicyId = -1
+  else
+    local invVehId = career_modules_inventory.getInventoryIdFromVehicleId(newid)
+    if invVehId and #plPoliciesData > 0 then
+      currApplicablePolicyId = insuredInvVehs[tostring(invVehId)]
+      local plPolicyData = plPoliciesData[currApplicablePolicyId]
+      metersDrivenSinceLastPay = plPolicyData.totalMetersDriven % getPlPerkValue(plPolicyData.id, "renewal")
+      local newVeh = scenetree.findObjectById(newid)
+      if newVeh then
+        lastPos:set(newVeh:getPosition())
+      end
+    else
+      currApplicablePolicyId = -1
+    end
+  end
 end
 
 -- TODO : make the saves way more backward compatible (perks values, missing and new history...)
@@ -173,68 +180,81 @@ local function loadPoliciesData(resetSomeData)
     local t = translateLanguage(policyInfo.name, policyInfo.name, true)
     policyInfo.name = translateLanguage(policyInfo.name, policyInfo.name, true)
     policyInfo.description = translateLanguage(policyInfo.description, policyInfo.description, true)
+    policyInfo.perkPriceScale = {} -- perks prices have to scale along with the renewal distance.
+    for index, price in pairs(policyInfo.perks.renewal.changeability.changeParams.premiumInfluence) do
+      table.insert(policyInfo.perkPriceScale, price / policyInfo.perks.renewal.changeability.changeParams.premiumInfluence[1])
+    end
     for perkName, perkInfo in pairs(policyInfo.perks) do
       perkInfo.name = perkName
       perkInfo.unit = availablePerks[perkName].unit
       perkInfo.niceName = translateLanguage(availablePerks[perkName].niceName, availablePerks[perkName].niceName, true)
       perkInfo.desc = translateLanguage(availablePerks[perkName].desc, availablePerks[perkName].desc, true)
-      perkInfo.changeability.changeParams.influenceType = availablePerks[perkName].influenceType
     end
   end
 
-  local plInsuranceData =  (savePath and jsonReadFile(savePath .. "/career/"..plInsuranceDataFileName..".json"))
+  local savedPlPolicyData = (savePath and jsonReadFile(savePath .. "/career/"..plInsuranceDataFileName..".json")) or {}
 
-  -- set default insurance data for the first career load
-  if not plInsuranceData or resetSomeData then
-    local defaultPoliciesData = {}
-    local defaultHistoryData = {
+  local isFirstLoadEver = not savedPlPolicyData.plPoliciesData or #savedPlPolicyData.plPoliciesData == 0
+  if isFirstLoadEver then -- first load ever
+    insuredInvVehs = {}
+    plHistory = {
       generalHistory = { -- history that cannot be attached to any policy
         ticketEvents = {},
         testDriveClaims = {},
       },
       policyHistory = {} -- history that is attachable to a policy, like repair claims..
     }
+    plPoliciesData = {}
+  else
+    insuredInvVehs = savedPlPolicyData.insuredInvVehs
+    plHistory = savedPlPolicyData.plHistory
+    plPoliciesData = savedPlPolicyData.plPoliciesData
+  end
 
-    for _, policyInfo in pairs(availablePolicies) do
+  --backward compatibility along with first load default data
+  for _, policyInfo in pairs(availablePolicies) do
 
-      --perks are insurance-proposed features that the player can disable/change, affecting the premium
-      local defaultPerks = {}
-      for perkName, perkInfo in pairs(policyInfo.perks) do
-        defaultPerks[perkName] = perkInfo.baseValue --define perks base value
+    local updatedPerksData = {}
+    for perkName, perkInfo in pairs(policyInfo.perks) do -- if new perks has been introduced, or modified
+      if #plPoliciesData == 0 or not plPoliciesData[policyInfo.id] or not plPoliciesData[policyInfo.id].perks[perkName] then
+        updatedPerksData[perkName] = perkInfo.baseValue  --define perks base value
+      else
+        updatedPerksData[perkName] = math.min(#policyInfo.perks[perkName].changeability.changeParams.choices, plPoliciesData[policyInfo.id].perks[perkName]) -- if we remove options from a perk, need to make sure the old choice index deosn't exceed the new limit
       end
+    end
 
-      defaultPoliciesData[policyInfo.id] = {
+    if not plPoliciesData[policyInfo.id] or resetSomeData then -- if new policy has been introduced, create new default data
+      plPoliciesData[policyInfo.id] = {
         id = policyInfo.id,
         nextPolicyEditTimer = 0,
         totalMetersDriven = 0,
         bonus = 1,
-        perks = defaultPerks,
         hasFreeRepair = false,
         owned = false
       }
 
-      defaultHistoryData.policyHistory[policyInfo.id] = {
+      plHistory.policyHistory[policyInfo.id] = {
         id = policyInfo.id,
         policyScoreDecreases = {}, -- every time the policy has decrease the bonus because the player has driven well for a while
         freeRepairs = {}, -- isn't actually free, repairs that don't increase the premium
         claims = {},
-        initialBoughtTime = -1,
+        initialPurchase = {
+          purchaseTime = -1,
+          forFree = false
+        },
         changedCoverage = {},
         renewedPolicy = {}
       }
     end
 
-    plPoliciesData = defaultPoliciesData
-    plHistory = defaultHistoryData
-    if not resetSomeData and not plInsuranceData then
-      insuredInvVehs = {}
-    end
-    M.purchasePolicy(1) -- give the player the basic insurance
-  else
-    plPoliciesData = plInsuranceData.plPoliciesData
-    plHistory = plInsuranceData.plHistory
-    insuredInvVehs = plInsuranceData.insuredInvVehs
+    plPoliciesData[policyInfo.id].perks = updatedPerksData
   end
+
+  if isFirstLoadEver then
+    M.purchasePolicy(1, true) -- give the player the basic insurance
+  end
+
+  initDistDrivenSinceLastPay()
 end
 
 -- for now every part needs to be replaced
@@ -271,7 +291,7 @@ local function getRepairDetailsWithoutPolicy(invVehInfo)
     if part then
       price = part.value
     end
-    details.price = details.price + price * 0.7-- lower the price a bit..
+    details.price = details.price + price * 0.6-- lower the price a bit..
     details.repairTime = details.repairTime + repairTimePerPart
   end
 
@@ -283,11 +303,12 @@ local function getNumberOfBrokenParts(partConditions)
   return #damagedParts.partsToBeRepaired + #damagedParts.partsToBeReplaced
 end
 
-local function purchasePolicy(policyId)
+local function purchasePolicy(policyId, forFree)
+  if forFree == nil then forFree = false end
   local policyInfo = availablePolicies[policyId]
   local label = string.format("Bought insurance tier '%s'", policyInfo.name)
-  if career_modules_payment.pay({money = {amount = policyInfo.initialBuyPrice, canBeNegative = false}}, {label=label}) then
 
+  if career_modules_payment.pay({money = {amount = forFree == true and 0 or policyInfo.initialBuyPrice, canBeNegative = false}}, {label=label}) then
     -- if the bought policy is an upgrade, then move inventory vehicles from old policy to the upgraded policy
     if policyInfo.upgradedToFrom then
       for invVehId, invVehPolicyId in pairs(insuredInvVehs) do
@@ -298,7 +319,10 @@ local function purchasePolicy(policyId)
     end
 
     plPoliciesData[policyId].owned = true
-    plHistory.policyHistory[policyId].initialBoughtTime = os.time()
+    plHistory.policyHistory[policyId].initialPurchase = {
+      purchaseTime = os.time(),
+      forFree = forFree
+    }
     M.sendUIData()
   end
 end
@@ -355,8 +379,8 @@ end
 
 -- when you damage a test drive vehicle, insurance needs to know
 local function makeTestDriveDamageClaim(vehId)
-  local label = "Test drive vehicle damaged: -" .. tostring(testDriveClaimPrice.money.amount)
-  showUIMessage(label)
+  local label = string.format("Test drive vehicle damaged: -%i$", testDriveClaimPrice.money.amount)
+  ui_message(label)
 
   career_modules_payment.pay(testDriveClaimPrice, {label = label})
   local claim = {
@@ -383,12 +407,15 @@ local function makeRepairClaim(invVehId, price)
     deductible = price,
     policyScore = plPoliciesData[policyId].bonus,
     freeRepair = hasUsedFreeRepair,
-    vehInfo = career_modules_inventory.getVehicles()[invVehId],
+    vehInfo = {
+      niceName = career_modules_inventory.getVehicles()[invVehId].niceName,
+    },
     happenedAt = plPoliciesData[policyId].totalMetersDriven,  --to know when the claim happened, so can later on know how long the player hasn't made a claim for, and give him a bonus
     time = os.time(),
   }
 
   table.insert(plHistory.policyHistory[policyId].claims, claim)
+  extensions.hook("onInsuranceRepairClaim")
 end
 
 local function onAfterVehicleRepaired(vehInfo)
@@ -396,7 +423,9 @@ local function onAfterVehicleRepaired(vehInfo)
   local vehId = career_modules_inventory.getVehicleIdFromInventoryId(vehInfo.id)
   if gameplay_walk.isWalking() and vehId then
     local veh = be:getObjectByID(vehId)
-    gameplay_walk.setRot(veh:getPosition() - be:getPlayerVehicle(0):getPosition())
+    gameplay_walk.setRot(veh:getPosition() - getPlayerVehicle(0):getPosition())
+
+    career_modules_fuel.minimumRefuelingCheck(vehId)
   end
 end
 
@@ -429,7 +458,7 @@ local function startRepairInstant(vehInfo, callback, skipSound)
   onAfterVehicleRepaired(vehInfo)
 
   if not skipSound then
-    activateSound(repairSoundId)
+    Engine.Audio.playOnce('AudioGui', 'event:>UI>Missions>Vehicle_Recover')
   end
 end
 
@@ -465,7 +494,7 @@ end
 
 local function startRepair(inventoryId, repairOptionData, callback)
   inventoryId = inventoryId or career_modules_inventory.getCurrentVehicle()
-  repairOptionData = repairOptionData or {}
+  repairOptionData = (repairOptionData and type(repairOptionData) == "table") and repairOptionData or {}
   repairOptionData.name = repairOptionData.name or "instantFreeRepair"
 
   local vehInfo = career_modules_inventory.getVehicles()[inventoryId]
@@ -476,7 +505,7 @@ local function startRepair(inventoryId, repairOptionData, callback)
 
   if price then
     career_modules_payment.pay(price, {label="Repaired a vehicle: " .. (vehInfo.niceName or "(Unnamed Vehicle)")})
-    activateSound(paySoundId)
+    Engine.Audio.playOnce('AudioGui', 'event:>UI>Career>Buy_01')
   end
 
   if repairOption.isPolicyRepair then -- the player can repair on his own without insurance
@@ -484,7 +513,7 @@ local function startRepair(inventoryId, repairOptionData, callback)
   end
 
   -- the actual repair
-  local paintRepair = repairOption.paintRepair or plPoliciesData[insuredInvVehs[tostring(inventoryId)]].perks.paintRepair == true
+  local paintRepair = repairOption.paintRepair or getPlPerkValue(insuredInvVehs[tostring(inventoryId)], "paintRepair") == true
   local data = {
     partConditions = vehInfo.partConditions,
     paintRepair = paintRepair
@@ -511,25 +540,18 @@ local function startRepairInGarage(vehInvInfo, repairOptionData)
     end)
 end
 
-local function genericVehNeedsRepair(vehId, callback, negCallback)
+local function genericVehNeedsRepair(vehId, callback)
   local veh = be:getObjectByID(vehId)
   if not veh then return end
   local label = logBookLabel or "Repaired vehicle"
   core_vehicleBridge.requestValue(veh,
     function(res)
-      if partConditionsNeedRepair(res.result) then
-        callback()
-      else
-        if negCallback then
-          negCallback()
-        end
-      end
+      local needsRepair = partConditionsNeedRepair(res.result)
+      callback(needsRepair)
     end,
     'getPartConditions')
 end
 
-local vec3Zero = vec3(0,0,0)
-local lastPos = vec3(0,0,0)
 -- used to renew insurance policies
 local function updateDistanceDriven(dtReal)
   local plId = be:getPlayerVehicleID(0)
@@ -548,49 +570,22 @@ local function updateDistanceDriven(dtReal)
   lastPos:set(vehicleData.pos)
 end
 
-local function getPerkPrice(perkData, perkValue, premium)
-  local value
-  if perkData.changeability.changeable then
-    local index = tableFindKey(perkData.changeability.changeParams.choices, perkValue)
-    value = perkData.changeability.changeParams.premiumInfluence[index]
-  else
-    value = perkData.changeability.premiumInfluence
-  end
-
-  if perkData.changeability.changeParams.influenceType == "mul" then
-    return premium * value - premium
-  else
-    return value
-  end
-end
-
-local typeOrder = {
-  add = 1,
-  mul = 0,
-}
-local function sortByType(a, b)
-  return typeOrder[a.changeability.changeParams.influenceType] < typeOrder[b.changeability.changeParams.influenceType]
-end
-
 local function calculatePremiumDetails(policyId, overiddenPerks)
   local premiumDetails = {
     perksPriceDetails = {},
     price = 0
   }
   local policyInfo = availablePolicies[policyId]
-  local plPolicyInfo = plPoliciesData[policyId]
 
-  -- some perks have an additional effect on the total premium price while others have a multiply effect
-  -- first put the ones with a multiply effect first so we can calculate their total multiply effect
   local perks = {}
   for _, perk in pairs(policyInfo.perks) do
     table.insert(perks, perk)
   end
-  table.sort(perks, sortByType)
 
-  local totalMultiply = 0
+  local perkPriceScale = policyInfo.perkPriceScale[tableFindKey(policyInfo.perks.renewal.changeability.changeParams.choices, (overiddenPerks and overiddenPerks ~= nil) and overiddenPerks.renewal or getPlPerkValue(policyInfo.id, "renewal"))]
+
   for _, perkData in pairs(perks) do
-    local perkValue = plPolicyInfo.perks[perkData.name]
+    local perkValue = getPlPerkValue(policyId, perkData.name)
     if overiddenPerks and overiddenPerks[perkData.name] ~= nil then
       perkValue = overiddenPerks[perkData.name]
     end
@@ -602,22 +597,13 @@ local function calculatePremiumDetails(policyId, overiddenPerks)
     else
       value = perkData.changeability.premiumInfluence
     end
-
-    local perkPrice = 0
-    if perkData.changeability.changeParams.influenceType == "mul" then
-      totalMultiply = totalMultiply + value -- calculate the total multiply effect of every multiply perks
-    else
-      perkPrice = value * totalMultiply -- then go over the additional effect perks and calculate their actual price
-    end
-
-
-    premiumDetails.price = premiumDetails.price + perkPrice
+    value = value * perkPriceScale
+    premiumDetails.price = premiumDetails.price + value
     premiumDetails.perksPriceDetails[perkData.name] = {
       perk = perkData,
-      price = perkPrice
+      price = value
     }
   end
-
   return premiumDetails
 end
 
@@ -632,7 +618,7 @@ local function calculatePolicyPremium(policyId, overiddenPerks)
   local premium = 0
 
   for perkName, perkData in pairs(policyInfo.perks) do
-    local perkValue = plPolicyInfo.perks[perkName]
+    local perkValue = getPlPerkValue(policyId, perkName)
 
     if overiddenPerks and overiddenPerks[perkName] ~= nil then
       perkValue = overiddenPerks[perkName]
@@ -652,7 +638,7 @@ end
 --make player pay for insurance renewal every X meters
 local function checkRenewPolicy()
   local plPolicyData = plPoliciesData[currApplicablePolicyId]
-  local renewalDist = plPolicyData.perks.renewal
+  local renewalDist = getPlPerkValue(currApplicablePolicyId, "renewal")
   if metersDrivenSinceLastPay > renewalDist then
     --pay premium
     local premium = getPremiumWithPolicyScore(currApplicablePolicyId)
@@ -662,16 +648,17 @@ local function checkRenewPolicy()
       price = premium
     })
 
-    career_modules_payment.pay({money = { amount = premium, canBeNegative = true}})
-    showUIMessage(string.format("Insurance renewed! Tier: %s (-%0.2f$)", availablePolicies[currApplicablePolicyId].name, premium))
+    local label = string.format("Insurance renewed! Tier: %s (-%0.2f$)", availablePolicies[currApplicablePolicyId].name, premium)
+    local logBookLabel = string.format("Insurance renewed! Tier: %s", availablePolicies[currApplicablePolicyId].name)
+    career_modules_payment.pay({money = { amount = premium, canBeNegative = true}}, {label=logBookLabel})
+    ui_message(label)
 
     metersDrivenSinceLastPay = 0
   end
 end
 
 local function getActualRepairPrice(policyId)
-  local policyInfo = plPoliciesData[policyId]
-  return policyInfo.bonus * policyInfo.perks.deductible
+  return getPlPerkValue(policyId, "deductible")
 end
 
 local originComputerId
@@ -679,9 +666,11 @@ local vehicleToRepairData
 -- used in the garage computer
 local function getRepairData()
   local data = {}
-  local applicablePolicy = plPoliciesData[insuredInvVehs[tostring(vehicleToRepairData.id)]]
-  applicablePolicy.name = availablePolicies[applicablePolicy.id].name
-
+  local policyId = insuredInvVehs[tostring(vehicleToRepairData.id)]
+  local policyInfo = {
+    hasFreeRepair = plPoliciesData[policyId].hasFreeRepair,
+    name = availablePolicies[policyId].name,
+  }
   local repairOptionsSanitized = {}
   for repairOptionName, repairOptionFunction in pairs(repairOptions) do
     local repairOption = repairOptionFunction(vehicleToRepairData)
@@ -704,12 +693,10 @@ local function getRepairData()
     end
   end
 
-  data.policyInfo = applicablePolicy
+  data.policyInfo = policyInfo
   data.policyScoreInfluence = bonusDecrease
   data.repairOptions = repairOptionsSanitized
-  data.repairPriceWithoutPolicy = getRepairDetailsWithoutPolicy(vehicleToRepairData).price
-  data.actualRepairPrice = getActualRepairPrice(applicablePolicy.id)
-  data.baseDeductible = {money = {amount = applicablePolicy.perks.deductible, canBeNegative = true}}
+  data.baseDeductible = {money = {amount = getPlPerkValue(policyId, "deductible"), canBeNegative = true}}
   data.vehicle = vehicleToRepairData
   data.playerAttributes = career_modules_playerAttributes.getAllAttributes()
   data.numberOfBrokenParts = getNumberOfBrokenParts(career_modules_inventory.getVehicles()[vehicleToRepairData.id].partConditions)
@@ -870,42 +857,12 @@ local function onPursuitAction(vehId, data)
   end
 end
 
--- change the current applicable insurance to the one of the switched vehicle's
--- only works with owned vehicle
-local function onVehicleSwitched(oldid, newid, player)
-  if newid == -1 then return end
-
-  if gameplay_walk.isWalking() then
-    currApplicablePolicyId = -1
-  else
-    local invVehId = career_modules_inventory.getInventoryIdFromVehicleId(newid)
-    if invVehId then
-      currApplicablePolicyId = insuredInvVehs[tostring(invVehId)]
-
-      local plPolicyData = plPoliciesData[currApplicablePolicyId]
-      metersDrivenSinceLastPay = plPolicyData.totalMetersDriven % plPolicyData.perks.renewal
-
-      local newVeh = scenetree.findObjectById(newid)
-      if newVeh then
-        lastPos:set(newVeh:getPosition())
-      end
-    else
-      currApplicablePolicyId = -1
-    end
-  end
-end
-
-local function onExtensionLoaded()
-  if not career_career.isActive() then return false end
-  loadPoliciesData()
-  setupSounds()
+local function onVehicleSwitched()
+  initDistDrivenSinceLastPay()
 end
 
 local function onCareerModulesActivated(alreadyInLevel)
-  if alreadyInLevel then
-    loadPoliciesData()
-    setupSounds()
-  end
+  loadPoliciesData()
 end
 
 local function onSaveCurrentSaveSlot(currentSavePath, oldSaveDate, forceSyncSave)
@@ -938,8 +895,8 @@ local function buildPolicyHistory()
       end
       if claim.freeRepair then
         table.insert(effectText, {
-          label = "Free repair",
-          value = -1
+          label = "Accident forgiveness",
+          value = 0
         })
       else
         table.insert(effectText, {
@@ -960,11 +917,11 @@ local function buildPolicyHistory()
       local effectText = {
         {
           label = "Money",
-          value = -availablePolicies[policyHistoryInfo.id].initialBuyPrice
+          value = policyHistoryInfo.initialPurchase.forFree and -0 or -availablePolicies[policyHistoryInfo.id].initialBuyPrice
         }
       }
       table.insert(list, {
-        time = os.date("%c",policyHistoryInfo.initialBoughtTime),
+        time = os.date("%c",policyHistoryInfo.initialPurchase.purchaseTime),
         event = translateLanguage("insurance.history.event.initialPurchase.name", "insurance.history.event.initialPurchase.name", true),
         policyName = availablePolicies[policyHistoryInfo.id].name,
         effect = effectText
@@ -1024,6 +981,7 @@ local function buildPolicyHistory()
       local effectText = {
         {
           label = "Accident forgiveness",
+          value = 1
         }
       }
       table.insert(list, {
@@ -1047,8 +1005,8 @@ local function sendUIData()
   {
     policiesData = {},
     policyHistory = buildPolicyHistory(),
-    careerMoney = career_modules_playerAttributes.getAttribute("money").value,
-    careerBonusStars = career_modules_playerAttributes.getAttribute("bonusStars").value,
+    careerMoney = career_modules_playerAttributes.getAttributeValue("money"),
+    careerBonusStars = career_modules_playerAttributes.getAttributeValue("bonusStars"),
   }
 
   -- only send the required information, not everything
@@ -1066,9 +1024,10 @@ local function sendUIData()
 
     for plPerkName, plPerkValue in pairs(plPolicyData.perks) do
       perks[plPerkName] = policyInfo.perks[plPerkName]
-      perks[plPerkName].plValue = plPerkValue
+      perks[plPerkName].plValue = getPlPerkValue(policyInfo.id, plPerkName)
     end
 
+    local plRenewal = getPlPerkValue(policyInfo.id, "renewal")
     local policyData =
     {
       id = policyInfo.id,
@@ -1077,7 +1036,7 @@ local function sendUIData()
       paperworkFees = policyInfo.paperworkFees,
       description = policyInfo.description,
       premium = getPremiumWithPolicyScore(policyInfo.id),
-      nextPaymentDist = (plPolicyData.perks["renewal"] - (plPolicyData.totalMetersDriven % plPolicyData.perks["renewal"])) / 1000,
+      nextPaymentDist = (plRenewal - (plPolicyData.totalMetersDriven % plRenewal)) / 1000,
       initialBuyPrice = policyInfo.initialBuyPrice,
       perks = perks,
 
@@ -1109,13 +1068,14 @@ end
 local function openRepairMenu(vehicle, _originComputerId)
   vehicleToRepairData = vehicle
   originComputerId = _originComputerId
-  guihooks.trigger('ChangeState', {state = 'menu.repair', params = {}})
+  guihooks.trigger('ChangeState', {state = 'repair', params = {}})
 end
 
 local function changePolicyPerks(policyId, changedPerks)
   for perkName, perkValue in pairs(changedPerks) do
+    local index = tableFindKey(availablePolicies[policyId].perks[perkName].changeability.changeParams.choices, perkValue)
     if plPoliciesData[policyId].perks[perkName] ~= nil then
-      plPoliciesData[policyId].perks[perkName] = perkValue
+      plPoliciesData[policyId].perks[perkName] = index
     end
   end
 
@@ -1124,7 +1084,8 @@ local function changePolicyPerks(policyId, changedPerks)
     price = availablePolicies[policyId].paperworkFees
   })
 
-  career_modules_payment.pay({money = { amount = availablePolicies[policyId].paperworkFees, canBeNegative = false}})
+  local label = string.format("Policy coverage changed. Tier : %s", availablePolicies[policyId].name)
+  career_modules_payment.pay({money = { amount = availablePolicies[policyId].paperworkFees, canBeNegative = false}}, {label=label})
   plPoliciesData[policyId].nextPolicyEditTimer = policyEditTime
   M.sendUIData()
 end
@@ -1143,7 +1104,8 @@ end
 local function openMenu(_originComputerId)
   originComputerId = _originComputerId
   if originComputerId then
-    guihooks.trigger('ChangeState', {state = 'menu.insurancePolicies', params = {}})
+    guihooks.trigger('ChangeState', {state = 'insurancePolicies', params = {}})
+    extensions.hook("onComputerInsurance")
   end
 end
 
@@ -1180,18 +1142,57 @@ end
 local function payBonusReset(policyId)
   local policyData = availablePolicies[policyId]
   if plPoliciesData[policyId].bonus > policyData.resetBonus.conditions.minBonus and career_modules_payment.canPay(policyData.resetBonus.price) then
-    career_modules_payment.pay(policyData.resetBonus.price)
+    local label = string.format("Policy score decreased. Tier : %s", policyData.name)
+    career_modules_payment.pay(policyData.resetBonus.price, {label=label})
     plPoliciesData[policyId].bonus = 1
     sendUIData()
   end
 end
 
 M.getPolicyDeductible = function(vehInvId)
-  return plPoliciesData[insuredInvVehs[tostring(vehInvId)]].perks.deductible
+  return getPlPerkValue(insuredInvVehs[tostring(vehInvId)], "deductible")
 end
 
 local function getPlayerPolicyData()
   return plPoliciesData
+end
+
+
+M.isRoadSideAssistanceFree = function(invVehId)
+  local applicablePolicy = plPoliciesData[insuredInvVehs[tostring(invVehId)]]
+  if not applicablePolicy then return true end
+  local value = getPlPerkValue(applicablePolicy.id, "roadsideAssistance")
+  if value ~= nil then
+    return value
+  end
+  return false
+end
+
+-- For UI
+M.getVehPolicyInfo = function(vehInvId)
+  return availablePolicies[insuredInvVehs[tostring(vehInvId)]]
+end
+M.getTestDriveClaimPrice = function()
+  return testDriveClaimPrice.money.amount
+end
+M.getPlHistory = function()
+  return plHistory
+end
+-- used when wanting to change an insurance of a vehicle
+-- will return every insurance that you can apply for.
+M.getProposablePoliciesForVehInv = function(vehInvId)
+  local data = {
+    vehValue = career_modules_valueCalculator.getInventoryVehicleValue(vehInvId)
+  }
+  local proposedPolicies = {}
+  local applicablePolicies = getApplicablePolicies(data)
+  local policyId = insuredInvVehs[tostring(vehInvId)] -- find which insurance this vehicle has
+  for i = 1, #applicablePolicies, 1 do
+    if applicablePolicies[i].id ~= policyId then
+      table.insert(proposedPolicies, applicablePolicies[i])
+    end
+  end
+  return proposedPolicies
 end
 
 M.genericVehNeedsRepair = genericVehNeedsRepair
@@ -1214,16 +1215,7 @@ M.getMinApplicablePolicy = getMinApplicablePolicy
 M.getMinApplicablePolicyFromVehicleShoppingData = getMinApplicablePolicyFromVehicleShoppingData
 M.getPlayerPolicyData = getPlayerPolicyData
 M.payBonusReset = payBonusReset
-M.isRoadSideAssistanceFree = function(invVehId)
-  local applicablePolicy = plPoliciesData[insuredInvVehs[tostring(invVehId)]]
-  if not applicablePolicy then return true end
-  if applicablePolicy.perks.roadsideAssistance ~= nil then
-    return applicablePolicy.perks.roadsideAssistance
-  end
-  return false
-end
 
--- For UI
 M.calculatePremiumDetails = calculatePremiumDetails
 M.calculatePolicyPremium = calculatePolicyPremium
 M.startRepairInGarage = startRepairInGarage
@@ -1231,34 +1223,11 @@ M.openMenu = openMenu
 M.sendUIData = sendUIData
 M.closeMenu = closeMenu
 M.changePolicyPerks = changePolicyPerks
-M.getVehPolicyInfo = function(vehInvId)
-  return availablePolicies[insuredInvVehs[tostring(vehInvId)]]
-end
-M.getTestDriveClaimPrice = function()
-  return testDriveClaimPrice.money.amount
-end
--- used when wanting to change an insurance of a vehicle
--- will return every insurance that you can apply for.
-M.getProposablePoliciesForVehInv = function(vehInvId)
-  local data = {
-    vehValue = career_modules_valueCalculator.getInventoryVehicleValue(vehInvId)
-  }
-  local proposedPolicies = {}
-  local applicablePolicies = getApplicablePolicies(data)
-  local policyId = insuredInvVehs[tostring(vehInvId)] -- find which insurance this vehicle has
-  for i = 1, #applicablePolicies, 1 do
-    if applicablePolicies[i].id ~= policyId then
-      table.insert(proposedPolicies, applicablePolicies[i])
-    end
-  end
-  return proposedPolicies
-end
 
 -- hooks
 M.onEnterVehicleFinished = onEnterVehicleFinished
 M.onUpdate = onUpdate
 M.onCareerModulesActivated = onCareerModulesActivated
-M.onExtensionLoaded = onExtensionLoaded
 M.onSaveCurrentSaveSlot = onSaveCurrentSaveSlot
 M.onComputerAddFunctions = onComputerAddFunctions
 M.onVehicleSwitched = onVehicleSwitched
@@ -1272,8 +1241,8 @@ M.onVehicleRemoved = onVehicleRemovedFromInventory
 
 -- internal use only
 M.getActualRepairPrice = getActualRepairPrice
-M.showUIMessage = showUIMessage
 M.getRepairDetailsWithoutPolicy = getRepairDetailsWithoutPolicy
+M.getPlPerkValue = getPlPerkValue
 
 -- career debug
 M.resetPlPolicyData = function()

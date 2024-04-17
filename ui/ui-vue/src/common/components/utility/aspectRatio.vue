@@ -1,6 +1,6 @@
 <!-- AspectRatio - for displaying an image at a fixed aspect ratio, optionally with overlaid content -->
 <template>
-  <div class="aspect-ratio" ref="root" :style="backgroundStyle">
+  <div class="aspect-ratio" :style="backgroundStyle">
     <!-- Slot for content -->
     <div class="slotted">
       <slot></slot>
@@ -9,7 +9,7 @@
 </template>
 
 <script setup>
-import { ref, computed, useSlots, onMounted } from "vue"
+import { computed, useSlots } from "vue"
 import { getAssetURL } from "@/utils"
 
 const placeholderImageURL = getAssetURL("images/noimage.png")
@@ -21,20 +21,24 @@ const props = defineProps({
     type: String,
     default: "16:9",
   },
+  imageSize: {
+    type: String,
+    default: "cover",
+    validator: value => ["cover", "contain"].includes(value),
+  },
   image: {
     type: String,
     default: null,
   },
 })
 
-const root = ref()
+const padding = computed(() => {
+  // Default to 16:9
+  if (!props.ratio) return "56.25%"
 
-// Compute padding based on the provided ratio
-const padding = ref("56.25%") // Default to 16:9
-if (props.ratio) {
   const [width, height] = props.ratio.split(":").map(Number)
-  padding.value = `${(height / width) * 100}%`
-}
+  return `${(height / width) * 100}%`
+})
 
 // Compute background style
 const backgroundStyle = computed(() => {
@@ -56,17 +60,14 @@ const backgroundStyle = computed(() => {
   }
   return {}
 })
-
-onMounted(() => {
-  root.value.style["--padding"] = padding.value
-})
 </script>
 
 <style lang="scss" scoped>
 .aspect-ratio {
   position: relative;
-  background-size: cover;
+  background-size: v-bind(imageSize);
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 .aspect-ratio::after {

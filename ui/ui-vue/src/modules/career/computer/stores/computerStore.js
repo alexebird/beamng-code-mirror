@@ -17,7 +17,7 @@ const mainMenuLayout = [
     items: [
       { label: "Purchase Vehicles", key: "vehicleShop" },
       { label: "My Vehicles", key: "vehicleInventory" },
-      { label: "My Parts", key: "partInventory" },
+      { label: "Parts Inventory", key: "partInventory" },
     ],
   },
   {

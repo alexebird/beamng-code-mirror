@@ -1,6 +1,6 @@
 <!-- BNGRelativeTime Directive Demo -->
 <template>
-		<bng-button accent="secondary" tabindex="1" @click="randomise">Randomise datetime</bng-button><br/>
+		<BngButton accent="secondary" tabindex="1" @click="randomise">Randomise datetime</BngButton><br/>
 		<span v-bng-relative-time="+datetime/1000"></span><br/>({{ datetime.toLocaleString('en-gb') }})
 
 </template>

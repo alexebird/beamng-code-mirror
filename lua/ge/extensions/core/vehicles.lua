@@ -772,7 +772,7 @@ local function finalizeSpawn(options, _vehicle)
     be:enterNextVehicle(player, 0) -- enter any vehicle
   end
 
-  local vehicle = _vehicle or be:getPlayerVehicle(0)
+  local vehicle = _vehicle or getPlayerVehicle(0)
   if vehicle then
     if options.licenseText then
       vehicle:setDynDataFieldbyName("licenseText", 0, options.licenseText)
@@ -817,7 +817,7 @@ local function _spawnMultipleVehicles(data, vehiclesToReuse)
     end
   end
 
-  -- remove reamaining vehicles
+  -- remove remaining vehicles
   for _, vehId in ipairs(vehiclesToReuse) do
     local veh = be:getObjectByID(vehId)
     if veh then
@@ -826,7 +826,7 @@ local function _spawnMultipleVehicles(data, vehiclesToReuse)
   end
 
   -- position and coupling
-  print("TODO: POSITION THE VEHICLES")
+  -- TODO: POSITION THE VEHICLES
   return
 end
 
@@ -889,7 +889,7 @@ local function replaceOtherVehicle(model, opt, otherVeh)
 end
 
 local function removeCurrent()
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if vehicle then
     vehicle:delete()
     if be:getEnterableObjectCount() == 0 then
@@ -905,7 +905,7 @@ local function replaceVehicle(model, opt, otherVeh)
   if otherVeh then
     other = otherVeh
   else
-    other = be:getPlayerVehicle(0)
+    other = getPlayerVehicle(0)
   end
 
   -- spawn multi
@@ -946,7 +946,7 @@ local function removeAllExceptCurrent()
 end
 
 local function cloneCurrent()
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   if not veh then
     log('E', 'vehicles', 'unable to clone vehicle: player 0 vehicle not found')
     return false
@@ -966,7 +966,7 @@ local function cloneCurrent()
 end
 
 local function removeAll()
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if vehicle then
     commands.setFreeCamera() -- reuse current vehicle camera position for free camera, before removing vehicles
   end
@@ -1082,7 +1082,7 @@ local function makeVehicleLicenseText(veh, designPath)
     end
   end
 
-  veh = veh or be:getPlayerVehicle(0)
+  veh = veh or getPlayerVehicle(0)
   if type(veh) == 'number' then
     veh = be:getObjectByID(veh)
   end
@@ -1098,10 +1098,9 @@ local function makeVehicleLicenseText(veh, designPath)
     design = jsonReadFile(designPath)
   end
 
-  if settings.getValue('useSteamName') and veh.autoEnterVehicle and SteamLicensePlateVehicleId == nil and Steam and Steam.isWorking and Steam.accountLoggedIn then
+  if settings.getValue("useSteamName") and core_gamestate.state.state == "freeeroam" and veh.autoEnterVehicle and SteamLicensePlateVehicleId == nil and Steam and Steam.isWorking and Steam.accountLoggedIn then
     SteamLicensePlateVehicleId = veh:getId()
     txt = Steam.playerName
-    --print("steam username: " .. Steam.playerName)
     txt = txt:gsub('"', "'") -- replace " with '
     -- more cleaning up required?
   elseif not design or not design.data or not design.version or (design.version and design.version == 1) then
@@ -1139,7 +1138,7 @@ local function setPlateText(txt, vehId, designPath, formats)
   if vehId then
     veh = be:getObjectByID(vehId)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   if not veh then return end
   if not formats then
@@ -1354,7 +1353,7 @@ local function loadMaybeVehicle(maybeVehicle)
 end
 
 local function spawnDefault()
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   if FS:fileExists(pathDefaultConfig) then
     local data = jsonReadFile(pathDefaultConfig)
     if vehicle then
@@ -1378,7 +1377,7 @@ local function onVehicleDestroyed(vid)
 end
 
 local function reloadVehicle(playerId)
-  local veh = be:getPlayerVehicle(playerId)
+  local veh = getPlayerVehicle(playerId)
   if veh and SteamLicensePlateVehicleId == veh:getId() then
     SteamLicensePlateVehicleId = nil
   end

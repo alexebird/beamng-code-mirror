@@ -69,9 +69,6 @@ end
 
 --reloadBaseClient was taken from core/scripts/client/client.cs
 local function reloadBaseClient()
-  log('I','client', "reloadBaseClient start...");
-  -- dumps(debug.tracesimple())
-
   -- Base client functionality
   local postFxModule = require("client/postFx");
   rawset(_G, "postFxModule", postFxModule)
@@ -187,7 +184,7 @@ M.initClient = function()
   -- default cubemap for levels without LevelInfo.globalEnviromentMap
   setConsoleVariable("$defaultLevelEnviromentMap", "BNG_Sky_02_cubemap")
 
-  if not tableFindKey(cmdArgs, '-convertCSMaterials') then   
+  if not tableFindKey(cmdArgs, '-convertCSMaterials') then
     loadDirRec("core/art/datablocks/")
     loadDirRec("art/")
 

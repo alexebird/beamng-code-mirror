@@ -4,7 +4,7 @@
 
 local M = {}
 
-M.dependencies = {'career_career'}
+M.dependencies = {'career_career', "career_modules_log"}
 
 local defaultVehicle = {model = "covet", config = "DXi_M"}
 
@@ -24,11 +24,27 @@ local favoriteVehicle
 
 local carConfigToLoad
 local carModelToLoad
-local savedTransforms
+local loadedVehiclesLocations
 local unicycleSavedPosition
 
 local vehicleToEnterId
 local vehiclesMovedToStorage
+
+local function getClosestGarage(pos)
+  local facilities = freeroam_facilities.getFacilities(getCurrentLevelIdentifier())
+  local playerPos = pos or getPlayerVehicle(0):getPosition()
+  local closestGarage
+  local minDist = math.huge
+  for _, garage in ipairs(facilities.garages) do
+    local zones = freeroam_facilities.getZonesForFacility(garage)
+    local dist = zones[1].center:distance(playerPos)
+    if dist < minDist then
+      closestGarage = garage
+      minDist = dist
+    end
+  end
+  return closestGarage
+end
 
 local function onExtensionLoaded()
   if not career_career.isActive() then return false end
@@ -56,23 +72,21 @@ local function onExtensionLoaded()
     favoriteVehicle = tonumber(inventoryData.favoriteVehicle)
 
     if inventoryData.spawnedPlayerVehicles then
-      savedTransforms = {}
+      loadedVehiclesLocations = {}
 
       for inventoryId, transform in pairs(inventoryData.spawnedPlayerVehicles) do
         inventoryId = tonumber(inventoryId)
-        if vehicles[inventoryId].safePosition or saveAnyVehiclePosDEBUG then
-          savedTransforms[inventoryId] = transform
-          vehicles[inventoryId].safePosition = nil
-        else
-          vehiclesMovedToStorage = true
+        if not saveAnyVehiclePosDEBUG then
+          transform.option = "garage"
         end
+        loadedVehiclesLocations[inventoryId] = transform
       end
     else
-      savedTransforms = nil -- will force spawning at garage
+      loadedVehiclesLocations = nil -- will force spawning at garage
     end
 
     -- if the last currentVehicle is not spawned, then dont enter it
-    if not savedTransforms[vehicleToEnterId] then
+    if not loadedVehiclesLocations[vehicleToEnterId] then
       vehicleToEnterId = nil
     end
 
@@ -91,9 +105,8 @@ local function saveVehiclesData(currentSavePath, oldSaveDate)
     end
     if (vehicle.dirtyDate > oldSaveDate) then
       vehicle.partConditions = lpack.encode(vehicle.partConditions)
-      jsonWriteFile(currentSavePath .. "/career/vehicles/" .. id .. ".json", vehicle, true)
+      career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/vehicles/" .. id .. ".json", vehicle, true)
     end
-    vehicles[id].safePosition = nil
   end
 
   if currentVehicle then
@@ -135,10 +148,20 @@ local function updatePartConditionsOfSpawnedVehicles(callback)
   end
 end
 
+local extensionName = "inventory"
+local function saveFinished(currentSavePath, oldSaveDate, forceSyncSave)
+  extensions.hook("onVehicleSaveFinished", currentSavePath, oldSaveDate, forceSyncSave)
+  career_saveSystem.asyncSaveExtensionFinished(extensionName)
+  guihooks.trigger("saveFinished")
+end
+
+local function onSaveCurrentSaveSlotAsyncStart()
+  career_saveSystem.registerAsyncSaveExtension(extensionName)
+end
+
 local function saveVehiclesCallback(currentSavePath, oldSaveDate)
   saveVehiclesData(currentSavePath, oldSaveDate)
-  extensions.hook("onVehicleSaveFinished", currentSavePath, oldSaveDate)
-  guihooks.trigger("saveFinished")
+  saveFinished(currentSavePath, oldSaveDate)
 end
 
 local function isVehicleInGarage(veh, garage)
@@ -162,18 +185,13 @@ local function onSaveCurrentSaveSlot(currentSavePath, oldSaveDate, forceSyncSave
   for inventoryId, vehId in pairs(inventoryIdToVehId) do
     local veh = be:getObjectByID(vehId)
     if veh then
-      -- check if the vehicle is inside the garage. that is considered safe to load
-      local closestGarage = M.getClosestGarage(veh:getPosition())
-      if (closestGarage and isVehicleInGarage(veh, closestGarage)) or gameplay_parking.getCurrentParkingSpot(vehId) then
-        vehicles[inventoryId].safePosition = true
-      end
       data.spawnedPlayerVehicles[inventoryId] = {pos = veh:getPosition(), rot = quat(0,0,1,0) * quat(veh:getRefNodeRotation())}
     end
   end
 
   local useSaveVehiclesCallback = true
   if gameplay_walk.isWalking() then
-    local playerVeh = be:getPlayerVehicle(0)
+    local playerVeh = getPlayerVehicle(0)
     data.unicyclePos = playerVeh:getPosition()
   end
 
@@ -187,11 +205,10 @@ local function onSaveCurrentSaveSlot(currentSavePath, oldSaveDate, forceSyncSave
     saveVehiclesData(currentSavePath, oldSaveDate)
   end
 
-  jsonWriteFile(currentSavePath .. "/career/inventory.json", data, true)
+  career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/career/inventory.json", data, true)
 
   if useSaveVehiclesCallback then
-    extensions.hook("onVehicleSaveFinished", currentSavePath, oldSaveDate, forceSyncSave)
-    guihooks.trigger("saveFinished")
+    saveFinished(currentSavePath, oldSaveDate, forceSyncSave)
   end
 end
 
@@ -240,30 +257,41 @@ local function addVehicle(vehId, inventoryId)
     inventoryIdAfterUpdatingPartConditions = inventoryId
     vehicle:queueLuaCommand(string.format("if not partCondition.getConditions() then partCondition.initConditions() end obj:queueGameEngineLua('career_modules_inventory.updatePartConditions(%d, %d)')", vehId, inventoryId))
 
+    if tableSize(vehicles) == 1 then
+      M.setFavoriteVehicle(inventoryId)
+    end
     return inventoryId
   end
 end
 
 local skipPartConditionsBeforeWalking
-local function removeVehicle(inventoryId)
-  vehicles[inventoryId] = nil
+local function removeVehicleObject(inventoryId)
   if currentVehicle == inventoryId then
     skipPartConditionsBeforeWalking = true
     gameplay_walk.setWalkingMode(true)
   end
-
-   -- remove the actual game engine object
+  extensions.hook("onInventoryPreRemoveVehicleObject", inventoryId, M.getVehicleIdFromInventoryId(inventoryId))
+  -- TODO save part conditions
   local vehId = inventoryIdToVehId[inventoryId]
   if vehId then
-    local obj = scenetree.findObjectById(vehId)
+    local obj = be:getObjectByID(vehId)
     if obj then
-      obj:deleteObject()
+      obj:delete()
     end
     vehIdToInventoryId[vehId] = nil
-    inventoryIdToVehId[inventoryId] = nil
   end
+  inventoryIdToVehId[inventoryId] = nil
+end
 
+
+local function removeVehicle(inventoryId)
+  vehicles[inventoryId] = nil
+  removeVehicleObject(inventoryId)
   extensions.hook("onVehicleRemoved", inventoryId)
+
+  if favoriteVehicle == inventoryId then
+    M.setFavoriteVehicle(next(vehicles))
+  end
 end
 
 local function onPartConditionsUpdateFinished()
@@ -397,6 +425,7 @@ end
 local function enterVehicle(newInventoryId, loadOption, callback)
   local vehInfo = vehicles[newInventoryId]
   if vehInfo and vehInfo.timeToAccess then return end
+  career_modules_log.addLog(string.format("Enter vehicle %s", newInventoryId or "no vehicle"), "inventory")
 
   enterCallbackFunction = callback
   if loadOption == 1 then
@@ -413,16 +442,23 @@ end
 local saveCareer
 local function setupInventory()
   if career_modules_linearTutorial.getLinearStep() == -1 then
-    if savedTransforms then
-      for inventoryId, transform in pairs(savedTransforms) do
+    if loadedVehiclesLocations then
+      for inventoryId, location in pairs(loadedVehiclesLocations) do
         if not career_modules_insurance.inventoryVehNeedsRepair(inventoryId) then
           local veh = spawnVehicle(inventoryId)
           if veh then
-            spawn.safeTeleport(veh, transform.pos, transform.rot)
+            if location.option == "garage" then
+              local garage = getClosestGarage(location.pos)
+              freeroam_facilities.teleportToGarage(garage.id, veh)
+            else
+              spawn.safeTeleport(veh, location.pos, location.rot)
+            end
           end
+        else
+          vehiclesMovedToStorage = true
         end
       end
-      savedTransforms = nil
+      loadedVehiclesLocations = nil
     end
 
     if vehicleToEnterId and inventoryIdToVehId[vehicleToEnterId] then
@@ -440,15 +476,29 @@ local function setupInventory()
 
     if career_modules_linearTutorial.getLinearStep() == -1 then
       -- default placement is in front of the dealership, facing it
-      spawn.safeTeleport(be:getPlayerVehicle(0), vec3(838.51,-522.42,165.75))
+      spawn.safeTeleport(getPlayerVehicle(0), vec3(838.51,-522.42,165.75))
       gameplay_walk.setRot(vec3(-1,-1,0), vec3(0,0,1))
+    else
+      -- spawn the tutorial vehicle
+      local model, config = "covet","vehicles/covet/covet_tutorial.pc"
+      local pos, rot = vec3(-24.026,609.157,75.112), quatFromDir(vec3(1,0,0))
+      local options = {config = config, licenseText = "TUTORIAL", vehicleName = "TutorialVehicle", pos = pos, rot = rot}
+      local spawningOptions = sanitizeVehicleSpawnOptions(model, options)
+      spawningOptions.autoEnterVehicle = false
+      local veh = core_vehicles.spawnNewVehicle(model, spawningOptions)
+      core_vehicleBridge.executeAction(veh,'setIgnitionLevel', 0)
+
+      gameplay_walk.setWalkingMode(true)
+      -- move walking character into position
+      spawn.safeTeleport(getPlayerVehicle(0), vec3(-20.746, 598.736, 75.112))
+      gameplay_walk.setRot(vec3(0,1,0), vec3(0,0,1))
     end
   else
     if gameplay_walk.isWalking() then
       if unicycleSavedPosition then
-        spawn.safeTeleport(be:getPlayerVehicle(0), unicycleSavedPosition)
+        spawn.safeTeleport(getPlayerVehicle(0), unicycleSavedPosition)
       else
-        freeroam_facilities.teleportToGarage("servicestationGarage", be:getPlayerVehicle(0))
+        freeroam_facilities.teleportToGarage("servicestationGarage", getPlayerVehicle(0))
       end
     end
   end
@@ -476,7 +526,7 @@ end
 
 local function onBigMapActivated()
   if currentVehicle then
-    setPartConditionResetSnapshot(be:getPlayerVehicle(0))
+    setPartConditionResetSnapshot(getPlayerVehicle(0))
   end
 end
 
@@ -516,22 +566,6 @@ end
 
 local function isSeatedInsideOwnedVehicle()
   return currentVehicle and true or false
-end
-
-local function getClosestGarage(pos)
-  local facilities = freeroam_facilities.getFacilities(getCurrentLevelIdentifier())
-  local playerPos = pos or be:getPlayerVehicle(0):getPosition()
-  local closestGarage
-  local minDist = math.huge
-  for _, garage in ipairs(facilities.garages) do
-    local zones = freeroam_facilities.getZonesForFacility(garage)
-    local dist = zones[1].center:distance(playerPos)
-    if dist < minDist then
-      closestGarage = garage
-      minDist = dist
-    end
-  end
-  return closestGarage
 end
 
 local function getVehiclesInGarage(garage, intersecting)
@@ -605,7 +639,7 @@ local function sendDataToUi()
     if inventoryIdToVehId[inventoryId] then
       local vehObj = be:getObjectByID(inventoryIdToVehId[inventoryId])
       if vehObj then
-        vehicle.distance = vehObj:getPosition():distance(be:getPlayerVehicle(0):getPosition())
+        vehicle.distance = vehObj:getPosition():distance(getPlayerVehicle(0):getPosition())
         vehicle.inGarage = inventoryIdsInGarage[inventoryId]
       end
     else
@@ -644,7 +678,7 @@ local function sendDataToUi()
     data.tutorialActive = true
   end
 
-  data.playerMoney = career_modules_playerAttributes.getAttribute("money").value
+  data.playerMoney = career_modules_playerAttributes.getAttributeValue("money")
   guihooks.trigger("vehicleInventoryData", data)
 end
 
@@ -660,7 +694,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
   end
 
   if vehiclesMovedToStorage then
-    ui_message("One or more of your vehicles were not parked in a parking spot, so they were moved to your storage!", 5, "vehicleStorageMove")
+    guihooks.trigger("toastrMsg", {type="warning", title="Vehicle stored", msg="One or more of your vehicles were damaged at the end of your last session. They have been moved to your storage and have to be repaired."})
     vehiclesMovedToStorage = nil
   end
 
@@ -713,6 +747,7 @@ end
 local callbackAfterFade
 local function onScreenFadeState(state)
   if callbackAfterFade and state == 1 then
+    career_modules_vehicleDeletionService.deleteFlaggedVehicles()
     callbackAfterFade()
     callbackAfterFade = nil
   end
@@ -736,7 +771,7 @@ local function openMenu(_chooseButtonsData, header, _buttonsActive, _closeMenuCa
   end
 
   closeMenuCallback = _closeMenuCallback
-  guihooks.trigger('ChangeState', {state = 'menu.vehicleInventory'})
+  guihooks.trigger('ChangeState', {state = 'vehicleInventory'})
   updatePartConditionsOfSpawnedVehicles()
 end
 
@@ -764,6 +799,20 @@ local function spawnVehicleAfterFade(enterAfterSpawn, inventoryId, callback)
   end
 end
 
+local function buildCamPath(targetPos, endDir)
+  local camMode = core_camera.getGlobalCameras().bigMap
+
+  local path = { looped = false, manualFov = false}
+  local startPos = core_camera.getPosition() + vec3(0,0,30)
+
+  local m1 = { fov = 30, movingEnd = false, movingStart = false, positionSmooth = 0.5, pos = startPos, rot = quatFromDir(targetPos - startPos), time = 0, trackPosition = false  }
+  local m2 = { fov = 30, movingEnd = false, movingStart = false, positionSmooth = 0.5, pos = startPos, rot = quatFromDir(targetPos - startPos), time = 0.5, trackPosition = false  }
+  local m3 = { fov = core_camera.getFovDeg(), movingEnd = false, movingStart = false, positionSmooth = 0.5, pos = core_camera.getPosition(), rot = endDir and quatFromDir(endDir) or core_camera.getQuat(), time = 5.5, trackPosition = false }
+  path.markers = {m1, m2, m3}
+
+  return path
+end
+
 local function spawnVehicleAndTeleportToGarage(enterAfterSpawn, inventoryId, replaceOthers)
   if inventoryId == currentVehicle then return end
   spawnVehicleAfterFade(enterAfterSpawn, inventoryId,
@@ -779,10 +828,27 @@ local function spawnVehicleAndTeleportToGarage(enterAfterSpawn, inventoryId, rep
         setVehicleDirty(inventoryId)
         ui_fadeScreen.stop(0.5)
 
+        local pos, _ = freeroam_facilities.getGaragePosRot(closestGarage, vehObj)
+        local camDir
         if gameplay_walk.isWalking() then
-          local pos, _ = freeroam_facilities.getGaragePosRot(closestGarage, vehObj)
-          gameplay_walk.setRot(pos - be:getPlayerVehicle(0):getPosition())
+          camDir = pos - getPlayerVehicle(0):getPosition()
+          gameplay_walk.setRot(camDir)
         end
+
+        local camDirLength = camDir:length()
+        local rayDist = castRayStatic(getPlayerVehicle(0):getPosition(), camDir, camDirLength)
+
+        if rayDist < camDirLength then
+          -- Play cam path to show where the vehicle spawned
+          local camPath = buildCamPath(pos, camDir)
+          local initData = {}
+          initData.finishedPath = function(this)
+            core_camera.setVehicleCameraByIndexOffset(0, 1)
+          end
+          core_paths.playPath(camPath, 0, initData)
+        end
+
+        career_modules_log.addLog(string.format("Spawned vehicle %d in garage %s. replaceOthers == %s", inventoryId, closestGarage.id, replaceOthers), "inventory")
       end)
   end)
 end
@@ -800,10 +866,6 @@ local function setupAndStartGarageMode(teleportVehicle)
     teleportVehicleForGarage = true
   end
   gameplay_garageMode.start(true, true)
-end
-
-local function openMenuInsideGarage()
-  openMenu({{callback = function(inventoryId) spawnVehicleAndTeleportToGarage(true, inventoryId) end}}, "Enter Vehicle")
 end
 
 local function openMenuFromComputer(_originComputerId)
@@ -829,6 +891,7 @@ local function openMenuFromComputer(_originComputerId)
       career_modules_computer.openMenu(computer)
     end
   )
+  career_modules_log.addLog(string.format("Opened vehicle inventory from computer %s", originComputerId), "inventory")
 end
 
 local function garageModeStartStep()
@@ -867,29 +930,6 @@ local function onEnterVehicleFinished(inventoryId)
   end
 end
 
-local function onVehicleObjectRemoved(inventoryId)
-  if inventoryIdToVehId[inventoryId] then
-    vehIdToInventoryId[inventoryIdToVehId[inventoryId]] = nil
-  end
-  inventoryIdToVehId[inventoryId] = nil
-end
-
-local function removeVehicleObject(inventoryId)
-  if currentVehicle == inventoryId then
-    gameplay_walk.setWalkingMode(true)
-  end
-  extensions.hook("onInventoryPreRemoveVehicleObject", inventoryId, M.getVehicleIdFromInventoryId(inventoryId))
-  -- TODO save part conditions
-  local vehId = inventoryIdToVehId[inventoryId]
-  if vehId then
-    local obj = be:getObjectByID(vehId)
-    if obj then
-      obj:delete()
-    end
-  end
-  onVehicleObjectRemoved(inventoryId)
-end
-
 local function getVehicles()
   return vehicles
 end
@@ -899,9 +939,11 @@ local function sellVehicle(inventoryId)
   if not vehicle then return end
 
   local value = career_modules_valueCalculator.getInventoryVehicleValue(inventoryId)
-  career_modules_playerAttributes.addAttribute("money", value, {label="Sold a vehicle: "..(vehicle.niceName or "(Unnamed Vehicle)")})
+  career_modules_playerAttributes.addAttributes({money=value}, {tags={"vehicleSold","selling"},label="Sold a vehicle: "..(vehicle.niceName or "(Unnamed Vehicle)")})
   removeVehicle(inventoryId)
   Engine.Audio.playOnce('AudioGui','event:>UI>Career>Buy_01')
+
+  career_modules_log.addLog(string.format("Sold vehicle %d for %f", inventoryId, value), "inventory")
   return true
 end
 
@@ -959,7 +1001,6 @@ M.updatePartConditionsOfSpawnedVehicles = updatePartConditionsOfSpawnedVehicles
 M.removeVehicleObject = removeVehicleObject
 M.openMenu = openMenu
 M.closeMenu = closeMenu
-M.openMenuInsideGarage = openMenuInsideGarage
 M.openMenuFromComputer = openMenuFromComputer
 M.chooseVehicleFromMenu = chooseVehicleFromMenu
 M.garageModeStartStep = garageModeStartStep
@@ -982,6 +1023,7 @@ M.onExitVehicleInventory = onExitVehicleInventory
 M.onScreenFadeState = onScreenFadeState
 M.onAvailableMissionsSentToUi = onAvailableMissionsSentToUi
 M.onComputerAddFunctions = onComputerAddFunctions
+M.onSaveCurrentSaveSlotAsyncStart = onSaveCurrentSaveSlotAsyncStart
 
 M.getPartConditionsCallback = getPartConditionsCallback
 M.applyTuningCallback = applyTuningCallback
@@ -1001,6 +1043,5 @@ M.getLastVehicle = getLastVehicle
 M.getVehicleIdFromInventoryId = getVehicleIdFromInventoryId
 M.getInventoryIdFromVehicleId = getInventoryIdFromVehicleId
 M.getMapInventoryIdToVehId = getMapInventoryIdToVehId
-M.onVehicleObjectRemoved = onVehicleObjectRemoved
 
 return M

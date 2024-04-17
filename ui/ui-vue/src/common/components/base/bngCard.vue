@@ -79,6 +79,7 @@ defineExpose({
     & :first-child:last-child {
       flex: 1 1 auto;
       justify-content: center;
+      max-width: unset;
     }
   }
 

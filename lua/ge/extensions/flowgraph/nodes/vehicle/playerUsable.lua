@@ -6,10 +6,10 @@ local im  = ui_imgui
 
 local C = {}
 
-C.name = 'Player usable'
+C.name = 'Player Usable'
 C.color = ui_flowgraph_editor.nodeColors.ai
 C.icon = ui_flowgraph_editor.nodeIcons.ai
-C.description = 'Sets wether or not a vehicle should be able to be controlled by the player.'
+C.description = 'Sets whether or not a vehicle should be able to be controlled by the player.'
 C.todo = "PlayerUsable has some bugs and only works the first time."
 C.category = 'repeat_instant'
 
@@ -33,7 +33,7 @@ function C:work()
   if self.pinIn.vehId.value and self.pinIn.vehId.value ~= 0 then
     source = scenetree.findObjectById(self.pinIn.vehId.value)
   else
-    --source = be:getPlayerVehicle(0)
+    --source = getPlayerVehicle(0)
   end
 
   source.obj.playerUsable = self.pinIn.controllable.value

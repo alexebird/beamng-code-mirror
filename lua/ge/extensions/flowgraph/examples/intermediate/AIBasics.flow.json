@@ -5745,9 +5745,9 @@
           "useQuatForRotation":false
         },
         "418":{
-          "config":"custom",
+          "config":"street_tuned_M",
           "configName":"200BX Street Tuned (M)",
-          "configPath":"vehicles/coupe/custom.pc",
+          "configPath":"vehicles/bx/street_tuned_M.pc",
           "data":{},
           "dynamicMode":"repeat",
           "hiddenPins":{
@@ -5759,7 +5759,7 @@
               "model":false
             }
           },
-          "model":"coupe",
+          "model":"bx",
           "modelName":"200BX",
           "pos":[
             -256,

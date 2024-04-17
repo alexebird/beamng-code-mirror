@@ -1975,7 +1975,7 @@ export default {
             "steering": {
                 "cat": "vehicle",
                 "isCentered": true,
-                "onChange": "input.event('steering', VALUE, FILTERTYPE, ANGLE, LOCKTYPE)",
+                "onChange": "input.event('steering', VALUE, FILTERTYPE, ANGLE, LOCKTYPE, OSCLOCKHP)",
                 "title": "ui.inputActions.vehicle.steering.title",
                 "desc": "ui.inputActions.vehicle.steering.description",
                 "order": 6,

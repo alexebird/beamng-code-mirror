@@ -299,8 +299,14 @@ function C:setMaterials(matData) -- sets terrain material info, to be used befor
             if data.parallaxScale then terrainMat:setParallaxScale(data.parallaxScale) end
 
             -- v1.5 materials
-            if data.macroDistAtten then terrainMat:setField('macroDistAtten', 0, data.macroDistAtten) end
-            if data.detailDistAtten then terrainMat:setField('detailDistAtten', 0, data.detailDistAtten) end
+            if data.macroDistAtten then
+              if type(data.macroDistAtten) == 'table' then data.macroDistAtten = table.concat(data.macroDistAtten, ' ') end
+              terrainMat:setField('macroDistAtten', 0, data.macroDistAtten)
+            end
+            if data.detailDistAtten then
+              if type(data.detailDistAtten) == 'table' then data.detailDistAtten = table.concat(data.detailDistAtten, ' ') end
+              terrainMat:setField('detailDistAtten', 0, data.detailDistAtten)
+            end
 
             if data.groundmodelName then terrainMat:setGroundmodelName(data.groundmodelName) end
             if data.annotation then terrainMat:setField('annotation', 0, data.annotation) end
@@ -308,18 +314,8 @@ function C:setMaterials(matData) -- sets terrain material info, to be used befor
             for _, map in ipairs(materialTextureSetMaps) do
               for _, prop in ipairs(materialTextureProperties) do
                 local field = string.format(prop, map)
-                if type(data[field]) == 'table' then
-                  local str
-                  for i, v in ipairs(data[field]) do
-                    if i == 1 then
-                      str = tostring(v)
-                    else
-                      str = str..' '..tostring(v)
-                    end
-                  end
-                  data[field] = str
-                end
                 if data[field] then
+                  if type(data[field]) == 'table' then data[field] = table.concat(data[field], ' ') end
                   terrainMat:setField(field, 0, data[field])
                 end
               end

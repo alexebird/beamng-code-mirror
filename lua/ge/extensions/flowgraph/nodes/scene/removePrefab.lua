@@ -2,15 +2,12 @@
 -- If a copy of the bCDDL was not distributed with this
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
---require('/lua/Prefab/controller')
-
 local C = {}
 
 C.name = 'Remove Prefab'
 C.color = ui_flowgraph_editor.nodeColors.scene
 C.icon = ui_flowgraph_editor.nodeIcons.svene
 C.description = 'Removes a prefab.'
-C.todo = ""
 C.category = 'repeat_instant'
 
 C.pinSchema = {

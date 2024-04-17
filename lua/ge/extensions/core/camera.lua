@@ -152,7 +152,7 @@ local function getExtendedConfig(vdata)
 end
 
 local function getVdata(player)
-  local veh = be:getPlayerVehicle(player)
+  local veh = getPlayerVehicle(player)
   if not veh then return end
   return getVehicleData()[veh:getId()]
 end
@@ -344,12 +344,12 @@ local function _setVehicleCameraByName(vdata, camName, withTransition)
       return success
     end
   end
-  log("E", "", "Vehicle camera "..dumps(camName).. " not found")
+  log("E", "", "Unable to switch to requested camera: '"..dumps(camName).."'")
   return false
 end
 
 local function setVehicleCameraByName(player, name, withTransition, customData)
-  local veh = be:getPlayerVehicle(player)
+  local veh = getPlayerVehicle(player)
   if not veh then
     log("E", "", "Player #"..dumps(player).." is not seated in a vehicle")
     return false
@@ -428,17 +428,21 @@ local function isUnicycle(vehId)
   return not activeGlobalCameraName and core_vehicle_manager and core_vehicle_manager.getPlayerVehicleData() and core_vehicle_manager.getVehicleData(vehId).mainPartName == "unicycle"
 end
 
-local vehPos = vec3()
+local vehPos, bbCenter, bbHalfAxis0, bbHalfAxis1, bbHalfAxis2 = vec3(), vec3(), vec3(), vec3(), vec3()
 local function isCameraInside(player, camPos)
-  local veh = be:getPlayerVehicle(player)
+  local veh = getPlayerVehicle(player)
   if not veh then return 0 end
   local vehId = veh:getId()
   local vdata = getVehicleData()[vehId]
   if not vdata then return 0 end
   if isUnicycle(vehId) then return 0 end
 
-  local oobb = veh:getSpawnWorldOOBB()
-  if not oobb:isContained(camPos) then return 0 end
+  bbCenter:set(be:getObjectOOBBCenterXYZ(vehId))
+  bbHalfAxis0:set(be:getObjectOOBBHalfAxisXYZ(vehId, 0))
+  bbHalfAxis1:set(be:getObjectOOBBHalfAxisXYZ(vehId, 1))
+  bbHalfAxis2:set(be:getObjectOOBBHalfAxisXYZ(vehId, 2))
+
+  if not containsOBB_point(bbCenter, bbHalfAxis0, bbHalfAxis1, bbHalfAxis2, camPos) then return 0 end
 
   vehPos:set(veh:getPositionXYZ())
   return (isWithinRadius("onboard.driver", camPos, veh, vehPos, vdata, 0.6) or isWithinRadius("onboard.rider", camPos, veh, vehPos, vdata, 0.6)) and 1 or 0
@@ -468,10 +472,9 @@ end
 
 local function getActiveCamName(player)
   if activeGlobalCameraName then return activeGlobalCameraName end
-  local veh = be:getPlayerVehicle(player or 0)
-  if not veh then return end -- no LUA camera is being used atm
+  local vid = be:getPlayerVehicleID(player or 0)
+  if vid == -1 then return end -- no LUA camera is being used atm
   local camName
-  local vid = veh:getId()
   if requestedCam[vid] then
     camName = requestedCam[vid].name
   else
@@ -741,10 +744,12 @@ local function vehicleChanged(oldVehId, newVehId)
   end
 end
 
+local finalCameraData = {pos = vec3(), rot = quat(), fovDeg = 0}
 
 -- Provides high-quality near shadows when using interior camera, by adjusting the logWeight parameter of the shadows
 local lastLogWeight
 local isCameraInsidePrevious = false
+local vehPos = vec3()
 local function setShadowLogWeight(veh)
   lastLogWeight = lastLogWeight or core_environment.getShadowLogWeight() -- initialize LogWeight value from the level
 
@@ -753,11 +758,11 @@ local function setShadowLogWeight(veh)
 
   local vehId = veh:getId()
   if isUnicycle(vehId) then return false end
-  local camPos = M.getPosition()
+  local camPos = finalCameraData.pos
   local vdata = getVehicleData()[vehId]
   if not vdata then return false end
 
-  local vehPos = veh:getPosition()
+  vehPos:set(veh:getPositionXYZ())
   local isCameraInsideNow = isWithinRadius("onboard.driver", camPos, veh, vehPos, vdata, 0.6) or isWithinRadius("onboard.rider", camPos, veh, vehPos, vdata, 0.6)
   local updateShadowLogWeight = (isCameraInsideNow ~= isCameraInsidePrevious)
   if updateShadowLogWeight and not (freeroam_bigMapMode and freeroam_bigMapMode.bigMapActive()) then
@@ -834,7 +839,6 @@ local function validateData(data)
   return valid
 end
 
-local finalCameraData = {pos = vec3(), rot = quat(), fovDeg = 0}
 local function updateCameraData(camData)
   finalCameraData.pos:set(camData.res.pos)
   finalCameraData.rot:set(camData.res.rot)
@@ -845,7 +849,7 @@ local absTranslateTimer = nil
 local function onPreRender(dtReal, dtSim, dtRaw)
   if not levelLoaded then return end
   local player = 0
-  local veh = be:getPlayerVehicle(player)
+  local veh = getPlayerVehicle(player)
   local vid = veh and veh:getId()
 
   -- fixup res if a reference in it has been altered
@@ -1442,6 +1446,9 @@ local function proxy_all(functionName, ...)
 end
 
 local function onSettingsChanged(...)
+  if commands.isFreeCamera() then
+    setSmoothedCam(0, settings.getValue('cameraFreeSmoothMovement'))
+  end
   proxy_all("onSettingsChanged", ...)
 end
 
@@ -1621,6 +1628,7 @@ end
 
 local resVec = vec3()
 local function getForwardXYZ()
+  resVec:set(fwdVec)
   resVec:setRotate(finalCameraData.rot)
   return resVec.x, resVec.y, resVec.z
 end

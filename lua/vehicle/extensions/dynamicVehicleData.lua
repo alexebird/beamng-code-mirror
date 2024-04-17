@@ -31,10 +31,6 @@ local workerCoroutine = nil
 
 local logTag = "dynamicVehicleData"
 
-local function round(value)
-  return floor(value + 0.5)
-end
-
 local function wait(seconds)
   local start = timer
   while timer <= start + seconds do
@@ -103,9 +99,9 @@ end
 local function resetVehicle(position)
   obj:queueGameEngineLua("be:resetVehicle(0)")
   wait(2)
-  obj:queueGameEngineLua("be:getPlayerVehicle(0):setPositionRotation(" .. position .. ")")
+  obj:queueGameEngineLua("getPlayerVehicle(0):setPositionRotation(" .. position .. ")")
   wait(2)
-  obj:queueGameEngineLua("be:getPlayerVehicle(0):autoplace(false)")
+  obj:queueGameEngineLua("getPlayerVehicle(0):autoplace(false)")
   wait(2)
 end
 

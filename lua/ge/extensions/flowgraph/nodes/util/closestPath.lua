@@ -4,13 +4,15 @@
 
 local im  = ui_imgui
 local C = {}
-
+local route
 C.name = 'Navgraph Distance'
 
 C.description = [[Finds the aproximate length between positions along the navgraph.]]
 C.category = 'repeat_instant'
 
 C.pinSchema = {
+  { dir = 'in', type = 'flow', impulse = true, name = 'setRoute', description = "Sets the route" },
+  { dir = 'in', type = 'vec3', name = 'trackedPos', description = "The tracked pos" },
   { dir = 'in', type = 'vec3', name = 'posA', description = "The Position that should be checked." },
   { dir = 'in', type = 'vec3', name = 'posB', description = "The Position that should be checked." },
   { dir = 'out', type = 'number', name = 'dist', description = "Distance to the road." },
@@ -18,58 +20,62 @@ C.pinSchema = {
 
 C.color = ui_flowgraph_editor.nodeColors.default
 
-function C:init(mgr)
+function C:init()
+  self.waypoint = im.BoolPtr(false)
 end
-
 
 function C:_executionStarted()
-  self.oldPos = nil
-  --map.load()
+  self.lastTrackedPosValue = vec3()
 end
 
-function C:findDecalroad(name)
-  if not scenetree[name] then
-      -- this assumes that decalroads do not end with a number...
-      local index, length = string.find(name, "DecalRoad")
-      if index == 1 then
-        local short = string.sub(name,length+1,string.len(name))
-        local underscoreIndex = string.find(short,"_")
-        if underscoreIndex and underscoreIndex >= 0 then
-          local rdId = tonumber(string.sub(short,1,underscoreIndex-1))
-          if not idId then
-            local obj = scenetree.findObject(string.sub(short,1,underscoreIndex-1))
-            if obj then
-              rdId = obj:getId()
-            end
-          end
-          local rdIdx = tonumber(string.sub(short,underscoreIndex+1,string.len(short)))
-          return rdId, rdIdx
-        end
-    end
-  else
-    return -1, -1
+function C:_onSerialize(res)
+  res.waypoint = self.waypoint[0]
+end
+
+function C:_onDeserialized(nodeData)
+  self.waypoint = im.BoolPtr(nodeData.waypoint or false)
+  self:updatePins()
+end
+
+function C:drawCustomProperties()
+  if im.Checkbox("Waypoints", self.waypoint) then
+    self:updatePins()
   end
 end
 
+function C:updatePins()
+  if self.waypoint[0] then
+    self:removePin(self.pinInLocal["posA"])
+    self:removePin(self.pinInLocal["posB"])
+    self:createPin('in', 'table', "waypoints", nil, 'The route')
+  else
+    self:removePin(self.pinInLocal["waypoints"])
+    self:createPin('in', 'vec3', "posA", nil, 'The Position that should be checked.')
+    self:createPin('in', 'vec3', "posB", nil, 'The Position that should be checked.')
+  end
+end
 
 function C:work()
-  if not self.pinIn.posA.value or not self.pinIn.posB.value then return end
+  self.pinOut.dist.value = -1
 
-  if not self.oldPos or self.oldPos ~= self.pinIn.pos.value then
+  if (self.waypoint[0] and not self.pinIn.waypoints.value) or (not self.waypoint[0] and (not self.pinIn.posA.value or not self.pinIn.posB.value)) then return end
 
-    local name_a,_,distance_a = map.findClosestRoad(vec3(self.pinIn.posA.value))
-    local name_b,_,distance_b = map.findClosestRoad(vec3(self.pinIn.posB.value))
-    if not name_a or not name_b then return end
-    local path = map.getPath(name_a, name_b)
-    local d = 0
-    for i = 1, #path-1 do
-      local a,b = path[i],path[i+1]
-      a,b = map.getMap().nodes[a].pos, map.getMap().nodes[b].pos
-      d = d + (a-b):length()
+  if self.pinIn.setRoute.value then
+    route = require('/lua/ge/extensions/gameplay/route/route')()
+    if self.waypoint[0] then
+      route:setupPathMulti(self.pinIn.waypoints.value)
+    else
+      route:setupPathMulti({vec3(self.pinIn.posB.value), vec3(self.pinIn.posA.value)})
     end
-    d = d + distance_a + distance_b
-    self.pinOut.dist.value = d
+  end
 
+  if route ~= nil and self.pinIn.flow.value and self.pinIn.trackedPos.value ~= self.lastTrackedPosValue then
+    route:trackPosition(vec3(self.pinIn.trackedPos.value))
+    self.lastTrackedPosValue = self.pinIn.trackedPos.value
+  end
+
+  if route ~= nil then
+    self.pinOut.dist.value = route.path[1].distToTarget
   end
 end
 

@@ -4,7 +4,7 @@
     "order": 1,
     "ctx": "tlua",
     "onDown": "ui_dynamicDecals.createDecal()",
-    "actionMap": "dynamicDecalsUI",
+    "actionMap": "dynamicDecalsStampUI",
     "title": "Create decal",
     "desc": "Create decal"
   },

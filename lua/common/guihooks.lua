@@ -21,8 +21,9 @@ elseif be then
   queueStreamDataJS = function(...) be:queueStreamDataJS(...) end
 end
 
+local bits = {}
 local function trigger(hookName, ...)
-  local bits = {}
+  table.clear(bits)
   for i = 1, select('#', ...) do
     bits[#bits+1] = jsonEncode(select(i, ...))
   end

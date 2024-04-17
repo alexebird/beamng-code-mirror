@@ -1,12 +1,12 @@
 <template>
   <div class="global-actions">
     <div class="history-actions">
-      <BngButton :icon-left="icons.decals.general.undo" @click="$emit('undo')" :disabled="!canUndo">Undo</BngButton>
-      <BngButton :icon-left="icons.decals.general.redo" @click="$emit('redo')" :disabled="!canRedo">Redo</BngButton>
+      <BngButton oldIcons :icon-left="icons.decals.general.undo" @click="$emit('undo')" :disabled="!canUndo">Undo</BngButton>
+      <BngButton oldIcons :icon-left="icons.decals.general.redo" @click="$emit('redo')" :disabled="!canRedo">Redo</BngButton>
     </div>
     <div class="view-actions">
       <BngImageTile
-        :icon="icons.decals.camera.freecam"
+        :old-icon="icons.decals.camera.freecam"
         :class="{ active: expandViewItems }"
         bng-nav-item
         class="view-button"
@@ -16,15 +16,15 @@
         @click="onChangeViewFocus"
       />
       <div v-if="expandViewItems" class="camera-items">
-        <BngImageTile bng-nav-item :icon="icons.decals.camera.front" label="Front" tabindex="0" @click="$emit('cameraClicked', 'front')" />
-        <BngImageTile bng-nav-item :icon="icons.decals.camera.left" label="Left" tabindex="0" @click="$emit('cameraClicked', 'left')" />
-        <BngImageTile bng-nav-item :icon="icons.decals.camera.top" label="Top" tabindex="0" @click="$emit('cameraClicked', 'top')" />
-        <BngImageTile bng-nav-item :icon="icons.decals.camera.right" label="Right" tabindex="0" @click="$emit('cameraClicked', 'right')" />
-        <BngImageTile bng-nav-item :icon="icons.decals.camera.back" label="Back" tabindex="0" @click="$emit('cameraClicked', 'back')" />
+        <BngImageTile bng-nav-item :old-icon="icons.decals.camera.front" label="Front" tabindex="0" @click="$emit('cameraClicked', 'front')" />
+        <BngImageTile bng-nav-item :old-icon="icons.decals.camera.left" label="Left" tabindex="0" @click="$emit('cameraClicked', 'left')" />
+        <BngImageTile bng-nav-item :old-icon="icons.decals.camera.top" label="Top" tabindex="0" @click="$emit('cameraClicked', 'top')" />
+        <BngImageTile bng-nav-item :old-icon="icons.decals.camera.right" label="Right" tabindex="0" @click="$emit('cameraClicked', 'right')" />
+        <BngImageTile bng-nav-item :old-icon="icons.decals.camera.back" label="Back" tabindex="0" @click="$emit('cameraClicked', 'back')" />
       </div>
     </div>
     <div class="export-actions">
-      <BngButton :icon-left="icons.decals.general.save" @click="$emit('exportSkin')">Export skin</BngButton>
+      <BngButton oldIcons :icon-left="icons.decals.general.save" @click="$emit('exportSkin')">Export skin</BngButton>
     </div>
     <BngButton class="exit-btn" accent="attention" @click="$emit('exit')"><BngBinding ui-event="menu" deviceMask="xinput" />Exit</BngButton>
   </div>

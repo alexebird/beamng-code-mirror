@@ -50,16 +50,17 @@ export default (element, { arg: eventNameOrNames, value: handler, modifiers }, v
     // up and down modifiers not applicable with .asMouse
     delete modifiers.down
     delete modifiers.up
-    handler = ({detail:{value}}) => {
+    handler = ({detail}) => {
       if (checkElementDisabled()) return
-      if (value) {
-        eventFirer('mousedown')
+      const fromControllerMarker = { fromController: detail }
+      if (detail.value) {
+        eventFirer('mousedown', fromControllerMarker)
         element[UINAV_MOUSEDOWN_MARKER_PROP] = true
       } else {
-        eventFirer('mouseup')
+        eventFirer('mouseup', fromControllerMarker)
         if (element[UINAV_MOUSEDOWN_MARKER_PROP]) {
           element[UINAV_MOUSEDOWN_MARKER_PROP] = false
-          eventFirer('click')
+          eventFirer('click', fromControllerMarker)
         }
       }
     }

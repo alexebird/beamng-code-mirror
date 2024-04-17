@@ -31,7 +31,7 @@ function C:update(data)
 
     local posX, posY, posZ, rotX, rotY, rotZ, rotW = OpenXR.getCameraPosRotPredictedXYZXYZW()
     data.res.pos:setAddXYZ(posX, posY, posZ)
-    data.res.rot:setQuatMulXYZW(rotX, rotY, rotZ, rotW, data.res.rot.x, data.res.rot.y, data.res.rot.z, data.res.rot.w)
+    data.res.rot:setMulXYZW(rotX, rotY, rotZ, rotW, data.res.rot.x, data.res.rot.y, data.res.rot.z, data.res.rot.w)
   end
 
   setCameraPosRotFovNearClipC(

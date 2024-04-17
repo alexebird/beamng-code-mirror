@@ -144,13 +144,13 @@ local function updateServiceBrakes(dt)
 end
 
 local function updateParkingBrake(dt)
-  local parkingBrakeInput = 1 - min(max(electrics.values[parkingBrakeElectricsName] or 0, 0), 1) -- when parking brake input is "0" (released), we want pressure to enter the actuator and release the spring brakes
+  local parkingBrakeReleaseCoef = 1 - min(max(electrics.values[parkingBrakeElectricsName] or 0, 0), 1) -- when parking brake input is "0" (released), we want pressure to enter the actuator and release the spring brakes
   local tankPressure = airTank.currentPressure
   local envPressure = powertrain.currentEnvPressure
   --if our pressure tank has a low supply pressure, we need to act as if our actual pressure was 0 (this is just how these behave IRL)
   -- supply pressure is either the actual supply (on a trailer) or if there is a compressor, supply and current are set the same
   if airTank.supplyPressure < (springBrakeAutoApplyThresholdPressure + envPressure) or airTank.isDummy then
-    parkingBrakeInput = 0
+    parkingBrakeReleaseCoef = 0
     didAutoApplyParkingBrake = true
     --enable parking brake or rather the smart one if it exists
     if controller.mainController.smartParkingBrake then
@@ -167,7 +167,7 @@ local function updateParkingBrake(dt)
     end
   end
   local relativeActuatorPressure = max(0, springActuatorPressure - envPressure)
-  local targetPressure = min(tankPressure, parkingBrakeInput * maxSpringBrakePressure + envPressure) -- max pressure let into brake lines from reservoir by the parking release valve
+  local targetPressure = min(tankPressure, parkingBrakeReleaseCoef * maxSpringBrakePressure + envPressure) -- max pressure let into brake lines from reservoir by the parking release valve
   local airDensity = airTank.remainingMass * airTank.invCapacity
   local flowRate = 0
 
@@ -212,7 +212,7 @@ local function updateParkingBrake(dt)
   springTorqueCoef = springBrakeTorqueCurve[lookupPressure] or 0
   electrics.values[parkingBrakePressureElectricsName] = relativeActuatorPressure
 
-  --streams.drawGraph("springActuatorPressure", { value = relativeActuatorPressure / 1000, min = 0, max = maxBrakePressure / 1000 })
+  --streams.drawGraph("springActuatorPressure", { value = relativeActuatorPressure / 1000, unit = "kPa", min = 0, max = maxSpringBrakePressure / 1000 })
 end
 
 local function updateSounds(dt)

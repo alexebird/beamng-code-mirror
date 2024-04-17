@@ -50,9 +50,9 @@ angular.module('beamng.apps')
 
         scope.toggleSettings = function () {
             scope.$evalAsync(() => {
-               scope.showSettings = !scope.showSettings
-               scope.cancelRename()
-               return
+              scope.showSettings = !scope.showSettings
+              scope.cancelRename()
+              return
             })
         }
 
@@ -188,13 +188,14 @@ angular.module('beamng.apps')
             scope.$evalAsync(function () {
                 scope.renaming = true
                 originalFilename = scope.loadedFile
-                 bngApi.engineLua('setCEFFocus(true)')
+                bngApi.engineLua('setCEFFocus(true)')
             })
           }
 
           scope.cancelRename = function () {
             scope.$evalAsync(function () {
                 scope.renaming = false
+                bngApi.engineLua('setCEFFocus(false)')
                 $log.debug('Cancelled rename')
                 scope.loadedFile = originalFilename
             })
@@ -375,7 +376,7 @@ angular.module('beamng.apps')
                 scope.stop=false
                 scope.current=null
                 scope.timer=0
-                bngApi.engineLua('if core_hotlapping then core_hotlapping.stopTimer() end')
+                bngApi.engineLua('core_hotlapping.stopTimer()')
             }
             reevaluateControls()
 
@@ -422,7 +423,7 @@ angular.module('beamng.apps')
             scope.noSaveAllowed = false
             scope.noTracks = true
             scope.tackSelectPlaceholder = "..."
-            bngApi.engineLua('if core_hotlapping then core_hotlapping.refreshTracklist() end')
+            bngApi.engineLua('core_hotlapping.refreshTracklist()')
             scope.cancelRename()
             if(scope.currentLapTimerPromise != null) {
                 $interval.cancel(scope.currentLapTimerPromise)
@@ -444,6 +445,8 @@ angular.module('beamng.apps')
                 scope.bestTime = {lap:'ui.apps.hotlapping.bestLap', duration:'', diff:'', diffColor:''}
             scope.loadedFile = data
         })
+
+        bngApi.engineLua('extensions.load("core_hotlapping")')
     }
   }
 }]);

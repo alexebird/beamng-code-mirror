@@ -1180,6 +1180,7 @@ local function initialize(editorInstance)
   editor.removeInvalidObjects = removeInvalidObjects
   editor.removeInvalidSelectedObjects = removeInvalidSelectedObjects
   editor.canManipulateObject = canManipulateObject
+  editor.getHighestObject = getHighestObject
 end
 
 local M = {}

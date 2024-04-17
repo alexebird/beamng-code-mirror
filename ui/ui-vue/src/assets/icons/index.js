@@ -1,4 +1,5 @@
 export const icons = {
+  undefined: 'undefined',
   arrow: {
     large: {
       up: 'arrow/large_up',

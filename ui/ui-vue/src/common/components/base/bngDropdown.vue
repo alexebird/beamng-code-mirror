@@ -1,39 +1,44 @@
 <!-- bngDropdown - a dropdown component -->
 <template>
-  <div
+  <BngDropdownContainer
     v-bind="$attrs"
-    ref="bngDropdownRef"
-    class="bng-dropdown"
-    :class="{ disabled: disabled }"
-    :tabindex="tabIndexValue"
-    @click="disabled ? null : clicked()"
-    @focusout="focusedOut"
-  >
-    <BngIcon class="dropdownArrow" span :type="icons.arrow.small.right" :class="{ opened: showOptions }" />
-    <slot name="display">{{ headerText }}</slot>
-  </div>
-  <div ref="dropdown" v-bng-auto-scroll:top v-show="showOptions" class="dropdown-options">
+    v-model="opened"
+    :disabled="disabled"
+    :class="{
+      'with-search': showSearch,
+      [`dropdown-longnames-${longNames}`]: true
+    }"
+    @provideFocus="getFocusContainer">
+    <template #display>
+      <slot name="display">
+        <span class="dropdown-display" v-bng-highlighter="highlighter">{{ headerText }}</span>
+      </slot>
+    </template>
+    <div v-if="showSearch" class="dropdown-search">
+      <BngInput v-model.trim="search" floating-label="Search" />
+    </div>
     <div
-      v-for="item in items"
+      v-for="(item, idx) in itemsView"
       class="dropdown-option"
       bng-nav-item
+      bng-ui-scope="bng-dropdown-option"
+      v-bng-on-ui-nav:ok.asMouse.focusRequired
       :class="{ selected: selectedItem && selectedItem.value === item.value }"
       :key="item.value"
       :tabindex="tabIndexValue"
       @click="select(item)"
       @keyup.enter="select(item)"
-    >
+      v-bng-focus-if="(selectedItem && selectedItem.value === item.value) || idx === 0"
+      v-bng-highlighter="highlighter">
       {{ item.label }}
     </div>
-  </div>
+  </BngDropdownContainer>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUpdated, onUnmounted } from "vue"
-import { createPopper } from "@popperjs/core"
-import { vBngAutoScroll } from "@/common/directives"
-import { BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
+import { ref, computed } from "vue"
+import { BngDropdownContainer, BngInput } from "@/common/components/base"
+import { vBngHighlighter, vBngFocusIf, vBngOnUiNav } from "@/common/directives"
 
 const props = defineProps({
   modelValue: {
@@ -43,17 +48,27 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  disabled: {
-    type: Boolean,
-    default: false,
+  showSearch: Boolean,
+  highlight: {
+    type: [String, Array, RegExp],
+  },
+  disabled: Boolean,
+  longNames: {
+    type: String,
+    default: "oneline",
+    validator: val => ["oneline", "wrap", "cut"].includes(val),
   },
 })
 
-const emits = defineEmits(["update:modelValue", "valueChanged"])
+const emit = defineEmits(["update:modelValue", "valueChanged"])
 
-const bngDropdownRef = ref(null)
-const dropdown = ref(null)
-const showOptions = ref(false)
+const opened = ref(false)
+
+const search = ref("")
+const searchTerm = computed(() => search.value.toLowerCase())
+
+const itemsView = computed(() => (searchTerm.value ? props.items.filter(itm => itm.label.toLowerCase().indexOf(searchTerm.value) > -1) : props.items))
+const highlighter = computed(() => search.value || props.highlight)
 
 const selectedValue = computed({
   get: () => props.modelValue,
@@ -65,136 +80,70 @@ const headerText = computed(() =>
 )
 const tabIndexValue = computed(() => (props.disabled ? -1 : 0))
 
-const clicked = () => setShowOptions(!showOptions.value)
-
-const focusedOut = $event => {
-  const isInsideBngDropdown = $event.relatedTarget && bngDropdownRef.value.contains($event.relatedTarget)
-  const isInsideDropdown = $event.relatedTarget && dropdown.value.contains($event.relatedTarget)
-  if (!isInsideBngDropdown && !isInsideDropdown) {
-    setShowOptions(false)
-  }
-}
+let focusContainer = () => {}
+const getFocusContainer = focus => (focusContainer = focus)
 
 const select = item => {
-  setShowOptions(false)
-  selectedValue.value = item.value
+  opened.value = false
+  if (selectedValue.value !== item.value) selectedValue.value = item.value
+  focusContainer()
 }
-
-const setShowOptions = show => (showOptions.value = show)
 
 const notifyListeners = value => {
-  emits("update:modelValue", value)
-  emits("valueChanged", value)
+  emit("update:modelValue", value)
+  emit("valueChanged", value)
 }
-
-let popperInstance = null
-
-onMounted(() => {
-  popperInstance = createPopper(bngDropdownRef.value, dropdown.value, {
-    placement: "bottom-start",
-    modifiers: [
-      {
-        name: "offset",
-        options: {
-          offset: [0, 4],
-        },
-      },
-    ],
-  })
-})
-
-onUpdated(async () => {
-  await popperInstance.update()
-})
-
-onUnmounted(() => {
-  if (popperInstance) popperInstance.destroy()
-})
 </script>
 
-<style scoped lang="scss">
-@import "@/styles/modules/mixins";
-.bng-dropdown {
-  $f-offset: 0.25rem;
-  $rad: $border-rad-1;
-
-  display: flex;
-  align-items: center;
-
-  position: relative;
+<style lang="scss" scoped>
+.dropdown-option {
+  flex: 1 0 auto !important;
   padding: 0.25em 0.5em;
-  border-radius: $rad;
-  background: var(--bng-cool-gray-700);
+  position: relative;
   cursor: pointer;
-  user-select: none;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
-  margin-left: 0.25rem;
-  margin-right: 0.25rem;
-  min-width: 6em;
-  // font-size: inherit;
-  // line-height: 1.25em;
-  padding-left: 1.5em;
-  pointer-events: auto;
 
-  & > .dropdownArrow {
-    width: 1.5em;
-    height: 1.5em;
-    position: absolute;
-    left: 0;
-    top: calc(50% - 0.75em);
-    transition: all 100ms ease-in-out;
-    &.opened {
-      transform: rotate(90deg);
-    }
-  }
-
-  // &:focus::before {
-  //   content: "";
-  //   display: block;
-  //   position: absolute;
-  //   top: -1px;
-  //   bottom: -1px;
-  //   left: -1px;
-  //   right: -1px;
-  //   border-radius: 0.25em;
-  //   border: 2px solid var(--bng-orange-b400);
-  //   pointer-events: none;
-  //   z-index: var(--zorder_main_menu_navigation_focus);
-  // }
-
-  @include modify-focus($rad, $f-offset);
-  &.disabled {
-    pointer-events: none;
-    background: var(--bng-cool-gray-800);
-    color: var(--bng-cool-gray-600);
-
-    &:focus::before {
-      display: none;
-    }
-    & > .dropdownArrow {
-      background-color: var(--bng-cool-gray-600) !important;
-    }
+  &.selected {
+    background-color: var(--bng-orange-b400);
   }
 }
 
-.dropdown-options {
-  position: absolute;
-  margin-top: 0.25em;
-  background: grey;
-  max-height: 20rem;
-  overflow-y: auto;
-  z-index: 10000;
-  padding: 0.25rem;
+.with-search {
+  padding-top: 0;
+}
 
-  > .dropdown-option {
-    padding: 0.25em 0.5em;
-    position: relative;
-    cursor: pointer;
-
-    &.selected {
-      background: var(--bng-orange-b400);
-    }
+.dropdown-search {
+  position: sticky;
+  display: inline-block;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 2.2em;
+  z-index: 1;
+  > * {
+    margin-top: -0.3em;
+    background-color: rgba(#aaa, 0.8);
   }
 }
+
+.dropdown-longnames-oneline {
+  .dropdown-display,
+  .dropdown-option {
+    white-space: nowrap;
+  }
+}
+.dropdown-longnames-wrap {
+  .dropdown-display,
+  .dropdown-option {
+    white-space: normal;
+  }
+}
+.dropdown-longnames-cut {
+  .dropdown-display,
+  .dropdown-option {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+}
+
 </style>

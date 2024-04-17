@@ -3,17 +3,20 @@
 import { lua } from "@/bridge"
 
 const events = ["click", "dblclick", "focus", "mouseenter"]
-const nonMutedValues = [null, undefined, false, "0", "false", 0]
+const unmutedValues = [null, undefined, false, "0", "false", 0]
+
+const updateSound = (el, binding) => {
+	setHandlerState(el, false)
+	delete el.soundClass
+	if (!binding.value) return
+	el.soundClass = binding.value
+	setHandlerState(el, true)
+}
 
 export default {
-	mounted(el, binding) {
-		el.soundClass = binding.value
-		setHandlerState(el, true)
-	},
-	unmounted(el) {
-		delete el.soundClass
-		setHandlerState(el, false)
-	},
+	mounted: updateSound,
+	updated: updateSound,
+	unmounted: el => updateSound(el, {}) 
 }
 
 function setHandlerState(el, active) {
@@ -39,6 +42,6 @@ function mouseEventSoundHandler(ev) {
 	// 	}
 	// }
 
-	const muted = !nonMutedValues.includes(ev.target.getAttribute("mute"))
-	if (!muted) lua.ui_audio.playEventSound(ev.target.soundClass, ev.type)
+	const unmuted = unmutedValues.includes(ev.currentTarget.getAttribute("mute"))
+	if (unmuted) lua.ui_audio.playEventSound(ev.currentTarget.soundClass, ev.type)
 }

@@ -125,6 +125,7 @@ local function yieldSec(yieldfn,sec)
 end
 
 local previousDisplayResolution
+local enableUiCounter
 local function onPreRender(dt)
   if workerCoroutine ~= nil then
     local errorfree, value = coroutine.resume(workerCoroutine)
@@ -142,7 +143,7 @@ local function onPreRender(dt)
       workerCoroutine = nil
       settings.setValue('GraphicBorderless', false)
       core_settings_graphic.applyGraphicsState()
-      extensions.ui_visibility.set(true)
+      enableUiCounter = 5
       settings.setValue('cameraOrbitSmoothing', true)
       simTimeAuthority.pause(false)
       redoPass = false
@@ -150,6 +151,15 @@ local function onPreRender(dt)
         log('E', '', 'coroutine BROKE')
         shutdown(0)
       end
+    end
+  end
+
+  -- We need to enable ui with a delay, otherwise it doesnt work in garage mode
+  if enableUiCounter then
+    enableUiCounter = enableUiCounter - 1
+    if enableUiCounter <= 0 then
+      extensions.ui_visibility.set(true)
+      enableUiCounter = nil
     end
   end
 end
@@ -212,7 +222,7 @@ end
 
 local function getCameraTweak()
   local useView = views.default
-  local newVehicle = be:getPlayerVehicle(0)
+  local newVehicle = getPlayerVehicle(0)
   local findValConf = findVal(newVehicle.JBeam, newVehicle.partConfig)
   local findValView = findValConf(views[viewComboTable[ComboCurrentItem[0]+1]])
   --disp dim
@@ -342,7 +352,7 @@ local function onUpdate(dtReal, dtSim, dtRaw)
     im.TextUnformatted("models:")
     im.SameLine()
     if im.SmallButton("Select only current") then
-      local playerVehicle = be:getPlayerVehicle(0)
+      local playerVehicle = getPlayerVehicle(0)
       if playerVehicle then
         for _,v in ipairs(vehList) do
           v[2][0] = v[1] == playerVehicle.JBeam
@@ -624,7 +634,7 @@ M.startWork = function(currentVehicleConfigName)
       -- Replace the vehicle
       log('I', logTag, string.format("Spawning vehicle %05d / %05d", counter, configCount) .. ' : ' .. ' name: ' .. tostring(v.model_key) .. ', config: ' .. tostring(v.key))
       yieldSec(coroutine.yield, 0.1)
-      local oldVehicle = be:getPlayerVehicle(0)
+      local oldVehicle = getPlayerVehicle(0)
       local newVehicle = oldVehicle
       if not options.currentVehConfigName then
         oldVehicle:setDynDataFieldbyName("licenseText", 0, "BeamNG")
@@ -635,7 +645,7 @@ M.startWork = function(currentVehicleConfigName)
         newVehicle = oldVehicle
         while newVehicle == oldVehicle do
           yieldSec(coroutine.yield, 0.1)
-          newVehicle = be:getPlayerVehicle(0)
+          newVehicle = getPlayerVehicle(0)
         end
 
         newVehicle:queueLuaCommand("input.event('parkingbrake', 1, 1)")
@@ -823,7 +833,7 @@ M.startTweak = function()
       table.insert( lightsobj, scenetree.findObject(v) )
     end
 
-    local newVehicle = be:getPlayerVehicle(0)
+    local newVehicle = getPlayerVehicle(0)
     local findValConf = findVal(newVehicle.JBeam, newVehicle.partConfig)
     newVehicle:setPositionRotation(0,0,0.4,0,0,0,1)
     newVehicle:queueLuaCommand("input.event('parkingbrake', 1, 1)")

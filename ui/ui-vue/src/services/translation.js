@@ -70,7 +70,7 @@ export const preprocessLocaleJSON = obj => {
   const processedJSON = {}
   TRANSLATIONS_REQUIRING_ANGULAR_TRANSLATE = {}
   for (let [key, text] of Object.entries(obj)) {
-  	if (testIfAngularTranslationRequired(text)) TRANSLATIONS_REQUIRING_ANGULAR_TRANSLATE[key] = text
+    if (testIfAngularTranslationRequired(text)) TRANSLATIONS_REQUIRING_ANGULAR_TRANSLATE[key] = text
     const pathParts = key.split('.'), thisKey = pathParts.pop()
     let workObj = processedJSON
     pathParts.forEach(part => {

@@ -41,7 +41,7 @@ function C:workOnce()
   self:setDurationState('started')
 end
 
-function C:work(mgr)
+function C:work()
   local duration = self.pinIn.duration.value or 0
   if self.durationState ~= 'finished' and self.timer >= duration then
     self:setDurationState('finished')

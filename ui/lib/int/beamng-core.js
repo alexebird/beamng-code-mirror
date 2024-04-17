@@ -777,36 +777,48 @@ angular.module('beamng.core', [])
 }])
 
 
-.directive("input", ["Settings", function (Settings) {
+.directive("input", ["Settings", "$rootScope", function (Settings, $rootScope) {
   return {
     restrict: "E",
-    link: (scope, elem, attrs) => bngLinkInput(scope, elem, attrs, Settings)
+    link: (scope, elem, attrs) => bngLinkInput(scope, elem, attrs, Settings, $rootScope)
   };
 }])
-.directive("textarea", ["Settings", function (Settings) {
+.directive("textarea", ["Settings", "$rootScope", function (Settings, $rootScope) {
   return {
     restrict: "E",
-    link: (scope, elem, attrs) => bngLinkInput(scope, elem, attrs, Settings)
+    link: (scope, elem, attrs) => bngLinkInput(scope, elem, attrs, Settings, $rootScope)
   };
 }])
 
 ;
 
-function bngLinkInput(scope, elem, attrs, Settings) {
-  if (!Settings.values.runningOnSteamDeck) // restrict this code to steamdeck only
-    return;
+const bngInputs = {
+  bound: false,
+  focused: false,
+}
+function bngLinkInput(scope, elem, attrs, Settings, $rootScope) {
+  if (!bngInputs.bound) {
+    $rootScope.$on("CEFTypingLostFocus", () => bngInputs.focused && document.activeElement.blur())
+    bngInputs.bound = true
+  }
+  function isTextInput(el) {
+    return el.tagName.toLowerCase() !== "input" || ["text", "number", "password", "search"].includes(el.type.toLowerCase())
+  }
   elem.on("focus", function () {
-    const elm = elem[0];
-    const tag = elm.tagName.toLowerCase();
-    let type = 0; // single line
-    if (tag === "input") {
-      if (!["text", "number", "password", "search"].includes(elm.type.toLowerCase()))
-        return;
-    } else if (tag === "textarea") {
-      type = 1; // multiple lines
+    const el = elem[0];
+    if (isTextInput(el)) {
+      bngApi.engineLua("setCEFTyping(true)", () => bngInputs.focused = true);
+      if (Settings.values.runningOnSteamDeck) {
+        const isMultiline = el.tagName.toLowerCase() === "textarea";
+        const rect = el.getBoundingClientRect(); // might need to dive through parents
+        // console.log("TEXT FOCUS", e, rect);
+        bngApi.engineLua(`Steam.showFloatingGamepadTextInput(${isMultiline?1:0}, ${rect.left}, ${rect.top}, ${rect.width}, ${rect.height})`);
+      }
     }
-    const rect = elm.getBoundingClientRect(); // might need to dive through parents
-    // console.log("TEXT FOCUS", elm, rect);
-    bngApi.engineLua(`Steam.showFloatingGamepadTextInput(${type}, ${rect.left}, ${rect.top}, ${rect.width}, ${rect.height})`);
+  });
+  elem.on("blur", function () {
+    if (isTextInput(elem[0])) {
+      bngApi.engineLua("setCEFTyping(false)", () => bngInputs.focused = false);
+    }
   });
 }

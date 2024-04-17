@@ -128,7 +128,7 @@ function C:drawImgui()
   clr = self.rightOK and cGreen or cRed
   self:drawLine(self:worldLineToMapLine({pos+x, pos+x-y}), clr, 7)
 
-  local veh = be:getPlayerVehicle(0)
+  local veh = getPlayerVehicle(0)
   local ob = veh:getSpawnWorldOOBB()
   local vPos = vec3(map.objects[veh:getId()].pos)
   --self:drawLine(self:worldLineToMapLine({vPos, pos + vec3(0,10,0)}))
@@ -154,7 +154,7 @@ function C:checkParking()
   if self.pinIn.vehicleID.value then
     veh = scenetree.findObjectById(self.pinIn.vehicleID.value)
   else
-    veh = be:getPlayerVehicle(0)
+    veh = getPlayerVehicle(0)
   end
   if not veh then return end
   local vehicleData = map.objects[veh:getId()]

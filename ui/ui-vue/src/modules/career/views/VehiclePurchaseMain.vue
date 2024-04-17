@@ -1,4 +1,5 @@
 <template>
+  <!-- TODO - remove inline styling? -->
   <div style="padding: 50px">
     <BngCard v-if="vehiclePurchaseStore.vehicleInfo.niceName" bng-ui-scope="vehiclePurchase" class="purchaseScreen">
       <BngCardHeading type="ribbon" style="text-align: left">Purchase</BngCardHeading>
@@ -74,8 +75,7 @@
           bng-nav-item
           type="checkbox"
           id="delivery"
-          v-model="vehiclePurchaseStore.makeDelivery"
-        />
+          v-model="vehiclePurchaseStore.makeDelivery" />
         <label for="delivery">Deliver this vehicle to your garage?</label>
       </div>
 
@@ -90,11 +90,14 @@
         >
         <div v-else>
           <div v-if="vehiclePurchaseStore.tradeInEnabled">
-            <BngButton @click="chooseTradeInVehicle" accent="secondary">Choose Trade-In</BngButton>
+            <BngButton v-if="hasVehicle" @click="chooseTradeInVehicle" accent="secondary">Choose Trade-In</BngButton>
+            <BngTooltip v-else style="width: max-content" position="top" text="You don't own any vehicles">
+              <BngButton :disabled="true" accent="secondary">Choose Trade-In</BngButton>
+            </BngTooltip>
           </div>
           <div v-else>
             <BngTooltip style="width: max-content" position="top" text="Trade in only possible in person at a dealership">
-              <BngButton :disabled="true" @click="chooseTradeInVehicle" accent="secondary">Choose Trade-In</BngButton>
+              <BngButton :disabled="true" accent="secondary">Choose Trade-In</BngButton>
             </BngTooltip>
           </div>
         </div>
@@ -108,40 +111,17 @@
           show-hold
           v-bng-on-ui-nav:ok.asMouse.focusRequired
           v-bng-click="{
-            clickCallback: () => setPopupOpen(true),
-            holdCallback: () => buyVehicle(!vehiclePurchaseStore.locationSelectionEnabled || vehiclePurchaseStore.makeDelivery),
-            holdDelay: 2000,
+            clickCallback: () => confirmBuy(),
+            holdCallback: buy,
+            holdDelay: 1000,
             repeatInterval: 0,
-          }"
-        >
+          }">
           <div v-if="vehiclePurchaseStore.prices.finalPrice > vehiclePurchaseStore.playerMoney">Insufficient Funds</div>
           <div v-else-if="!vehiclePurchaseStore.inventoryHasFreeSlot && !vehiclePurchaseStore.tradeInVehicleInfo.niceName">No free inventory slots</div>
           <div v-else>Purchase</div>
         </BngButton>
       </template>
-      <BngCard class="profileStatus">
-        <CareerStatus />
-      </BngCard>
-    </BngCard>
-  </div>
-
-  <div v-if="popupOpen">
-    <div v-bng-blur class="blurBackground"></div>
-    <BngCard class="modalPopup">
-      <div style="padding: 1em">
-        <h3 style="padding-bottom: 0.5em">Are you sure you want to purchase this vehicle?</h3>
-        <div v-if="!vehiclePurchaseStore.ownsRequiredInsurance && !vehiclePurchaseStore.buyRequiredInsurance" style="color: rgb(245, 29, 29); padding-bottom: 1.5em">
-          Warning: You must purchase "{{ vehiclePurchaseStore.vehicleInfo.requiredInsurance.name }}" insurance to drive this vehicle.
-        </div>
-        <div style="padding-bottom: 8px" v-if="!vehiclePurchaseStore.locationSelectionEnabled || vehiclePurchaseStore.makeDelivery">
-          {{ vehiclePurchaseStore.vehicleInfo.niceName }} will be delivered to your garage in {{ vehiclePurchaseStore.vehicleInfo.deliveryDelay }} s.
-          <div style="font-style: oblique">(Purchase on location to avoid the {{ vehiclePurchaseStore.vehicleInfo.deliveryDelay }} s delivery delay)</div>
-        </div>
-      </div>
-      <template #buttons>
-        <BngButton @click="buyVehicle(!vehiclePurchaseStore.locationSelectionEnabled || vehiclePurchaseStore.makeDelivery)"> Yes </BngButton>
-        <BngButton @click="setPopupOpen(false)" accent="attention"> No </BngButton>
-      </template>
+      <CareerStatus class="profileStatus" />
     </BngCard>
   </div>
 </template>
@@ -151,24 +131,56 @@ import { onMounted, onUnmounted, ref } from "vue"
 import { BngButton, BngCard, BngCardHeading, BngTooltip } from "@/common/components/base"
 import { useVehiclePurchaseStore } from "../stores/vehiclePurchaseStore"
 import { lua, useBridge } from "@/bridge"
-import { vBngBlur, vBngClick } from "@/common/directives"
+import { vBngClick } from "@/common/directives"
 import { CareerStatus } from "@/modules/career/components"
+import { openConfirmation } from "@/services/popup"
+import { $translate } from "@/services/translation"
 import { vBngOnUiNav } from "@/common/directives"
 import { useUINavScope } from "@/services/uiNav"
 useUINavScope("vehiclePurchase")
 
 const { units } = useBridge()
 
+const hasVehicle = ref(false)
+
 const vehiclePurchaseStore = useVehiclePurchaseStore()
-const popupOpen = ref(false)
+
+vehiclePurchaseStore.getInventory().then(inv => {
+  const length = Array.isArray(inv) ? inv.length : 0
+  hasVehicle.value = !!length
+})
 
 const insuranceCheckboxClicked = () => {
   vehiclePurchaseStore.toggleInsurancePurchase()
 }
 
-const setPopupOpen = open => {
-  popupOpen.value = open
+const confirmBuy = async () => {
+  const html = `
+        <h3 style="padding-bottom: 0.5em">Are you sure you want to purchase this vehicle?</h3>
+        ${
+          !vehiclePurchaseStore.ownsRequiredInsurance && !vehiclePurchaseStore.buyRequiredInsurance
+            ? `<div style="color: rgb(245, 29, 29); padding-bottom: 1.5em">
+              Warning: You must purchase "${vehiclePurchaseStore.vehicleInfo.requiredInsurance.name}" insurance to drive this vehicle.
+          </div>`
+            : ""
+        }
+        ${
+          !vehiclePurchaseStore.locationSelectionEnabled || vehiclePurchaseStore.makeDelivery
+            ? `<div style="padding-bottom: 8px">
+          ${vehiclePurchaseStore.vehicleInfo.niceName} will be delivered to your garage in ${vehiclePurchaseStore.vehicleInfo.deliveryDelay}s.
+          <div style="font-style: oblique">(Purchase on location to avoid the delivery delay)</div>
+        </div>`
+            : ""
+        }  
+      </div>
+  `
+  const res = await openConfirmation("", html, [
+    { label: $translate.instant("ui.common.yes"), value: true },
+    { label: $translate.instant("ui.common.no"), value: false, extras: { accent: "attention" } },
+  ])
+  if (res) buy()
 }
+const buy = () => buyVehicle(!vehiclePurchaseStore.locationSelectionEnabled || vehiclePurchaseStore.makeDelivery)
 
 const cancel = () => {
   vehiclePurchaseStore.cancel()
@@ -183,7 +195,6 @@ const removeTradeInVehicle = () => {
 }
 
 const buyVehicle = _makeDelivery => {
-  setPopupOpen(false)
   if (vehiclePurchaseStore.buyRequiredInsurance) {
     lua.career_modules_insurance.purchasePolicy(vehiclePurchaseStore.vehicleInfo.requiredInsurance.id)
   }
@@ -232,31 +243,10 @@ onUnmounted(kill)
   top: 0;
   right: 0;
   color: white;
+  border-radius: var(--bng-corners-2);
   background-color: rgba(0, 0, 0, 0.7);
   & :deep(.card-cnt) {
     background-color: rgba(0, 0, 0, 0.7);
-  }
-}
-
-.blurBackground {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  top: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.781);
-}
-
-.modalPopup {
-  position: fixed;
-  top: 50vh;
-  left: 50vw;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.8);
-  & :deep(.card-cnt) {
-    background-color: rgba(0, 0, 0, 0.2);
   }
 }
 </style>

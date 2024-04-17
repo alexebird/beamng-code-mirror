@@ -10,11 +10,11 @@ local manualzoom = require('core/cameraModes/manualzoom')
 local rotEulerTemp = quat()
 local function setRotateEuler(x, y, z, qSource, qDest)
   rotEulerTemp:setFromEuler(0, z, 0)
-  qDest:setQuatMul(rotEulerTemp, qSource)
+  qDest:setMul2(rotEulerTemp, qSource)
   rotEulerTemp:setFromEuler(0, 0, x)
-  qDest:setQuatMul(rotEulerTemp, qDest)
+  qDest:setMul2(rotEulerTemp, qDest)
   rotEulerTemp:setFromEuler(y, 0, 0)
-  qDest:setQuatMul(rotEulerTemp, qDest)
+  qDest:setMul2(rotEulerTemp, qDest)
   return qDest
 end
 

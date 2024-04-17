@@ -323,7 +323,7 @@ function C:helperCameraToPositionRotation()
   core_camera.setPosRot(0, self.pos.x, self.pos.y, self.pos.z, self.rot.x, self.rot.y, self.rot.z, self.rot.w)
 end
 function C:helperMoveToTransform()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     spawn.safeTeleport(playerVehicle, self.pos, self.rot)
   end

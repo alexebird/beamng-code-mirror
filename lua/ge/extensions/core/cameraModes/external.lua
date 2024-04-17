@@ -142,7 +142,7 @@ function C:findNewCamPosVel(carPos, futureCarPos, velLength, chancesMultiplier, 
 end
 
 -- returns 0 if no collision is found, or a distance otherwise
-local function castRay(origin, target)
+local function castRayStaticDistance(origin, target)
   local dir = target-origin
   local dist = dir:length()
   local ret = castRayStatic(origin, dir, dist, true)
@@ -230,7 +230,7 @@ function C:switchCamera(carVel, carPos, veh, nx, ny, nz, carStopped, openxrSessi
       local slopeOffset = vec3(0,0,distTravel*0.35)
       local newCarPosLast = carPosMidway + slopeOffset
       -- see if our assumption is right and we can rise our head above the ground
-      local distToGround = castRay(carPosMidway, newCarPosLast)
+      local distToGround = castRayStaticDistance(carPosMidway, newCarPosLast)
       if distToGround ~= 0 then
         -- yep, it's probably a slope, let's move the vehicle prediction right above the ground
         newCarPosLast = carPosMidway + vec3(0,0,distToGround + 0.1)
@@ -250,9 +250,9 @@ function C:switchCamera(carVel, carPos, veh, nx, ny, nz, carStopped, openxrSessi
     if self.isFanMode then
       local heightTest = 50
       local humanCameraHeight = dzRandom(1.3, 2.0)
-      local distDown = castRay(self.camPos, self.camPos-vec3(0,0,heightTest))
+      local distDown = castRayStaticDistance(self.camPos, self.camPos-vec3(0,0,heightTest))
       if distDown == 0 or distDown == heightTest then -- we may be underground
-        local distUp = heightTest-castRay(self.camPos+vec3(0,0,heightTest), self.camPos)
+        local distUp = heightTest-castRayStaticDistance(self.camPos+vec3(0,0,heightTest), self.camPos)
         if distUp == 0 or distUp == heightTest then -- we are too far over the ground, default to current vehicle height
           self.camPos.z = self.camPos.z +          humanCameraHeight
         else

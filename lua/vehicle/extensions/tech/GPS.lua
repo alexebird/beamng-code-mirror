@@ -66,18 +66,14 @@ local function remove(sensorId)
   GPSs[sensorId] = nil
 end
 
-local function setUpdateTime(sensorId, GFXUpdateTime)
-  GPSs[sensorId].GFXUpdateTime = GFXUpdateTime
-end
+local function setUpdateTime(sensorId, GFXUpdateTime) GPSs[sensorId].GFXUpdateTime = GFXUpdateTime end
 
 local function setIsVisualised(data)
   local decodedData = lpack.decode(data)
   GPSs[decodedData.sensorId].controller.setIsVisualised(decodedData.isVisualised)
 end
 
-local function adHocRequest(sensorId, requestId)
-  updateGPSGFXStep(0.0, sensorId, true, requestId)
-end
+local function adHocRequest(sensorId, requestId) updateGPSGFXStep(0.0, sensorId, true, requestId) end
 
 local function cacheLatestReading(sensorId, latestReading)
   if sensorId ~= nil then
@@ -85,9 +81,9 @@ local function cacheLatestReading(sensorId, latestReading)
   end
 end
 
-local function getGPSReading(sensorId)
-  return latestReadings[sensorId]
-end
+local function getGPSReading(sensorId) return latestReadings[sensorId] end
+
+local function getLatest(sensorId) return GPSs[sensorId].controller.getLatest() end
 
 local function updateGFX(dtSim)
   for sensorId, _ in pairs(GPSs) do
@@ -104,21 +100,17 @@ local function onVehicleDestroyed(vid)
   end
 end
 
+
 -- Public interface:
-
--- GPS core API functions.
-M.create                                    = create
-M.remove                                    = remove
-M.adHocRequest                              = adHocRequest
-M.cacheLatestReading                        = cacheLatestReading
-M.getGPSReading                             = getGPSReading
-
--- GPS property setters.
-M.setUpdateTime                             = setUpdateTime
-M.setIsVisualised                           = setIsVisualised
-
--- Functions triggered by hooks.
-M.updateGFX                                 = updateGFX
-M.onVehicleDestroyed                        = onVehicleDestroyed
+M.create                                                  = create
+M.remove                                                  = remove
+M.adHocRequest                                            = adHocRequest
+M.cacheLatestReading                                      = cacheLatestReading
+M.getGPSReading                                           = getGPSReading
+M.getLatest                                               = getLatest
+M.setUpdateTime                                           = setUpdateTime
+M.setIsVisualised                                         = setIsVisualised
+M.updateGFX                                               = updateGFX
+M.onVehicleDestroyed                                      = onVehicleDestroyed
 
 return M

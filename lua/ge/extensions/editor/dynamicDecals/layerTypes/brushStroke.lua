@@ -27,7 +27,7 @@ local docs = nil
 local widgets = nil
 
 local function inspectLayerGui(layer, guiId)
-  local vehicleObj = be:getPlayerVehicle(0)
+  local vehicleObj = getPlayerVehicle(0)
 
   im.Columns(2, "layerDataColumns")
   im.TextUnformatted("uid")

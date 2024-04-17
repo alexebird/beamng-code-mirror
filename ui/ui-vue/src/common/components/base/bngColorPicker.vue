@@ -1,106 +1,94 @@
 <template>
-  <div :class="{
-    'colour-picker-container': true,
-    'colour-picker-mode-picker': opts.picker,
-    'colour-picker-mode-slider': opts.slider,
-  }">
+  <div
+    :class="{
+      'colour-picker-container': true,
+      'colour-picker-mode-picker': opts.picker,
+      'colour-picker-mode-slider': opts.slider,
+    }">
     <div
       v-if="opts.picker"
-      :class="{
-        'colour-picker': true,
-        'colour-picker-saturation': opts.saturation,
-        'colour-picker-luminosity': opts.luminosity,
-      }"
+      class="colour-picker"
       @mousemove="onMousemove"
       @mousedown="onMousedown"
       @mouseup="onMouseupLeave"
       @mouseleave="onMouseupLeave"
       v-bng-disabled="disabled"
-    >
-      <div class="colour-picker-dot" :style="{
-        left: `${colorDot.x}%`,
-        top:  `${colorDot.y}%`,
-        '--colour-picker-dot-fill': `hsl(${current.hue}, ${opts.saturation ? current.saturation : 100}%, ${opts.luminosity ? current.luminosity : 50}%)`,
-      }"></div>
+      :style="{
+        '--colour-picker-x': `linear-gradient(90deg, ${gradients.hueStatic.join(', ')})`,
+        '--colour-picker-y': `linear-gradient(180deg, ${gradients.pickerOverlay.join(', ')})`,
+      }">
+      <div
+        class="colour-picker-dot"
+        :style="{
+          left: `${colorDot.x}%`,
+          top: `${colorDot.y}%`,
+          '--colour-picker-dot-fill': `hsl(${current.hue}, ${opts.saturation ? current.saturation : 100}%, ${opts.luminosity ? current.luminosity : 50}%)`,
+        }"></div>
     </div>
     <BngColorSlider
-      v-if="opts.slider"
-      v-model="colour.hue"
+      v-if="opts.slider || opts.hue"
+      v-model.number="values.hue"
       @change="notify"
-      :fill="['#f00', '#ff0', '#0f0', '#0ff , #00f', '#f0f', '#f00']"
+      :fill="gradients.hue"
       :current="`hsl(${current.hue}, 100%, 50%)`"
+      :indicator="sliderIndicator"
       :disabled="disabled"
-    >{{ $t("ui.color.hue") }}</BngColorSlider>
+      >{{ $t("ui.color.hue") }}</BngColorSlider
+    >
     <BngColorSlider
-      v-if="opts.slider || (opts.picker && opts.luminosity)"
+      v-if="opts.slider || opts.luminosity"
       X:vertical="opts.picker"
-      v-model="colour.saturation"
+      v-model.number="values.saturation"
       @change="notify"
-      :fill="[
-        `hsl(${current.hue},   0%, ${current.luminosity}%)`,
-        `hsl(${current.hue}, 100%, ${current.luminosity}%)`
-      ]"
+      :fill="gradients.saturation"
       :current="`hsl(${current.hue}, ${current.saturation}%, ${current.luminosity}%)`"
+      :indicator="sliderIndicator"
       :disabled="disabled"
-    >{{ showText ? `${$t("ui.color.saturation")} (${current.saturation}%)` : null }}</BngColorSlider>
+      >{{ showText ? `${$t("ui.color.saturation")} (${current.saturation}%)` : null }}</BngColorSlider
+    >
     <BngColorSlider
-      v-if="opts.slider || (opts.picker && opts.saturation)"
+      v-if="opts.slider || opts.saturation"
       X:vertical="opts.picker"
-      v-model="colour.luminosity"
+      v-model.number="values.luminosity"
       @change="notify"
-      :fill="[
-        `hsl(${current.hue}, ${current.saturation}%,   0%)`,
-        `hsl(${current.hue}, ${current.saturation}%,  50%)`,
-        `hsl(${current.hue}, ${current.saturation}%, 100%)`,
-      ]"
+      :fill="gradients.luminosity"
       :current="`hsl(${current.hue}, ${current.saturation}%, ${current.luminosity}%)`"
+      :indicator="sliderIndicator"
       :disabled="disabled"
-    >{{ showText ? `${$t("ui.color.brightness")} (${current.luminosity}%)` : null }}</BngColorSlider>
+      >{{ showText ? `${$t("ui.color.brightness")} (${current.luminosity}%)` : null }}</BngColorSlider
+    >
   </div>
 </template>
 
 <script>
-const views = {
-  simple: "simple",
-  full_saturation: "full_saturation",
-  full_luminosity: "full_luminosity",
+export const views = {
+  simple: { slider: true, picker: false, saturation: false, luminosity: false },
+  saturation: { slider: false, picker: true, saturation: true, luminosity: false },
+  luminosity: { slider: false, picker: true, saturation: false, luminosity: true },
+  full_saturation: { slider: true, picker: true, saturation: true, luminosity: false },
+  full_luminosity: { slider: true, picker: true, saturation: false, luminosity: true },
 }
-// const models = {
-//   hsl: "hsl",
-//   rgb: "rgb",
-// }
+
+const valuesDef = { hue: 0.5, saturation: 1, luminosity: 0.5 }
 </script>
 
 <script setup>
-import { ref, reactive, computed, watch, nextTick } from "vue"
+import { ref, reactive, computed, watch, nextTick, onMounted } from "vue"
 import { BngColorSlider } from "@/common/components/base"
 import { vBngDisabled } from "@/common/directives"
-
-const views = {
-  simple: { slider: true, picker: false, saturation: false, luminosity: false },
-  full_saturation: { slider: false, picker: true, saturation: true, luminosity: false },
-  full_luminosity: { slider: false, picker: true, saturation: false, luminosity: true },
-}
-// const models = {
-//   hsl: { hsl: true, rgb: false },
-//   rgb: { hsl: false, rgb: true },
-// }
 
 const props = defineProps({
   modelValue: {
     // NOTE: when Paint class is provided through the model, it may lead to errors after compilation
     //       to avoid the error, simply wrap provided variable in ref()
     type: Object,
-    default: { hue: 0.5, saturation: 1, luminosity: 0.5 },
+    default: { ...valuesDef },
   },
   view: {
-    type: String,
+    type: [String, Object],
     default: "full_luminosity",
+    validator: val => typeof val === "string" || val in views,
   },
-  // model: {
-  //   type: String,
-  //   default: "hsl",
-  // },
   showText: {
     type: Boolean,
     default: true,
@@ -108,84 +96,103 @@ const props = defineProps({
   disabled: Boolean,
 })
 
-// const opts = reactive({ ...views[props.view], ...models[props.model] })
-const opts = reactive({ ...views[props.view] })
-watch(() => props.view, val => {
-  for (const key in views[val])
-    opts[key] = views[val][key]
-  setColorDot()
-})
-// watch(() => props.model, val => {
-//   for (const key in models[val])
-//     opts[key] = models[val][key]
-// })
+const sliderIndicator = "popout" // inner / popout
 
-const colour = ref(props.modelValue)
+const opts = reactive({ ...views[props.view] })
+watch(
+  () => props.view,
+  val => {
+    if (typeof val === "string") {
+      for (const key in views[val]) opts[key] = views[val][key]
+    }
+    if (opts.picker) setColorDot()
+  }
+)
+
+const values = reactive({ ...valuesDef })
 function updColour() {
-  colour.value = props.modelValue
-  // console.log(colour.value.paintString)
-  setColorDot()
+  for (const key in values) values[key] = props.modelValue[key]
+  if (opts.picker) setColorDot()
 }
 watch(() => props.modelValue, updColour)
 watch(() => props.modelValue.hue, updColour)
 watch(() => props.modelValue.saturation, updColour)
 watch(() => props.modelValue.luminosity, updColour)
 
-const emitter = defineEmits(["update:modelValue", "change"])
-
 const current = computed(() => ({
-  hue: ~~(colour.value.hue * 360),
-  saturation: ~~(colour.value.saturation * 100),
-  luminosity: ~~(colour.value.luminosity * 100),
+  hue: ~~(values.hue * 360),
+  saturation: ~~(values.saturation * 100),
+  luminosity: ~~(values.luminosity * 100),
 }))
 
+const emitter = defineEmits(["update:modelValue", "change"])
+
 function notify() {
-  emitter("change", colour.value)
-  emitter("update:modelValue", colour.value)
+  for (const key in values) props.modelValue[key] = values[key]
+  emitter("change", props.modelValue)
+  emitter("update:modelValue", props.modelValue)
 }
+
+const hueLoop = [...Array(7)].map((_, i) => (i / 6) * 360) // 6 primary colours + ending red = 7
+const gradients = reactive({
+  hueStatic: hueLoop.map(hue => `hsl(${hue}, 100%, 50%)`),
+  hue: computed(() => hueLoop.map(hue => `hsl(${hue}, ${current.value.saturation}%, ${current.value.luminosity}%)`)),
+  overlaySaturation: [`hsla(0, 0%,  0%, 0)`, `hsla(0, 0%, 50%, 1)`],
+  overlayLuminosity: [`hsla(0, 0%, 100%, 1)`, `hsla(0, 0%, 100%, 0) 50%`, `hsla(0, 0%,   0%, 0) 50%`, `hsla(0, 0%,   0%, 1)`],
+  pickerOverlay: computed(() => (opts.saturation ? gradients.overlaySaturation : gradients.overlayLuminosity)),
+  saturation: computed(() => [
+    `hsl(${current.value.hue},   0%, ${current.value.luminosity}%)`,
+    `hsl(${current.value.hue}, 100%, ${current.value.luminosity}%)`,
+  ]),
+  luminosity: computed(() => [
+    `hsl(${current.value.hue}, ${current.value.saturation}%,   0%)`,
+    `hsl(${current.value.hue}, ${current.value.saturation}%,  50%)`,
+    `hsl(${current.value.hue}, ${current.value.saturation}%, 100%)`,
+  ]),
+})
 
 const colorDot = ref({ x: 0, y: 0 })
 let isMousedown = false
 
-function onMousedown() { isMousedown = true }
-function onMousemove(evt) { updateColor(evt) }
-function onMouseupLeave(evt) { updateColor(evt, true) }
+function onMousedown() {
+  isMousedown = true
+}
+function onMousemove(evt) {
+  updateColor(evt)
+}
+function onMouseupLeave(evt) {
+  updateColor(evt, true)
+}
 
 function getPosition(evt) {
   const rect = evt.target.getBoundingClientRect()
-  if (rect.width < 20)
-    return colorDot.value
+  if (rect.width < 20) return colorDot.value
   return {
-    x: (evt.x - rect.left) / rect.width * 100,
-    y: (evt.y - rect.top) / rect.height * 100,
+    x: ((evt.x - rect.left) / rect.width) * 100,
+    y: ((evt.y - rect.top) / rect.height) * 100,
   }
 }
 
 function updateColor(evt, mouseLeave = false) {
-  if (!isMousedown)
-    return
-  if (mouseLeave)
-    isMousedown = false
+  if (!isMousedown) return
+  if (mouseLeave) isMousedown = false
   const pos = getPosition(evt)
-  colour.value.hue = Math.max(0, Math.min(pos.x, 100)) / 100
+  values.hue = Math.max(0, Math.min(pos.x, 100)) / 100
   const secondary = 1 - Math.max(0, Math.min(pos.y, 100)) / 100
-  if (opts.saturation)
-    colour.value.saturation = secondary
-  else
-    colour.value.luminosity = secondary
+  if (opts.saturation) values.saturation = secondary
+  else values.luminosity = secondary
   setColorDot()
   nextTick(notify)
 }
 
 function setColorDot() {
   colorDot.value = {
-    x: colour.value.hue * 100,
-    y: (1 - (opts.saturation ? colour.value.saturation : colour.value.luminosity)) * 100,
+    x: values.hue * 100,
+    y: (1 - (opts.saturation ? values.saturation : values.luminosity)) * 100,
   }
 }
 
-if (opts.picker)
-  setColorDot()
+onMounted(() => updColour())
 </script>
 
 <style lang="scss" scoped>
@@ -223,16 +230,16 @@ if (opts.picker)
 
   &.colour-picker-mode-slider {
     flex-wrap: wrap;
-    justify-content: space-between;
-    > * {
-      $width: calc(50% - 0.5em);
-      flex: 0 0 $width;
-      width: $width;
-    }
-    > *:first-child {
-      flex: 0 0 100%;
-      width: 100%;
-    }
+    // justify-content: space-between;
+    // > * {
+    //   $width: calc(50% - 0.5em);
+    //   flex: 0 0 $width;
+    //   width: $width;
+    // }
+    // > *:first-child {
+    //   flex: 0 0 100%;
+    //   width: 100%;
+    // }
   }
 }
 
@@ -247,15 +254,7 @@ if (opts.picker)
     filter: grayscale(50%);
     pointer-events: none;
   }
-  &.colour-picker-saturation {
-    --colour-picker-vertical: linear-gradient(180deg, hsla(0, 0%, 0%, 0) 0%, hsl(0, 0%, 50%) 100%);
-  }
-  &.colour-picker-luminosity {
-    --colour-picker-vertical: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsla(0, 0%, 0%, 0) 50%, hsl(0, 0%, 0%) 100%);
-  }
-  background-image:
-    var(--colour-picker-vertical),
-    linear-gradient(90deg, #F00, #FF0, #0F0, #0FF, #00F, #F0F, #F00);
+  background-image: var(--colour-picker-y), var(--colour-picker-x);
   cursor: crosshair;
   .colour-picker-dot {
     position: absolute;
@@ -266,7 +265,8 @@ if (opts.picker)
     height: 1px;
     height: 0;
     pointer-events: none;
-    &::before, &::after {
+    &::before,
+    &::after {
       content: "";
       box-sizing: border-box;
       position: absolute;
@@ -286,5 +286,4 @@ if (opts.picker)
     }
   }
 }
-
 </style>

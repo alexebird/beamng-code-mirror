@@ -216,7 +216,7 @@ local function liveEditorToolbar()
         if im.BeginMenu("Spawn") then
           for k, vehData in ipairs(vehsList) do
             if im.MenuItem1(vehData.model.key) then
-              local spawnPos = getCameraPosition()
+              local spawnPos = core_camera.getPosition()
               local spawnRot = getCameraQuat()
               local veh = core_vehicles.spawnNewVehicle(vehData.model.key, {pos = spawnPos, rot = spawnRot})
               veh:queueLuaCommand("input.event('parkingbrake', 0, 1)")

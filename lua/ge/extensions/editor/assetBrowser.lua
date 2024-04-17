@@ -1157,6 +1157,9 @@ local function instantiateMesh(asset)
   local grp = scenetree.MissionGroup
   if grp then
     grp:addObject(newObj)
+    if editor.getPreference("assetBrowser.general.selectInstantiatedObject") then
+      editor.selectObjectById(newObj:getId())
+    end
     editor.setDirty()
   else
     editor.logDebug("MissionGroup does not exist. Not able to add instantiated object to MissionGroup. Deleting object.")
@@ -4692,9 +4695,10 @@ local function onEditorRegisterPreferences(prefsRegistry)
     {createAssetDataOfDirectory = {"bool", true, "If true the asset browser will create thumbnails and other data when opening a directory."}},
     {fileTypeIconColor = { "ColorI", ColorI(255, 255, 255, 255), "Color of file type icon." }},
 
+    {selectInstantiatedObject = {"bool", true, "Auto-select the object that is instantiated through the asset browser."}},
     {displayAssetColorCode = {"bool", true, "If true the asset browser will display a color coded bar at the bottom of the asset thumbnails."}},
     {typeColors = {"table", {}, "", nil, nil, nil, nil, nil, function()
-      if var.typeColors and editor.getPreference("assetBrowser.general.displayAssetColorCode") then
+      if var.typeColors then
         local sortedTbl = tableKeys(var.typeColors)
         table.sort(sortedTbl)
         im.BeginChild1("abTypeColorsTblChild", im.ImVec2(0, 300))

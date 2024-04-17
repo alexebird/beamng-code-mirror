@@ -1,45 +1,27 @@
 <template>
   <div>
     <div class="career-status-progress">
-      <div class="career-status-value">
-        <BngIcon span class="icon" :title="icons.general.beamxp" :type="icons.general.beamXP" :color="'#fff'"></BngIcon>
-        <div>{{ careerStatusData.beamXP }}</div>
-      </div>
-      <div class="vertical-divider"></div>
-      <div class="career-status-value">
-        <BngIcon span class="icon" :title="icons.general.star_outlined" :type="icons.general.star_outlined" :color="'var(--bng-add-blue-300)'"></BngIcon>
-        <div>{{ careerStatusData.bonusStars }}</div>
-      </div>
-      <div class="vertical-divider"></div>
-      <div class="career-status-value">
-        <BngIcon span class="icon" :title="icons.general.beambuck" :type="icons.general.beambuck"></BngIcon>
-        <div>{{ units.beamBucks(careerStatusData.money) }}</div>
-      </div>
+      <BngUnit class="career-status-value" :xp="careerStatusData.beamXP" />
+      <BngDivider />
+      <BngUnit class="career-status-value" :bonusstars="careerStatusData.bonusStars" />
+      <BngDivider />
+      <BngUnit class="career-status-value" :beambucks="careerStatusData.money" />
     </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from "vue"
-import { lua, useBridge } from "@/bridge"
-import { BngIcon } from "@/common/components/base"
-import { icons } from "@/common/components/base/bngIcon.vue"
-
-const { units } = useBridge()
+import { lua } from "@/bridge"
+import { BngUnit, BngDivider } from "@/common/components/base"
 
 const careerStatusData = ref({})
 
 const handleCareerStatusData = data => (careerStatusData.value = data)
 
-const updateDisplay = () => {
-  lua.career_modules_uiUtils.getCareerStatusData().then(handleCareerStatusData)
-}
+const updateDisplay = () => lua.career_modules_uiUtils.getCareerStatusData().then(handleCareerStatusData)
 
-const start = () => {
-  updateDisplay()
-}
-
-onMounted(start)
+onMounted(updateDisplay)
 
 defineExpose({ updateDisplay })
 </script>
@@ -77,6 +59,7 @@ defineExpose({ updateDisplay })
   align-self: stretch;
 }
 
+// FIXME - this is relying on a conflict with AngularJS CSS in main.css - this class is worryingly used a lot around the place
 .career-status-value {
   flex-direction: row;
   display: flex;
@@ -87,5 +70,6 @@ defineExpose({ updateDisplay })
   font-weight: 700;
   padding-right: 0.25rem;
   padding-left: 0.25rem;
+  color: white;
 }
 </style>

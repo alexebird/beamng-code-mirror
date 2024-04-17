@@ -1,5 +1,6 @@
 import { Any, Integer, run, runRaw } from "./libs/Lua.js"
 import { getMockedData } from "../../devutils/mock.js"
+import { sendGUIHook } from "../../devutils/browser.js"
 
 const withMocked = (sig, getData) => ((sig.mocked = getData), sig)
 
@@ -39,6 +40,11 @@ export default {
   getVehicleColorPalette: index => Integer,
   resetGamePlay: playerID => Integer,
 
+  guihooks: {
+    // can take multiple params - just add them individually after the hook name
+    trigger: withMocked(hookName => String, sendGUIHook),
+  },
+
   simTimeAuthority: {
     togglePause: () => {},
   },
@@ -54,6 +60,11 @@ export default {
   career_career: {
     closeAllMenus: () => {},
     isActive: () => {},
+    requestPause: state => Boolean,
+  },
+
+  career_saveSystem: {
+    saveCurrent: () => {},
   },
 
   career_modules_uiUtils: {
@@ -61,6 +72,13 @@ export default {
       () => {},
       () => getMockedData("career.status")
     ),
+    getCareerSimpleStats: withMocked(
+      () => {},
+      () => getMockedData("career.simpleStats")
+    ),
+    getCareerPauseContextButtons: () => {},
+    callCareerPauseContextButtons: id => Number,
+    getCareerCurrentLevelName: () => {},
   },
 
   career_modules_fuel: {
@@ -79,6 +97,19 @@ export default {
       () => getMockedData("logbook.sample")
     ),
     setLogbookEntryRead: (id, state) => [String, Boolean],
+  },
+
+  career_modules_milestones_milestones: {
+    getMilestones: () => {},
+    claim: id => {},
+  },
+
+  career_modules_branches_landing: {
+    getBranchLandingData: () => {},
+    openBigMapWithMissionSelected: id => String,
+    getBranchSkillCardData: id => String,
+    getBranchPageData: id => String,
+    getCargoProgressForUI: () => {},
   },
 
   career_modules_partShopping: {
@@ -105,13 +136,16 @@ export default {
     onShoppingMenuClosed: () => {},
   },
 
+  career_modules_testDrive: {
+    stop: () => {},
+  },
+
   career_modules_inspectVehicle: {
     startTestDrive: () => {},
-    endTestDrive: () => {},
     sendUIData: () => {},
     onInspectScreenChanged: enabled => Boolean,
     repairVehicle: () => {},
-    leaveInspectVehicle: needsRepair => Boolean,
+    stopInspection: () => {},
   },
 
   career_modules_inventory: {
@@ -124,6 +158,7 @@ export default {
     setFavoriteVehicle: id => Number,
     sendDataToUi: () => {},
     removeVehicleObject: id => Number,
+    getVehicles: () => {},
   },
 
   career_modules_partInventory: {
@@ -165,6 +200,7 @@ export default {
     close: () => {},
     setPaints: paint => Object,
     getFactoryPaint: () => {},
+    onUIOpened: () => {},
   },
 
   career_modules_questManager: {
@@ -178,7 +214,7 @@ export default {
     computerButtonCallback: (buttonId, inventoryId) => [String, Any],
   },
 
-  career_modules_delivery_deliveryManager: {
+  career_modules_delivery_cargoScreen: {
     requestCargoDataForUi: (facilityId, parkingSpotPath, updateMaxTimeStamp) => [Any, Any, Any],
     moveCargoFromUi: (cargoId, targetLocation) => [Number, Object],
     commitDeliveryConfiguration: () => {},
@@ -186,8 +222,13 @@ export default {
     exitDeliveryMode: () => {},
     exitCargoOverviewScreen: () => {},
     showCargoRoutePreview: cargoId => Any,
+    showVehicleOfferRoutePreview: offerId => Any,
     setCargoRoute: (cargoId, origin) => [Number, Boolean],
     showCargoContainerHelpPopup: () => {},
+    setBestRoute: () => {},
+    spawnOffer: offerId => Number,
+    setCargoScreenTab: tab => String,
+    unloadCargoPopupClosed: () => {},
   },
 
   core_gamestate: {
@@ -197,12 +238,16 @@ export default {
   core_gameContext: {
     getGameContext: withMocked(
       params => {},
-      params => getMockedData("activityStart.gameContextData")
+      params => getMockedData("gameContext.gameContextData")
     ),
   },
 
   gameplay_statistic: {
     sendGUIState: () => {},
+  },
+
+  freeroam_bigMapMode: {
+    enterBigMap: () => {},
   },
 
   extensions: {
@@ -225,6 +270,7 @@ export default {
       getConfigList: () => {},
       highlightParts: parts => Object,
       loadLocal: filename => String,
+      resetPartsToLoadedConfig: () => {},
       openConfigFolderInExplorer: () => {},
       removeLocal: configName => String,
       savedefault: () => {},
@@ -239,9 +285,30 @@ export default {
       setDynamicTextureMaterials: () => {},
     },
 
+    core_vehicle_mirror: {
+      getAnglesOffset: () => {},
+      focusOnMirror: mirror_name => Any, //optional String
+      setAngleOffset: (mirrorName, x, z, v, save) => [String, Number, Number, Boolean, Boolean],
+    },
+
+    gameplay_missions_missionScreen: {
+      getMissionScreenData: withMocked(
+        () => {},
+        () => getMockedData("missionDetails.getMissionScreenData")
+      ),
+      startMissionById: (missionId, userSettings, startingOptions) => [String, Object, Object],
+      getActiveStarsForUserSettings: (id, userSettings) => [String, Object],
+      requestStartingOptionsForUserSettings: (id, userSettings) => [String, Object],
+    },
+
     gameplay_garageMode: {
+      isActive: () => {},
       setCamera: view => String,
       setLighting: lights => Array,
+      getLighting: () => {},
+      setGarageMenuState: state => String,
+      stop: () => {},
+      testVehicle: () => {},
     },
 
     ui_dynamicDecals: {
@@ -251,7 +318,7 @@ export default {
       setupEditor: () => {},
       loadSaveFile: path => String,
       createSaveFile: () => {},
-      saveChanges: (filename) => {},
+      saveChanges: filename => {},
       cancelChanges: () => {},
       exportSkin: skinName => String,
       moveSelectedLayer: order => Number,
@@ -262,6 +329,9 @@ export default {
       setDecalSkew: decalSkew => Object,
       setDecalApplyMultiple: applyMultiple => Boolean,
       setDecalResetOnApply: resetOnApply => Boolean,
+      setDecalPositionX: positionX => Number,
+      setDecalPositionY: positionY => Number,
+      updateDecalPosition: (positionX, positionY) => [Number, Number],
       toggleApplyingDecal: enable => Boolean,
       toggleActionMap: enable => Boolean,
       toggleDecalVisibility: enable => Boolean,
@@ -273,8 +343,114 @@ export default {
       updateLayer: layerData => Object,
       deleteSelectedLayer: () => {},
       selectLayer: layerUid => String,
+      toggleStampActionMap: enable => Boolean,
       toggleLayerHighlight: uid => String,
       toggleLayerVisibility: uid => String,
+    },
+
+    ui_liveryEditor_editor: {
+      startEditor: () => {},
+      exitEditor: () => {},
+      startSession: () => {},
+      applyDecal: () => {},
+      createNew: () => {},
+      loadFile: path => String,
+      save: filename => String,
+    },
+
+    ui_liveryEditor_camera: {
+      setCameraView: cameraView => Number,
+    },
+
+    ui_liveryEditor_controls: {
+      // editAsController: () => {},
+      toggleUseMousePos: () => {},
+    },
+
+    ui_liveryEditor_history: {
+      redo: () => {},
+      undo: () => {},
+    },
+
+    ui_liveryEditor_layers_decals: {
+      createDecal: params => Object,
+      translate: (x, y) => [Number, Number],
+      rotate: (degrees, counterClockwise) => [Number, Boolean],
+      scale: (stepsX, stepsY) => [Number, Number],
+    },
+
+    ui_liveryEditor_layers_fill: {
+      createLayer: params => {},
+      getColorPalettes: () => {},
+    },
+
+    ui_liveryEditor_resources: {
+      getDecalTextures: () => {},
+      getTextureCategories: () => {},
+      getTexturesByCategory: category => String,
+    },
+
+    ui_liveryEditor_selection: {
+      getSelectedLayersData: () => {},
+      setSelected: layerUid => String,
+      setMultipleSelected: layerUids => Array,
+      clearSelection: () => {},
+    },
+
+    ui_liveryEditor_tools: {
+      useTool: tool => String,
+      closeCurrentTool: () => {},
+    },
+
+    ui_liveryEditor_tools_material: {
+      setColor: rgbaArray => Array,
+      setMetallicIntensity: metallicIntensity => Number,
+      setNormalIntensity: normalIntensity => Number,
+      setRoughnessIntensity: roughnessIntensity => Number,
+    },
+
+    ui_liveryEditor_tools_misc: {
+      duplicate: () => {},
+    },
+
+    ui_liveryEditor_tools_group: {
+      moveOrderUp: () => {},
+      moveOrderDown: () => {},
+      changeOrder: (oldOrder, oldParent, newOrder, newParent) => [Number, String, Number, String],
+      groupLayers: () => {},
+      ungroupLayer: () => {},
+    },
+
+    ui_liveryEditor_tools_transform: {
+      translate: (x, y) => [Number, Number],
+      rotate: (degrees, counterClockwise) => [Number, Boolean],
+      scale: (stepsX, stepsY) => [Number, Number],
+      setScale: (stepsX, stepsY) => [Number, Number],
+      setRotation: degrees => Number,
+      skew: (skewX, skewY) => [Number, Number],
+      setSkew: (skewX, skewY) => [Number, Number],
+      useStamp: () => {},
+      cancelStamp: () => {},
+    },
+
+    ui_liveryEditor_tools_settings: {
+      deleteLayer: () => {},
+      setMirrored: (mirrored, flip) => [Boolean, Boolean],
+      setVisibility: show => Boolean,
+      toggleVisibility: () => {},
+      toggleVisibilityById: layerUid => String,
+      toggleLock: () => {},
+      toggleLockById: layerUid => String,
+      setMirrored: (mirrored, flip) => [Boolean, Boolean],
+      rename: name => String,
+    },
+
+    ui_liveryEditor_userData: {
+      requestUpdatedData: () => {},
+      getSaveFiles: () => {},
+      createSaveFile: filename => String,
+      renameFile: (filename, newFilename) => [String, String],
+      deleteSaveFile: filename => String,
     },
 
     ui_gameBlur: {
@@ -309,6 +485,7 @@ export default {
   gameplay_markerInteraction: {
     startMissionById: (missionId, userSettings) => [Any, Object],
     closeViewDetailPrompt: force => Boolean,
+    changeUserSettings: (missionId, userSettings) => [String, Object],
   },
 
   ui_missionInfo: {
@@ -359,6 +536,13 @@ export default {
     setVehicleColor: (index, value) => [Integer, Object],
   },
 
+  core_recoveryPrompt: {
+    getUIData: () => [],
+    uiPopupButtonPressed: index => [Integer],
+    uiPopupCancelPressed: () => [],
+    onPopupClosed: () => [],
+  },
+
   util_CreateThumbnails: {
     startWork: configName => String,
   },
@@ -381,6 +565,12 @@ export default {
       playOnce: (channel, sound) => [String, String],
     },
   },
+
+  Steam: {
+    showFloatingGamepadTextInput: (type, left, top, width, height) => [Number, Number, Number, Number, Number],
+  },
+
+  setCEFTyping: state => Boolean,
 
   // -- Testing -------------------------------------------------------------------
 

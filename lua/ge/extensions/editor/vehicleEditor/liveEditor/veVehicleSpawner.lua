@@ -96,7 +96,7 @@ local function vehicleSelectorGui()
       local vehData = vehsList[i]
       if im.Button(vehData.model.Name) then
         --local spawnPos = startPos + startDir * vec3(10 * (i - 1), 0, 0)
-        local spawnPos = getCameraPosition()
+        local spawnPos = core_camera.getPosition()
         local spawnRot = getCameraQuat()
         local veh = core_vehicles.spawnNewVehicle(vehData.model.key, {pos = spawnPos, rot = spawnRot})
         veh:queueLuaCommand("input.event('parkingbrake', 0, 1)")

@@ -421,7 +421,7 @@ end
 
 -- positions the track 15m above the player vehicle. returns false if there is no player vehicle
 local function positionTrackAboveVehicle()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then
     return false
   end
@@ -433,7 +433,7 @@ end
 
 -- positions the track so it looks into the direction of the player vehicle. returns false if there is no player vehicle
 local function rotateTrackToTrackVehicle()
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if not playerVehicle then
     return false
   end
@@ -2067,7 +2067,7 @@ local function save(filename, saveOptions)
   if not saveOptions then saveOptions = {} end
   --additional info, not important for track generation
   exported.version = version
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if playerVehicle then
     exported.author = core_vehicles.getVehicleLicenseText(playerVehicle)
   else

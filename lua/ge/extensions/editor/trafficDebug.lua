@@ -3,18 +3,18 @@
 -- file, You can obtain one at http://beamng.com/bCDDL-1.1.txt
 
 local M = {}
-M.dependencies = {"gameplay_traffic"}
 
 local im = ui_imgui
 local toolWindowName = "Traffic Debug"
 
-local trafficRef, poolsRef, debugMode
+local traffic
 
 -- ui stuff
+local trafficAmountChange = im.IntPtr(0)
+local parkingAmountChange = im.IntPtr(0)
+
 local drawTab = nop
-local selectedVehicle = nil
-local selectedPool = nil
-local selectedPoolVehicle = nil
+local currId = 0
 
 local generalKeys = {"damage", "crashDamage", "speed", "distCam", "respawnCount", "activeProbability", "camVisible", "isAi"}
 local respawnKeys = {"spawnValue", "spawnDirBias", "sightStrength", "sightDirValue", "finalRadius"}
@@ -27,13 +27,13 @@ local colors = {
   white = im.ImVec4(1, 1, 1, 1),
   red = im.ImVec4(1, 0, 0, 1),
   yellow = im.ImVec4(1, 1, 0.5, 1),
+  silver = im.ImVec4(0.75, 0.75, 0.75, 1),
   grey = im.ImVec4(0.5, 0.5, 0.5, 1)
 }
 
 -- debug stuff
 local logs = {}
 local maxLogsPerVeh = 100
-local resetLogsAtRespawn = im.BoolPtr(false)
 
 local function appendLog(id, data) -- inserts an entry into the log table
   if not logs[id] then logs[id] = {} end
@@ -47,96 +47,303 @@ local function doBulletTextInfo(key, value) -- validates and displays a bullet p
 end
 
 local function drawGeneralTab()
-  local debugModeVar = im.BoolPtr(debugMode)
-  if im.Checkbox("General traffic debug", debugModeVar) then
-    if debugModeVar[0] then
-      for id, veh in pairs(trafficRef) do
+  local trafficTotalAmount = tableSize(traffic)
+  local trafficAmount = gameplay_traffic.getNumOfTraffic()
+  local trafficActiveAmount = gameplay_traffic.getNumOfTraffic(true)
+  local policeAmount = tableSize(gameplay_police.getPoliceVehicles())
+  local parkedAmount = tableSize(gameplay_parking.getParkedCarsList())
+
+  im.Columns(2)
+  im.SetColumnWidth(0, 200)
+
+  im.TextUnformatted("All traffic vehicles (also players)")
+  im.NextColumn()
+  im.TextUnformatted(tostring(trafficTotalAmount))
+  im.NextColumn()
+
+  im.Text("AI traffic vehicles")
+  im.NextColumn()
+  im.TextUnformatted(tostring(trafficAmount))
+  im.NextColumn()
+
+  im.Text("Active AI traffic vehicles")
+  im.NextColumn()
+  im.TextUnformatted(tostring(trafficActiveAmount))
+  im.NextColumn()
+
+  im.Text("Police vehicles")
+  im.NextColumn()
+  im.TextUnformatted(tostring(policeAmount))
+  im.NextColumn()
+
+  im.Text("Parked vehicles")
+  im.NextColumn()
+  im.TextUnformatted(tostring(parkedAmount))
+  im.NextColumn()
+
+  im.Columns(1)
+  im.Separator()
+
+  im.PushItemWidth(100)
+  im.InputInt("Add / Remove Traffic Vehicles", trafficAmountChange, 1)
+  im.PopItemWidth()
+  im.SameLine()
+  local num = math.abs(trafficAmountChange[0])
+  local str = trafficAmountChange[0] >= 0 and "Add ("..num..")##trafficAmount" or "Remove ("..num..")##trafficAmount"
+  if im.Button(str) then
+    if trafficAmountChange[0] > 0 then
+      gameplay_traffic.setupTraffic(trafficAmountChange[0], nil, {ignoreDelete = true})
+    elseif trafficAmountChange[0] < 0 then
+      local trafficAiVehsList = gameplay_traffic.getTrafficList()
+      for i = trafficAmount, trafficAmount + trafficAmountChange[0], -1 do
+        if trafficAiVehsList[i] then
+          be:getObjectByID(trafficAiVehsList[i]):delete()
+        end
+      end
+    end
+  end
+
+  im.PushItemWidth(100)
+  im.InputInt("Add / Remove Parked Vehicles", parkingAmountChange, 1)
+  im.PopItemWidth()
+  im.SameLine()
+  num = math.abs(parkingAmountChange[0])
+  str = parkingAmountChange[0] >= 0 and "Add ("..num..")##parkingAmount" or "Remove ("..num..")##parkingAmount"
+  if im.Button(str) then
+    if parkingAmountChange[0] > 0 then
+      gameplay_parking.setupVehicles(parkingAmountChange[0], {ignoreDelete = true, ignoreParkingSpots = true})
+    elseif parkingAmountChange[0] < 0 then
+      local parkedVehsList = gameplay_parking.getParkedCarsList()
+      for i = parkedAmount, parkedAmount + parkingAmountChange[0], -1 do
+        if parkedVehsList[i] then
+          be:getObjectByID(parkedVehsList[i]):delete()
+        end
+      end
+    end
+  end
+
+  if im.Button("Scatter Traffic Vehicles") then
+    gameplay_traffic.scatterTraffic()
+  end
+  if im.Button("Scatter Parked Vehicles") then
+    gameplay_parking.scatterParkedCars()
+  end
+
+  im.Separator()
+
+  local trafficVars = gameplay_traffic.getTrafficVars()
+  local parkingVars = gameplay_parking.getParkingVars()
+  local var = im.BoolPtr(gameplay_traffic.debugMode)
+  if im.Checkbox("Visual Debug Mode", var) then
+    if var[0] then
+      for id, veh in pairs(traffic) do
         veh.debugLine = true
         veh.debugText = true
       end
     end
 
-    gameplay_traffic.debugMode = debugModeVar[0]
+    gameplay_traffic.debugMode = var[0]
   end
 
-  im.Separator()
+  im.Dummy(im.ImVec2(0, 5))
+  im.TextUnformatted("Traffic Variables")
 
-  im.Columns(2)
-  im.SetColumnWidth(0, 250)
+  local activeNum = trafficVars.activeAmount
+  if activeNum == math.huge then
+    activeNum = trafficAmount
+  end
+  var = im.IntPtr(activeNum)
+  im.PushItemWidth(100)
+  if im.InputInt("Active Traffic Amount", var, 1) then
+    gameplay_traffic.setTrafficVars({activeAmount = math.max(0, var[0])})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets the maximum amount of active (visible) traffic vehicles.")
 
-  im.TextUnformatted("Amount of all traffic (including players)")
-  im.NextColumn()
-  im.TextUnformatted(tostring(tableSize(trafficRef)))
-  im.NextColumn()
+  var = im.FloatPtr(trafficVars.spawnValue)
+  im.PushItemWidth(100)
+  if im.InputFloat("Respawn Rate", var, 0.1, nil, "%.1f") then
+    gameplay_traffic.setTrafficVars({spawnValue = clamp(var[0], 0, 3)})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets how often traffic vehicles will respawn.")
 
-  im.Text("Amount of AI traffic vehicles")
-  im.NextColumn()
-  im.TextUnformatted(tostring(gameplay_traffic.getNumOfTraffic()))
-  im.NextColumn()
+  var = im.FloatPtr(trafficVars.spawnDirBias)
+  im.PushItemWidth(100)
+  if im.InputFloat("Respawn Direction Bias", var, 0.1, nil, "%.1f") then
+    gameplay_traffic.setTrafficVars({spawnDirBias = clamp(var[0], -1, 1)})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets the average direction of traffic vehicles (-1 = away from you, 1 = towards you).")
 
-  im.Text("Amount of active AI traffic vehicles")
-  im.NextColumn()
-  im.TextUnformatted(tostring(gameplay_traffic.getNumOfTraffic(true)))
-  im.NextColumn()
+  var = im.FloatPtr(trafficVars.baseAggression)
+  im.PushItemWidth(100)
+  if im.InputFloat("AI Aggression", var, 0.05, nil, "%.2f") then
+    gameplay_traffic.setTrafficVars({baseAggression = clamp(var[0], 0.1, 2)})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets how risky the general driving behavior should be.")
 
-  im.Text("Amount of police vehicles")
-  im.NextColumn()
-  im.TextUnformatted(tostring(tableSize(gameplay_police.getPoliceVehicles())))
-  im.NextColumn()
+  local speedLimit = trafficVars.speedLimit or -1
+  var = im.FloatPtr(speedLimit)
+  im.PushItemWidth(100)
+  if im.InputFloat("AI Speed Limit", var, 0.5, nil, "%.1f") then
+    gameplay_traffic.setTrafficVars({speedLimit = clamp(var[0], -1, 100)})
+  end
+  im.PopItemWidth()
+  if speedLimit >= 0 then
+    im.SameLine()
+    im.TextColored(colors.grey, string.format('%0.2f', speedLimit * 3.6))
+    im.SameLine()
+    im.TextColored(colors.grey, "km/h / ")
+    im.SameLine()
+    im.TextColored(colors.grey, string.format('%0.2f', speedLimit * 2.237))
+    im.SameLine()
+    im.TextColored(colors.grey, "mph")
+  end
+  im.tooltip("Sets a strict speed limit for traffic vehicles (-1 = auto).")
 
-  im.Columns(1)
+  local awareness = trafficVars.aiAware ~= "off" and true or false
+  var = im.BoolPtr(awareness)
+  if im.Checkbox("AI Awareness", var) then
+    gameplay_traffic.setTrafficVars({aiAware = var[0] and "on" or "off"})
+  end
+  im.tooltip("If true, AI will try to avoid collisions with other vehicles.")
+
+  var = im.BoolPtr(trafficVars.enableRandomEvents)
+  if im.Checkbox("Enable Random Events", var) then
+    gameplay_traffic.setTrafficVars({enableRandomEvents = var[0]})
+  end
+  im.tooltip("If true, random events can happen (such as lawless drivers).")
+
+  var = im.BoolPtr(trafficVars.enablePrivateRoads)
+  if im.Checkbox("Enable All Roads For Spawning", var) then
+    gameplay_traffic.setTrafficVars({enablePrivateRoads = var[0]})
+  end
+  im.tooltip("If true, traffic vehicles will try to spawn on any road type.")
+
+  im.Dummy(im.ImVec2(0, 5))
+  im.TextUnformatted("Parking Variables")
+
+  activeNum = parkingVars.activeAmount
+  if activeNum == math.huge then
+    activeNum = parkedAmount
+  end
+  var = im.IntPtr(activeNum)
+  im.PushItemWidth(100)
+  if im.InputInt("Active Parked Amount", var, 1) then
+    gameplay_parking.setParkingVars({activeAmount = math.max(0, var[0])})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets the maximum amount of active (visible) parked vehicles.")
+
+  var = im.FloatPtr(parkingVars.baseProbability)
+  im.PushItemWidth(100)
+  if im.InputFloat("Parking Spot Probability", var, 0.05, nil, "%.2f") then
+    gameplay_parking.setParkingVars({baseProbability = clamp(var[0], 0, 1)})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets the general probability of any parking spot being used for parked cars to spawn into.")
+
+  var = im.FloatPtr(parkingVars.neatness)
+  im.PushItemWidth(100)
+  if im.InputFloat("Parking Spot Uniformity", var, 0.05, nil, "%.2f") then
+    gameplay_parking.setParkingVars({neatness = clamp(var[0], 0, 1)})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets how neatly the parked cars will be placed.")
+
+  var = im.FloatPtr(parkingVars.precision)
+  im.PushItemWidth(100)
+  if im.InputFloat("Parking Spot Precision Judgement", var, 0.05, nil, "%.2f") then
+    gameplay_parking.setParkingVars({precision = clamp(var[0], 0, 1)})
+  end
+  im.PopItemWidth()
+  im.tooltip("Sets the precision needed to count as valid parking.")
 end
 
 local function drawVehiclesTab()
   im.BeginChild1("Vehicles##trafficDebug", im.ImVec2(180 * im.uiscale[0], 0 ), im.WindowFlags_ChildWindow)
-  for _, id in ipairs(tableKeysSorted(trafficRef)) do
-    local veh = trafficRef[id]
+  for id, veh in pairs(traffic) do
+    if not veh.isAi then
+      im.PushStyleColor2(im.Col_Text, colors.yellow)
+      if im.Selectable1("["..id.."] "..veh.model.key, id == currId) then
+        currId = id
+      end
+      im.PopStyleColor()
+    end
+  end
+
+  for _, id in ipairs(gameplay_traffic.getTrafficList()) do
+    local veh = traffic[id]
     local txtColor = colors.white
     if veh.state == "fadeIn" then
       txtColor = colors.red
     elseif not be:getObjectByID(id):getActive() then
       txtColor = colors.grey
-    elseif veh.isPlayerControlled then
-      txtColor = colors.yellow
     end
 
     im.PushStyleColor2(im.Col_Text, txtColor)
-    if im.Selectable1("["..id.."] "..veh.model.key, veh == selectedVehicle) then
-      selectedVehicle = veh
+    if im.Selectable1("["..id.."] "..veh.model.key, id == currId) then
+      currId = id
     end
     im.PopStyleColor()
   end
-  im.EndChild()
 
+  im.Separator()
+
+  for _, id in ipairs(gameplay_parking.getParkedCarsList()) do
+    im.PushStyleColor2(im.Col_Text, colors.silver)
+    if im.Selectable1("["..id.."] "..be:getObjectByID(id).jbeam, id == currId) then
+      currId = id
+    end
+    im.PopStyleColor()
+  end
+
+  im.EndChild()
   im.SameLine()
 
   im.BeginChild1("Current Vehicle##trafficDebug", im.ImVec2(0, 0), im.WindowFlags_ChildWindow)
-  if selectedVehicle then
-    local obj = be:getObjectByID(selectedVehicle.id)
+  local currVeh = traffic[currId]
+  local obj = be:getObjectByID(currId)
+
+  if obj then
     im.Text("Information")
 
-    im.BulletText("Model: "..selectedVehicle.model.name)
-    im.BulletText("State: "..selectedVehicle.state)
-    im.BulletText("Role: "..selectedVehicle.role.name)
-    im.BulletText("Action: "..selectedVehicle.role.actionName)
+    local system = currVeh and "traffic" or "parking"
+    im.BulletText("System: "..system)
+    im.Dummy(im.ImVec2(0, 5))
+
+    local pos = obj:getPosition()
+    local dist = pos:distance(core_camera.getPosition())
+    local height = clamp(dist / 10, 10, 40)
+    local alpha = clamp((dist - 50) / 450, 0.2, 0.8)
+    debugDrawer:drawSquarePrism(pos, pos + vec3(0, 0, height), Point2F(0, 0), Point2F(height * 0.25, height * 0.25), ColorF(1, 1, 0.25, alpha))
+  end
+
+  if currVeh then
+    im.BulletText("Model: "..currVeh.model.name)
+    im.BulletText("State: "..currVeh.state)
+    im.BulletText("Role: "..currVeh.role.name)
+    im.BulletText("Action: "..currVeh.role.actionName)
     im.Dummy(im.ImVec2(0, 5))
 
     if im.TreeNode1("General Info") then
       for _, key in ipairs(generalKeys) do
-        doBulletTextInfo(key, selectedVehicle[key])
+        doBulletTextInfo(key, currVeh[key])
       end
       im.TreePop()
     end
 
     if im.TreeNode1("Respawn Info") then
       for _, key in ipairs(respawnKeys) do
-        doBulletTextInfo(key, selectedVehicle.respawn[key])
+        doBulletTextInfo(key, currVeh.respawn[key])
       end
       im.TreePop()
     end
 
     if im.TreeNode1("Pursuit Info") then
-      local pursuit = selectedVehicle.pursuit
+      local pursuit = currVeh.pursuit
       for _, key in ipairs(pursuitKeys) do
         doBulletTextInfo(key, pursuit[key])
       end
@@ -149,7 +356,7 @@ local function drawVehiclesTab()
     end
 
     if im.TreeNode1("Role Info") then
-      local role = selectedVehicle.role
+      local role = currVeh.role
       for _, key in ipairs(roleKeys) do
         doBulletTextInfo(key, role[key])
       end
@@ -159,7 +366,7 @@ local function drawVehiclesTab()
     end
 
     if im.TreeNode1("Personality Info") then
-      for k, v in pairs(selectedVehicle.role.driver.personality) do
+      for k, v in pairs(currVeh.role.driver.personality) do
         doBulletTextInfo(k, v)
       end
       im.TreePop()
@@ -169,9 +376,9 @@ local function drawVehiclesTab()
 
     im.Text("Actions")
 
-    local enableRespawn = im.BoolPtr(selectedVehicle.enableRespawn)
+    local enableRespawn = im.BoolPtr(currVeh.enableRespawn)
     if im.Checkbox("Enable respawning", enableRespawn) then
-      selectedVehicle.enableRespawn = enableRespawn[0]
+      currVeh.enableRespawn = enableRespawn[0]
     end
     im.tooltip("Enables or disables the vehicle respawning by itself if out of sight.")
 
@@ -181,33 +388,33 @@ local function drawVehiclesTab()
     end
     im.tooltip("Enables or disables the player switching to or entering the vehicle.")
 
-    local drawLine = im.BoolPtr(selectedVehicle.debugLine)
+    local drawLine = im.BoolPtr(currVeh.debugLine)
     if im.Checkbox("Draw debug line", drawLine) then
-      selectedVehicle.debugLine = drawLine[0]
+      currVeh.debugLine = drawLine[0]
     end
 
-    local drawText = im.BoolPtr(selectedVehicle.debugText)
+    local drawText = im.BoolPtr(currVeh.debugText)
     if im.Checkbox("Draw debug text", drawText) then
-      selectedVehicle.debugText = drawText[0]
+      currVeh.debugText = drawText[0]
     end
 
     if im.Button("Dump Data") then
-      dump(selectedVehicle)
+      dump(currVeh)
     end
     im.tooltip("Displays vehicle data in the developer console (press [~]).")
 
     if im.Button("Force Respawn") then
-      gameplay_traffic.forceTeleport(selectedVehicle.id)
+      gameplay_traffic.forceTeleport(currVeh.id)
     end
 
     if im.Button("Refresh Vehicle") then
-      selectedVehicle:onRefresh()
+      currVeh:onRefresh()
     end
 
     if im.Button("Reset Vehicle") then
-      local obj = be:getObjectByID(selectedVehicle.id)
+      local obj = be:getObjectByID(currVeh.id)
       obj:queueLuaCommand("recovery.recoverInPlace()")
-      selectedVehicle:onRefresh()
+      currVeh:onRefresh()
     end
 
     im.Separator()
@@ -215,9 +422,9 @@ local function drawVehiclesTab()
     im.Text("Logs")
 
     im.BeginChild1("Action Logs##trafficDebug", im.ImVec2(im.GetWindowContentRegionWidth(), 200), true, im.WindowFlags_None)
-    if logs[selectedVehicle.id] then
-      for i, v in ipairs(logs[selectedVehicle.id]) do
-        if(i > maxLogsPerVeh) then table.remove(logs[selectedVehicle.id], 1) end
+    if logs[currVeh.id] then
+      for i, v in ipairs(logs[currVeh.id]) do
+        if(i > maxLogsPerVeh) then table.remove(logs[currVeh.id], 1) end
         local str = string.format("%0.3f | %s", v[1], v[2])
         if v[3] then
           str = str.." ("..v[3]..")"
@@ -226,165 +433,6 @@ local function drawVehiclesTab()
       end
     end
     im.EndChild()
-
-    im.Checkbox("Clear logs on respawn", resetLogsAtRespawn)
-  end
-  im.EndChild()
-end
-
-local function drawPoolOptionsModal(poolId)
-  if im.BeginPopupModal("Pool Options", nil, im.WindowFlags_AlwaysAutoResize) then
-    im.BeginChild1("Pool Options Child", im.ImVec2(300 * im.uiscale[0], 150), im.WindowFlags_HorizontalScrollbar)
-    local isInfinite = selectedPool.maxActiveVehs == math.huge
-    local maxActiveVehs = isInfinite and im.IntPtr(1e6) or im.IntPtr(selectedPool.maxActiveVehs)
-
-    if isInfinite then im.BeginDisabled() end
-    if im.SliderInt("Max active vehicles", maxActiveVehs, 0, 32) then
-      selectedPool:setMaxActiveVehs(maxActiveVehs[0])
-    end
-    if isInfinite then im.EndDisabled() end
-
-    local isInfinitePtr = im.BoolPtr(isInfinite)
-    if im.Checkbox("Unlimited amount", isInfinitePtr) then
-      if isInfinitePtr[0] then
-        selectedPool:setMaxActiveVehs(math.huge)
-      else
-        selectedPool:setMaxActiveVehs(maxActiveVehs[0])
-      end
-    end
-
-    im.Separator()
-    if im.Button("Done") then
-      im.CloseCurrentPopup()
-    end
-
-    im.EndChild()
-    im.EndPopup()
-  end
-end
-
-local function drawAddVehicleToPoolModal(poolId)
-  if im.BeginPopupModal("Manage Veh Pool", nil, im.WindowFlags_AlwaysAutoResize) then
-    im.BeginChild1("Veh Pool Add Vehicles", im.ImVec2(300 * im.uiscale[0], 250), im.WindowFlags_HorizontalScrollbar)
-    im.Text("Add a vehicle to pool")
-    im.Separator()
-    for id, veh in pairs(trafficRef) do
-      if not core_vehiclePoolingManager.getPoolOfVeh(id) then
-        if im.Button("["..id.."] "..veh.model.key) then
-          selectedPool:insertVeh(id)
-        end
-      else
-        im.Text("Vehicle id ["..id.."] already in a pool")
-      end
-    end
-    im.EndChild()
-    im.SameLine()
-
-    im.BeginChild1("Veh Pool Remove Vehicles", im.ImVec2(300 * im.uiscale[0], 250), im.WindowFlags_HorizontalScrollbar)
-    im.Text("Remove a vehicle from pool")
-    im.Separator()
-    for _, id in ipairs(selectedPool:getVehs()) do
-      local veh = trafficRef[id]
-      if veh then
-        if im.Button("["..id.."] "..veh.model.key) then
-          selectedPool:removeVeh(id)
-        end
-      end
-    end
-
-    im.EndChild()
-    if im.Button("Done", im.ImVec2(120, 0)) then im.CloseCurrentPopup() end
-    im.EndPopup()
-  end
-end
-
-local function drawPoolingTab()
-  if not core_vehiclePoolingManager then
-    im.Text("Vehicle pooling not loaded")
-    return
-  end
-
-  local childrenHeight = 350
-
-  if not next(poolsRef) then
-    poolsRef = core_vehiclePoolingManager.getAllPools()
-  end
-
-  im.BeginChild1("Pools##trafficDebug", im.ImVec2(300 * im.uiscale[0], childrenHeight), im.WindowFlags_HorizontalScrollbar)
-  im.Text("Available pools: ")
-  im.Separator()
-  for id, v in pairs(poolsRef) do
-    if im.Selectable1("Pool ID: "..id, v == selectedPool, nil, im.ImVec2(80, 20)) then
-      selectedPool = v
-    end
-
-    if selectedPool and selectedPool.id == id then
-      im.SameLine()
-      if im.Button("Options##vehPool"..id) then
-        im.OpenPopup("Pool Options")
-      end
-      drawPoolOptionsModal(id)
-      im.SameLine()
-      if im.Button("Remove##vehPool"..id) then
-        selectedPoolVehicle = nil
-        selectedPool:deletePool()
-        selectedPool = nil
-      end
-    end
-  end
-
-  im.Dummy(im.ImVec2(0, 5))
-  if im.Button("Create New Pool") then
-    core_vehiclePoolingManager.createPool()
-  end
-  im.EndChild()
-
-  im.SameLine()
-
-  im.BeginChild1("Pool Vehicles##trafficDebug", im.ImVec2(300 * im.uiscale[0], childrenHeight), im.WindowFlags_HorizontalScrollbar)
-  im.Text("Vehicles in selected pool: ")
-  im.Separator()
-  if selectedPool then
-    for _, id in ipairs(selectedPool:getVehs()) do
-      local obj = be:getObjectByID(id)
-      local state = selectedPool.allVehs[id] == 1 and "active" or "inactive"
-      if im.Selectable1("["..id.."] "..obj.jbeam.." ("..state..")", selectedPoolVehicle == id, nil, im.ImVec2(160, 20)) then
-        selectedPoolVehicle = id
-      end
-
-      if selectedPoolVehicle == id then
-        im.SameLine()
-        if state == "active" then
-          if im.Button("Deactivate##veh"..id) then
-            selectedPool:setVeh(id, false)
-          end
-        else
-          if im.Button("Activate##veh"..id) then
-            selectedPool:setVeh(id, true)
-          end
-        end
-      end
-    end
-    im.Dummy(im.ImVec2(0, 5))
-    if im.Button("Manage Vehicles") then
-      im.OpenPopup("Manage Veh Pool")
-    end
-    drawAddVehicleToPoolModal(selectedPool.id)
-
-    if im.Button("Activate All") then
-      selectedPool:setAllVehs(true)
-    end
-    if im.Button("Deactivate All") then
-      selectedPool:setAllVehs(false)
-    end
-
-    if not selectedPool.inactiveVehs[1] then im.BeginDisabled() end
-    if im.Button("Cycle") then
-      selectedPool:cycle(selectedPoolVehicle)
-    end
-    if not selectedPool.inactiveVehs[1] then im.EndDisabled() end
-  else
-    im.Text("No pool selected")
   end
   im.EndChild()
 end
@@ -395,6 +443,7 @@ end
 
 local function onEditorDeactivated()
   gameplay_traffic.debugMode = false
+  traffic = nil
 end
 
 local function onEditorInitialized()
@@ -404,48 +453,40 @@ end
 
 local function onEditorGui()
   if editor.beginWindow(toolWindowName, toolWindowName) then
-    if not gameplay_traffic or gameplay_traffic.getState() ~= "on" then
-      im.Text("Traffic not loaded!")
+    if not gameplay_traffic then
+      editor.endWindow()
       return
     end
 
-    if not trafficRef then -- turn on debug mode initially
+    if not traffic then -- turn on debug mode initially
       gameplay_traffic.debugMode = true
     end
-    trafficRef = gameplay_traffic.getTrafficData()
-    poolsRef = core_vehiclePoolingManager.getAllPools()
-    debugMode = gameplay_traffic.debugMode
+    traffic = gameplay_traffic.getTrafficData()
 
-    if im.BeginTabBar("modes") then
-      for _, v in ipairs({{"General", drawGeneralTab}, {"Vehicles", drawVehiclesTab}, {"Pooling", drawPoolingTab}}) do
-        if im.BeginTabItem(v[1], nil) then
-          drawTab = v[2] -- sets drawTab function reference
-          im.EndTabItem()
-        end
+    if im.BeginTabBar("Traffic Debug Modes") then
+      if im.BeginTabItem("General", nil) then
+        drawTab = drawGeneralTab
+        im.EndTabItem()
       end
-
+      if im.BeginTabItem("Vehicles", nil) then
+        drawTab = drawVehiclesTab
+        im.EndTabItem()
+      end
       im.EndTabBar()
     end
 
     drawTab()
   end
+  editor.endWindow()
 end
 
 local function onTrafficAction(id, data)
   appendLog(id, data)
 end
 
---[[Callbacks]]--
-local function onVehicleResetted(id)
-  if resetLogsAtRespawn[0] then
-    logs[id] = nil
-  end
-end
-
 M.onEditorDeactivated = onEditorDeactivated
 M.onEditorInitialized = onEditorInitialized
 M.onEditorGui = onEditorGui
-M.onVehicleResetted = onVehicleResetted
 M.onTrafficAction = onTrafficAction
 
 return M

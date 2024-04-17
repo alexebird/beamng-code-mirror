@@ -41,7 +41,7 @@ local lastUpdateTimer = updateTime
 local function onUpdate(dtReal, dtSim, dtRaw)
   lastUpdateTimer = lastUpdateTimer + dtSim
   if not active or lastUpdateTimer < updateTime then return end
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local halfExtents = boundingBox:getHalfExtents()
   local center = boundingBox:getCenter()

@@ -21,41 +21,18 @@ local partShopId = 0
 local partsToAdd = {}
 local slotToPartIdMap
 local slotsNiceName = {}
+local partsNiceName = {}
 
-local tutorialSlotNames = {coupe_spoiler = true, covet_spoiler = true, etki_spoiler = true}
-local tutorialPartNames = {coupe_smallspoiler = true, covet_spoiler = true, etki_spoiler_small = true}
-
-local paySoundId
+local tutorialPartNames = {bx_cargo_load_box_m_seat_R = true, covet_cargo_load_box_M_seat_R = true, etki_cargo_load_box_M_seat_R = true}
 
 local tether -- tether object for aborting shopping when walking too far away
 
 -- TODO it needs to be decided, which parts come with their own subparts when you buy them and which parts you can use the existing subparts of the vehicle for
 -- for now, i will assume that parts come with default subparts, except when a fitting part is already in the vehicle
 
-local function activateSound(soundId)
-  local sound = scenetree.findObjectById(soundId)
-  if sound then
-    sound:play(-1)
-  end
-end
-
-local function setupSounds()
-  paySoundId = paySoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Career>Buy_01')
-end
-
-local function onCareerModulesActivated(alreadyInLevel)
-  if alreadyInLevel then
-    setupSounds()
-  end
-end
-
-local function onClientStartMission()
-  setupSounds()
-end
-
 local function openUIState()
   -- TODO we send all data every time a part changes. we should send only smaller updates
-  guihooks.trigger('ChangeState', {state = 'menu.partShopping', params = {}})
+  guihooks.trigger('ChangeState', {state = 'partShopping', params = {}})
 end
 
 local function getCurrentVehicleVehId()
@@ -66,10 +43,6 @@ end
 local function getCurrentVehicleObj()
   if not currentVehicle then return end
   return be:getObjectByID(getCurrentVehicleVehId())
-end
-
-local function roundBase(val, base)
-  return base * round(val/base)
 end
 
 local function generatePart(partName, currentVehicleData, availableParts, slot, vehicleObj)
@@ -88,7 +61,29 @@ local function generatePart(partName, currentVehicleData, availableParts, slot, 
   part.partShopId = partShopId
   partShopId = partShopId + 1
 
-  part.finalValue = math.max(roundBase(career_modules_valueCalculator.getPartValue(part), 5) - 0.01, 0)
+  part.finalValue = math.max(roundNear(career_modules_valueCalculator.getPartValue(part), 5) - 0.01, 0)
+  return part
+end
+
+local function buildPartTree(slotName, availableParts, chosenParts, slotMap)
+  local partName = chosenParts[slotName]
+  local partInfo = availableParts[partName]
+  local part = {name = partName, niceName = partInfo.description, slotName = slotName, slots = {}}
+  partsNiceName[part.name] = part.niceName
+
+  for slotName, slotInfo in pairs(partInfo.slotInfoUi) do
+    if slotMap[slotName] and not tableIsEmpty(slotMap[slotName]) then -- Filter out slots with no possible parts
+      local slotInfo = {slotName = slotName, slotNiceName = slotsNiceName[slotName]}
+      table.insert(part.slots, slotInfo)
+
+      local partInSlotName = chosenParts[slotInfo.slotName]
+      if partInSlotName and partInSlotName ~= "" then
+        slotInfo.part = buildPartTree(slotInfo.slotName, availableParts, chosenParts, slotMap)
+      end
+    end
+  end
+  table.sort(part.slots, function(a,b) return a.slotNiceName < b.slotNiceName end)
+
   return part
 end
 
@@ -98,8 +93,8 @@ local function generatePartShop()
   local slotMap = jbeamIO.getAvailableSlotMap(currentVehicleData.ioCtx)
   local vehicleObj = getCurrentVehicleObj()
 
-  -- for now: loop through the available slots for each part and create one part in the shop per slot
-  local partsInShop = {}
+  -- for now: loop through the available slots for each part and create one part in the shop per slot (for parts that can fit into multiple slots)
+  partsInShop = {}
   for _, partName in pairs(currentVehicleData.chosenParts) do
     if partName ~= "" then
       local partInfo = availableParts[partName]
@@ -119,7 +114,34 @@ local function generatePartShop()
       end
     end
   end
-  return partsInShop
+
+  partsNiceName = {}
+  local partTree = buildPartTree("main", availableParts, currentVehicleData.chosenParts, slotMap)
+  return partTree
+end
+
+local function buildSearchSlotList()
+  local searchSlotDict = {}
+  for slotName, slotNiceName in pairs(slotsNiceName) do
+    local slotData = {}
+    slotData.slotName = slotName
+    slotData.slotNiceName = slotNiceName
+    searchSlotDict[slotName] = slotData
+  end
+
+  -- Add the nice part name from the part that is in the vehicle
+  for partName, part in pairs(partsInShop) do
+    if not searchSlotDict[part.slot].partNiceName then
+      searchSlotDict[part.slot].partNiceName = previewVehicle.config.parts[part.slot] and partsNiceName[previewVehicle.config.parts[part.slot]]
+    end
+  end
+
+  local searchSlotList = {}
+  for slotName, slotInfo in pairs(searchSlotDict) do
+    table.insert(searchSlotList, slotInfo)
+  end
+  table.sort(searchSlotList, function(a,b) return a.slotNiceName < b.slotNiceName end)
+  return searchSlotList
 end
 
 local function updateShoppingCart()
@@ -170,12 +192,15 @@ local function updateShoppingCart()
 end
 
 local function sendShoppingDataToUI()
-  partsInShop = generatePartShop()
+  local partTree
+  partTree = generatePartShop()
 
   local shoppingData = {}
   shoppingData.partsInShop = partsInShop
+  shoppingData.partTree = partTree
   shoppingData.shoppingCart = shoppingCart
   shoppingData.slotsNiceName = slotsNiceName
+  shoppingData.searchSlotList = buildSearchSlotList()
   shoppingData.vehicleSlotToPartMap = {}
   for partId, part in pairs(career_modules_partInventory.getInventory()) do
     if part.location == currentVehicle then
@@ -183,11 +208,10 @@ local function sendShoppingDataToUI()
     end
   end
   if not career_modules_linearTutorial.getTutorialFlag("partShoppingComplete") then
-    shoppingData.tutorialSlots = tutorialSlotNames
     shoppingData.tutorialPartNames = tutorialPartNames
   end
 
-  shoppingData.playerMoney = career_modules_playerAttributes.getAttribute("money").value
+  shoppingData.playerMoney = career_modules_playerAttributes.getAttributeValue("money")
   guihooks.trigger("partShoppingData", shoppingData)
 end
 
@@ -224,7 +248,7 @@ local function startShoppingActual(_originComputerId)
 
   partShopId = 0
   partsToAdd = {}
-  partsInShop = generatePartShop()
+  generatePartShop()
   originComputerId = _originComputerId
 
   M.setupTether()
@@ -233,7 +257,7 @@ local function startShoppingActual(_originComputerId)
   openUIState()
 
   if gameplay_walk.isWalking() then
-    gameplay_walk.setRot(getCurrentVehicleObj():getPosition() - be:getPlayerVehicle(0):getPosition())
+    gameplay_walk.setRot(getCurrentVehicleObj():getPosition() - getPlayerVehicle(0):getPosition())
   end
 
   core_vehicleBridge.executeAction(be:getObjectByID(career_modules_inventory.getVehicleIdFromInventoryId(previewVehicle.id)),'setFreeze', true)
@@ -505,14 +529,14 @@ local function getBuyingLabel()
 end
 
 local function applyShopping()
-  if career_modules_playerAttributes.getAttribute("money").value < shoppingCart.total then return end
+  if career_modules_playerAttributes.getAttributeValue("money") < shoppingCart.total then return end
 
   local vehicles = career_modules_inventory.getVehicles()
   vehicles[currentVehicle] = previewVehicle
   updateInventory()
   endShopping()
   local buyingLabel = getBuyingLabel()
-  career_modules_playerAttributes.addAttribute("money", -shoppingCart.total, {label=buyingLabel})
+  career_modules_playerAttributes.addAttributes({money=-shoppingCart.total}, {tags={"partsBought", "buying"},label=buyingLabel})
   if career_career.isAutosaveEnabled() then
     career_saveSystem.saveCurrent()
   else
@@ -523,7 +547,7 @@ local function applyShopping()
     career_career.closeAllMenus()
   end
 
-  activateSound(paySoundId)
+  Engine.Audio.playOnce('AudioGui','event:>UI>Career>Buy_01')
 
   core_vehicleBridge.executeAction(be:getObjectByID(career_modules_inventory.getVehicleIdFromInventoryId(previewVehicle.id)),'setFreeze', false)
 
@@ -584,8 +608,6 @@ M.getShoppingCart = getShoppingCart
 M.isShoppingSessionActive = isShoppingSessionActive
 
 M.setupTether = setupTether
-M.onCareerModulesActivated = onCareerModulesActivated
-M.onClientStartMission = onClientStartMission
 M.onComputerAddFunctions = onComputerAddFunctions
 
 return M

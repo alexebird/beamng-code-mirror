@@ -12,7 +12,6 @@ C.name = "Expression"
 C.icon = "fg_expression"
 C.description = "Parses a mathematical expression."
 C.category = 'simple'
-C.todo = "add a safe mode for when input is nil. Or change so it only calculates when input is not nil."
 
 C.pinSchema = {
   { dir = 'in', type = { 'number', 'vec3', 'quat' }, name = 'a', description = 'A term of the expression.' },
@@ -28,8 +27,8 @@ C.templateExpressions = {
     description = "Calculates the distance between two positions.",
     expression = "(a-b):length()",
     pinInfo = {
-      { pin = "a", type = 'number', description = "The first position"},
-      { pin = "b", type = 'number', description = "The first position"},
+      { pin = "a", type = 'vec3', description = "The first position."},
+      { pin = "b", type = 'vec3', description = "The second position."},
     }
   },
   {
@@ -37,9 +36,9 @@ C.templateExpressions = {
     description = "Smoothly changes a value from one to another, according to a lerping parameter. a and b can be number, vec3 or quat, but need to be the same type.",
     expression = "lerp(a,b,c)",
     pinInfo = {
-      { pin = "a", type = {'number','vec3','quat'}, description = "The first value"},
-      { pin = "b", type = {'number','vec3','quat'}, description = "The second value"},
-      { pin = "c", type = 'number', description = "The lerping parameter. 0 means value a, 1 means value b."},
+      { pin = "a", type = {'number','vec3','quat'}, description = "The first value."},
+      { pin = "b", type = {'number','vec3','quat'}, description = "The second value."},
+      { pin = "c", type = 'number', description = "The lerping parameter, from 0 (value a) to 1 (value b)."},
     }
   }
 

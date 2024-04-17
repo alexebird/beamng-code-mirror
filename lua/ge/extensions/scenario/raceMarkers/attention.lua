@@ -57,7 +57,7 @@ function C:update(dt, dtSim)
   local distanceFromMarker = self.pos:distance(playerPosition)
 
   local t = clamp(self.colorTimer / self.colorLerpDuration,0,1)
-  local color =  {0.2, 0.53, 1}
+  local color =  {0, 0.4, 1}
   self.currentColor = ColorF(color[1],color[2],color[3],color[4] or 1)
   self.currentColor.a = 1
 
@@ -65,8 +65,8 @@ function C:update(dt, dtSim)
     local fwd = (playerPosition-self.pos)
     local rot = (quatFromEuler(math.pi/2,0,0)*quatFromDir(fwd:z0())*quatFromEuler(0,0,math.pi/2)):toTorqueQuat()
     self.left:setField('rotation', 0, rot.x .. ' ' .. rot.y .. ' ' .. rot.z .. ' ' .. rot.w)
-    self.left.instanceColor = ColorF(1,1,1,self.currentColor.a):asLinear4F()
-    self.left.instanceColor1 = self.currentColor:asLinear4F()
+    self.left.instanceColor = self.currentColor:asLinear4F()
+    self.left.instanceColor1 = ColorF(0,0,0,self.currentColor.a):asLinear4F()
     self.left:setPosition( vec3(0,0,self.scale.x/1.5 + math.sin(os.clock()*4)*(0.2*self.scale.x/1.5))+self.pos)
 --      self.left:setField('instanceColor', 1, ""..self.currentColor.r.." "..self.currentColor.g.." "..self.currentColor.b.." "..self.currentColor.a)
 --    self.left:setField('instanceColor1', 1, ""..self.currentColor.r.." "..self.currentColor.g.." "..self.currentColor.b.." "..self.currentColor.a)

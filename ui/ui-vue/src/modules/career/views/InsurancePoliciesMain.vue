@@ -2,17 +2,17 @@
   <div bng-ui-scope="insurancePolicies">
     <BngCard class="insurancePoliciesListCard">
       <div class="innerList" bng-nav-scroll bng-nav-scroll-force>
-        <BngButton v-bng-on-ui-nav:back,menu.asMouse @click="close"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
+        <BngButton v-bng-on-ui-nav:back,menu.asMouse @click="close" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
         <BngCardHeading style="text-align: left"> Insurance policies </BngCardHeading>
         <InsurancePoliciesList />
       </div>
-      <CareerStatus class="status" ref="careerStatusRef" />
+      <CareerStatus class="status" />
     </BngCard>
   </div>
 </template>
 
 <script setup>
-import { useBridge, lua } from "@/bridge"
+import { lua } from "@/bridge"
 import { onBeforeMount, onUnmounted, ref } from "vue"
 import { useInsurancePoliciesStore } from "../stores/insurancePoliciesStore"
 import { vBngOnUiNav } from "@/common/directives"
@@ -22,10 +22,6 @@ import InsurancePoliciesList from "../components/insurancePolicies/insurancePoli
 
 import { useUINavScope } from "@/services/uiNav"
 useUINavScope("insurancePolicies")
-
-const careerStatusRef = ref()
-
-const { units } = useBridge()
 
 const insurancePoliciesStore = useInsurancePoliciesStore()
 
@@ -74,16 +70,5 @@ const close = () => {
   & :deep(.card-cnt) {
     background-color: rgba(0, 0, 0, 0.7);
   }
-}
-
-.modalPopup {
-  position: fixed;
-  background: #ffffffea;
-  width: 30%;
-  height: 30%;
-  top: 50vh;
-  left: 50vw;
-  transform: translate(-50%, -50%);
-  text-align: center;
 }
 </style>

@@ -6,7 +6,7 @@
       </div>
       <span class="branch-name">{{ branch.name }}</span>
       <span v-if="branch.showFlag" class="flag-container">
-        <milestone-badge type="aiRace"></milestone-badge>
+        <MilestoneBadge type="aiRace"></MilestoneBadge>
       </span>
     </div>
     <div class="description">{{ branch.description }}</div>

@@ -54,7 +54,7 @@ local function work(job, queue)
       sleep(job, 8)
     end
 
-    local playerVehicle = be:getPlayerVehicle(0)
+    local playerVehicle = getPlayerVehicle(0)
     while not string.find(string.lower(getMissionFilename()), escapePattern(string.lower(levelName))) and not playerVehicle do
       log('D', 'compileImposters', 'Level not loaded yet: ' .. getMissionFilename() .. ' : ' .. levelName)
       sleep(job, 8)

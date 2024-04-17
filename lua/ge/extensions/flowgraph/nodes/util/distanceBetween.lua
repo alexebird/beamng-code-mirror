@@ -46,6 +46,7 @@ function C:getPosition(pinInput)
     pos:setFromTable(pinInput)
     return pos
   end
+  return nil
 end
 
 return _flowgraph_createNode(C)

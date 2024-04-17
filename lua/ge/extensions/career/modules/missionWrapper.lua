@@ -31,12 +31,12 @@ end
 
 -- this should only be loaded when the career is active
 local function onSaveCurrentSaveSlot(currentSavePath, oldSaveDate)
-  local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
-  if not saveSlot or not savePath then return end
-  gameplay_missions_progress.setSavePath(savePath .. "/career/missions/")
+  gameplay_missions_progress.setSavePath(currentSavePath .. "/career/missions/")
   for id, dirtyDate in pairs(allMissionData) do
     if dirtyDate > oldSaveDate then
-      gameplay_missions_progress.saveMissionSaveData(id, dirtyDate)
+      if gameplay_missions_progress.saveMissionSaveData(id, dirtyDate) == false then
+        career_saveSystem.saveFailed()
+      end
     end
   end
 end

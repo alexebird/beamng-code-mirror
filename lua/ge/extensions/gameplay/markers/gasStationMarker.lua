@@ -7,7 +7,6 @@ local quatZero = quat(0,0,0,0)
 local vecX = vec3(1,0,0)
 local vecY = vec3(0,1,0)
 local vecZ = vec3(0,0,1)
-local lineColorF = ColorF(1,1,1,0)
 local playModeColorI = ColorI(255,255,255,255)
 local iconHeightBottom = 1.25
 local iconHeightTop = 2.5
@@ -36,13 +35,15 @@ function C:setup(cluster)
       local iconPos = icon:getPosition()
 
       local pumpData = {
-         areaPos = pos,
-         xVec = xVec, yVec = yVec, zVec = zVec,
-         iconPos = iconPos,
-         iconPosSmoother = newTemporalSmoothingNonLinear(10,10),
-         iconAlphaSmoother = newTemporalSmoothingNonLinear(30,30),
-         overlap = false,
+        areaPos = pos,
+        xVec = xVec, yVec = yVec, zVec = zVec,
+        iconPos = iconPos,
+        iconPosSmoother = newTemporalSmoothingNonLinear(10,10),
+        iconAlphaSmoother = newTemporalSmoothingNonLinear(30,30),
+        overlap = false,
       }
+
+      pumpData.iconAlphaSmoother:set(0)
 
       if iconRendererObj then
         local playModeIconName = "poi_fuel_round"
@@ -51,7 +52,7 @@ function C:setup(cluster)
         end
         local iconId = iconRendererObj:addIcon(string.format("%s-gsIcon-%d",cluster.clusterId, idx), playModeIconName, iconPos)
         local iconInfo = iconRendererObj:getIconById(iconId)
-        iconInfo.color = ColorI(255,255,255,255)
+        iconInfo.color = ColorI(255,255,255,0)
         iconInfo.customSize = iconWorldSize
         iconInfo.drawIconShadow = false
 
@@ -64,47 +65,38 @@ function C:setup(cluster)
   end
 end
 
+local function alphaNeedsUpdate(overlap, area)
+  if overlap then
+    return true
+  else
+    return area.iconAlphaSmoother:value() >= 1e-30
+  end
+end
+
 function C:update(data)
   if not self.visible or not data.veh then return end
-  -- TODO: optimize!
-  local corner, vehX, vehY, vehZ = data.bbp0, data.bbp3-data.bbp0, data.bbp1-data.bbp0, data.bbp4-data.bbp0
-  vehX, vehY, vehZ = vehX * 0.5, vehY * 0.5, vehZ * 0.5
-  corner = corner + vehX + vehY + vehZ
-  --self:drawAxisBox(corner - vehX - vehY - vehZ, vehX*2, vehY*2, vehZ*2, color(64,64,128,64))
-
   local anyOverlap = false
   for idx, area in ipairs(self.pumps or {}) do
     --simpleDebugText3d(idx, area.iconPos, 0.25)
-    local overlap = (data.cruisingSpeedFactor < 1) and overlapsOBB_OBB(corner, vehX, vehY, vehZ, area.areaPos, area.xVec, area.yVec, area.zVec)
+    local overlap = (data.cruisingSpeedFactor < 1) and overlapsOBB_OBB(data.bbCenter, data.bbHalfAxis0, data.bbHalfAxis1, data.bbHalfAxis2, area.areaPos, area.xVec, area.yVec, area.zVec)
     anyOverlap = anyOverlap or overlap
     area.overlap = overlap
-
     local iconInfo = area.iconInfo
-    if iconInfo then
-
+    if iconInfo and alphaNeedsUpdate(overlap, area) then
       tmpVec:set(iconInfo.worldPosition)
       tmpVec:setSub(data.camPos)
       local rayLength = tmpVec:length()
       local hitDist = castRayStatic(data.camPos, tmpVec, rayLength, nil)
       local visible = hitDist >= rayLength
-
       local smootherVal = area.iconPosSmoother:get(overlap and 1 or 0, data.dt)
       tmpVec:set(0,0,smootherVal*0.25)
       tmpVec:setAdd(area.iconPos)
       iconInfo.worldPosition = tmpVec
       playModeColorI.alpha = area.iconAlphaSmoother:get((overlap and visible) and 1 or 0, data.dt) * 255
       iconInfo.color = playModeColorI
-      if smootherVal > 0.01 then
-        --lineColorF.a = area.iconAlphaSmoother:value()*0.5
-        debugDrawer:drawLine(area.iconPos, tmpVec, lineColorF)
-      end
     end
-
-    --self:drawAxisBox(area.areaPos - area.xVec - area.yVec - area.zVec, area.xVec*2, area.yVec*2, area.zVec*2)
-
   end
   self.anyOverlap = anyOverlap
-
 end
 
 local iconRendererName = "markerIconRenderer"

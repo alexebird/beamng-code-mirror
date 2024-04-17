@@ -122,7 +122,13 @@ local function sendUpdateDataToUI()
 end
 
 local function saveEnergyStorageData(data)
-  fuelData = data[1]
+  fuelData = {}
+  for _, tank in ipairs(data[1]) do
+    -- only add the tank to the fuelData if it has a valid fuel type
+    if factorMJToReadable[tank.energyType] then
+      table.insert(fuelData, tank)
+    end
+  end
   showUI = true
   for i, data in ipairs(fuelData) do
     table.insert(fuelingData, {price = 0, fueledEnergy = 0})

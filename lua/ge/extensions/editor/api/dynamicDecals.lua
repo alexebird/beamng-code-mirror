@@ -783,33 +783,29 @@ local function setVehicleMaterialJob(job)
 
       M.clearMaterialIdx()
       local mNames = M.getShapeMaterialNames()
-      local i = 0
-      for _, materialName in pairs(mNames) do
+      for k, materialName in pairs(mNames) do
         if materials[materialName] then
-          M.addMaterialIdx(i)
+          M.addMaterialIdx(k)
           editor.logDebug(string.format("%s - Material '%s' has been added", logTag, materialName))
         end
-        i = i + 1
       end
     else
       local vehicleName = (vehicleObj and vehicleObj.jbeam or "")
       local mat0, mat1, mat2 = nil, nil, nil
       local mNames = M.getShapeMaterialNames()
-      local i = 0
-      for _, materialName in pairs(mNames) do
+      for k, materialName in pairs(mNames) do
         if materialName == vehicleName then
-          mat0 = i
+          mat0 = k
           M.setMaterialIdx(mat0)
           editor.logDebug(string.format("%s - Material set to '%s'", logTag, materialName))
           return
         end
         if string.endswith(materialName, "main") then
-          mat1 = {i, materialName}
+          mat1 = {k, materialName}
         end
         if string.endswith(materialName, "body") then
-          mat2 = {i, materialName}
+          mat2 = {k, materialName}
         end
-        i = i + 1
       end
 
       if mat1 then
@@ -856,7 +852,7 @@ M.setup = function()
     M.ready = true
   else
     -- set shape transform
-    decalProjection = DecalProjection("/levels/test_level/art/shapes/vivace_test/vivace_test_b.dae", Point2I(4096, 2048), 1, reconstructData.materialIdx or 0)
+    decalProjection = DecalProjection("", Point2I(4096, 2048), 1, reconstructData.materialIdx or 0)
     app = {}
     app.getCameraM = function(self)
       local veh = be:getPlayerVehicle(0)
@@ -1396,7 +1392,7 @@ M.exportSkin = function(vehicleName, skinName)
       information = {
         authors = "Dynamic Decals",
         name = skinName,
-        value = 69420
+        value = 1337
       },
       slotType = "paint_design",
       globalSkin = skinName

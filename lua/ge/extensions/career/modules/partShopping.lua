@@ -98,27 +98,22 @@ local function generatePartShop()
   local slotMap = jbeamIO.getAvailableSlotMap(currentVehicleData.ioCtx)
   local vehicleObj = getCurrentVehicleObj()
 
-  -- Make a map from part to its slots
-  local partToSlotMap = {}
-  for slotName, partNames in pairs(slotMap) do
-    for _, partName in ipairs(partNames) do
-      partToSlotMap[partName] = partToSlotMap[partName] or {}
-      table.insert(partToSlotMap[partName], slotName)
-    end
-  end
-
   -- for now: loop through the available slots for each part and create one part in the shop per slot
   local partsInShop = {}
-  for partName, partInfo in pairs(availableParts) do
-    for _, slotName in ipairs(partToSlotMap[partName]) do
-      if currentVehicleData.chosenParts[slotName] then
-        local part = generatePart(partName, currentVehicleData, availableParts, slotName, vehicleObj)
-        if part.slot ~= "main" and not part.description.isAuxiliary then
-          partsInShop[partName] = part
+  for _, partName in pairs(currentVehicleData.chosenParts) do
+    if partName ~= "" then
+      local partInfo = availableParts[partName]
+      if partInfo.slotInfoUi then
+        for slotName, slotInfo in pairs(partInfo.slotInfoUi) do
+          slotsNiceName[slotName] = slotInfo.description
         end
-        if part.description.slotInfoUi then
-          for slotName, slotInfo in pairs(part.description.slotInfoUi) do
-            slotsNiceName[slotName] = slotInfo.description
+      end
+
+      for mainSlotName, chosenPartSlotInfo in pairs(partInfo.slotInfoUi) do
+        for _, allowedSlotPartName in ipairs(slotMap[mainSlotName] or {}) do
+          local part = generatePart(allowedSlotPartName, currentVehicleData, availableParts, mainSlotName, vehicleObj)
+          if part.slot ~= "main" and not part.description.isAuxiliary then
+            partsInShop[allowedSlotPartName] = part
           end
         end
       end

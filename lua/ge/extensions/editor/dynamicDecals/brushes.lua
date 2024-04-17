@@ -627,7 +627,7 @@ local function setup(tool_in)
     brushes = jsonReadFile(brushesPath)
   else
     brushes = {}
-    jsonWriteFile(brushesPath, brushes, true)
+    -- jsonWriteFile(brushesPath, brushes, true)
   end
 
   browser.registerBrowserTab("Brushes", browserTabGui, 20)

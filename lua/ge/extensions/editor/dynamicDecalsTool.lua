@@ -495,7 +495,7 @@ local function onEditorInitialized()
   api.setLayerNameBuildString(editor.getPreference("dynamicDecalsTool.general.layerNameBuildString"))
   api.setup()
 
-  editor.addWindowMenuItem("Dynamic Decals", onWindowMenuItem, {groupMenuName = 'Experimental'})
+  editor.addWindowMenuItem("Vehicle Livery Creator", onWindowMenuItem)
   editor.registerWindow(toolWindowName, im.ImVec2(400, 400))
 
   editor.editModes.dynamicDecalsEditMode =
@@ -509,8 +509,8 @@ local function onEditorInitialized()
     onUpdate = dynamicDecalsEditModeUpdate,
     onToolbar = dynamicDecalsToolEditModeToolbar,
     actionMap = "dynamicDecals", -- if available, not required
-    icon = editor.icons.delete,
-    iconTooltip = "Dynamic Decals",
+    icon = editor.icons.format_paint,
+    iconTooltip = "Vehicle Livery Creator",
     hideObjectIcons = true,
   }
 
@@ -586,7 +586,11 @@ local function onEditorToolWindowShow(windowName)
     editor.showWindow("Decal Stack / Layers##window")
     deps.browser.showWindow()
 
-    if extensions.core_vehicle_partmgmt.hasAvailablePart(be:getPlayerVehicle(0).JBeam .. "_skin_dynamicTextures") == false then
+    local playerVehicle = be:getPlayerVehicle(0)
+    if not playerVehicle then
+      return
+    end
+    if extensions.core_vehicle_partmgmt.hasAvailablePart(playerVehicle.JBeam .. "_skin_dynamicTextures") == false then
       deps.notification.add("Main", "Current vehicle is not supported", "The current vehicle is not supported yet. The necessary files are missing.", deps.notification.levels.warning)
     end
   end
@@ -742,8 +746,7 @@ end
 ]]
 M.registerSection = function(name, guiFn, order, defaultOpen, window, buttons)
   -- TODO: Disabled for now since a click on the button to open the docs makes the docs' TOC disappear
-  -- table.insert(sections, {name = name, guiFn = guiFn, order = order or 1000, defaultOrder = order or 1000, open = defaultOpen, window = window, buttons = buttons or {}})
-  table.insert(sections, {name = name, guiFn = guiFn, order = order or 1000, defaultOrder = order or 1000, open = defaultOpen, window = window, buttons = {}})
+  table.insert(sections, {name = name, guiFn = guiFn, order = order or 1000, defaultOrder = order or 1000, open = defaultOpen, window = window, buttons = buttons or {}})
 end
 
 M.setSectionOpenState = function(name, newState)

@@ -37,7 +37,7 @@ local function readActionsFile(path, vehicleName)
     log("E", "input_actions", 'unable to read json file: ' .. tostring(path))
   end
   for k,v in pairs(vehiclesActions or {}) do
-    if vehicleName then
+    if vehicleName and v.namespace ~= "common" then
       v.vehicle = vehicleName
       v.cat = v.cat or "vehicle_specific"
       v.ctx = v.ctx or "vlua"
@@ -80,7 +80,7 @@ local function readActionsFromDisk(active)
     --dump{"vdata.inputActions", vdata.vdata.inputActions}
     if vdata and vdata.vdata and vdata.vdata.inputActions then
       for k,v in pairs(vdata.vdata.inputActions) do
-        if vehicleName then
+        if vehicleName and v.namespace ~= "common" then
           v.vehicle = vehicleName
           v.cat = v.cat or "vehicle_specific"
           v.ctx = v.ctx or "vlua"

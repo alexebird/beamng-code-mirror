@@ -5,6 +5,11 @@
 -- this module manages simple fueling for fuel stations. it defers to the career refueling module if career is loaded.
 
 local M = {}
+
+local ignoreFuelTypes = {
+  air = true,
+}
+
 local fuelTypeToFuelTranslation = {
   gasoline = 'refuel',
   diesel = 'refuel',
@@ -120,21 +125,23 @@ local function refuelCar(gasStation, fuelTypes, veh)
       local fuelTranslations = {}
       local invalidTanks = {}
       for _, tank in ipairs(ret[1]) do
-        local fuelType = fuelTypeToFuelTranslation[tank.energyType] and tank.energyType or "unknown"
-        local valid = fuelTypes['any'] or fuelTypes[tank.energyType]
+        if not ignoreFuelTypes[tank.energyType] then
+          local fuelType = fuelTypeToFuelTranslation[tank.energyType] and tank.energyType or "unknown"
+          local valid = fuelTypes['any'] or fuelTypes[tank.energyType]
 
-        anySuccess = anySuccess or valid
-        allSuccess = allSuccess and valid
-        fuelTranslations[fuelTypeToFuelTranslation[fuelType]] = (fuelTranslations[fuelTypeToFuelTranslation[fuelType]] or 0) + 1
-        if valid then
-          if career_career.isActive() then
-            career_modules_fuel.startTransaction(gasStation)
-            return
+          anySuccess = anySuccess or valid
+          allSuccess = allSuccess and valid
+          fuelTranslations[fuelTypeToFuelTranslation[fuelType]] = (fuelTranslations[fuelTypeToFuelTranslation[fuelType]] or 0) + 1
+          if valid then
+            if career_career.isActive() then
+              career_modules_fuel.startTransaction(gasStation)
+              return
+            else
+              core_vehicleBridge.executeAction(veh,'setEnergyStorageEnergy', tank.name, tank.maxEnergy)
+            end
           else
-            core_vehicleBridge.executeAction(veh,'setEnergyStorageEnergy', tank.name, tank.maxEnergy)
+            invalidTanks[tank.energyType] = true
           end
-        else
-          invalidTanks[tank.energyType] = true
         end
       end
       local key = next(fuelTranslations)

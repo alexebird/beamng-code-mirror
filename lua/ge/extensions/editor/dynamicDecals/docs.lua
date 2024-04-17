@@ -219,10 +219,7 @@ Our tool offers an array of features, let's dive into what you can expect:
   im.TextUnformatted("We can't wait to see the incredible liveries you create and share with the community!")
 
   verticalSpacing()
-  local btnSize = im.ImVec2((im.GetContentRegionAvailWidth() - im.GetStyle().ItemSpacing.x * 1) / 2, 0)
-  if im.Button("Thread [Link] (ToDo)", btnSize) then openWebBrowser("https://support.beamng.com/") end
-  im.SameLine()
-  if im.Button("Support [Link] (ToDo)", btnSize) then openWebBrowser("https://support.beamng.com/") end
+  if im.Button("Dynamic Decals Thread [Link]", im.ImVec2(im.GetContentRegionAvailWidth(), 0)) then openWebBrowser("https://www.beamng.com/threads/experimental-dynamic-decals.95559/") end
   verticalSpacing()
 
   im.TextUnformatted([[
@@ -390,6 +387,8 @@ local function searchSectionInChildren(curSection, sections, index)
 end
 
 M.selectSection = function(section)
+  M.showWindow()
+
   if type(section) == "string" then
     im.ImGuiTextFilter_Clear(filter)
     docsSections = deepcopy(docsSectionsBase)
@@ -401,9 +400,8 @@ M.selectSection = function(section)
 end
 
 M.showWindow = function()
-  if not currentSection then
-
-  end
+  sortSectionChildren(docsSections)
+  docsSectionsBase = deepcopy(docsSections)
   editor.showWindow(windowName)
 end
 

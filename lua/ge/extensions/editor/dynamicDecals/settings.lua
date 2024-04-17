@@ -33,6 +33,9 @@ local textureResolutionYId = 1
 local function updateMaterials()
   if not api then return end
   local vehicleObj = be:getPlayerVehicle(0)
+  if not vehicleObj then
+    return
+  end
   local vehicleName = (vehicleObj and vehicleObj.jbeam or "")
   local mNames = api.getShapeMaterialNames()
   materialsMapMaterialNameToMaterialIdx = {}

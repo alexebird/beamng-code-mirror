@@ -43,10 +43,7 @@ Our tool offers an array of features, let's dive into what you can expect:
   im.TextUnformatted("We can't wait to see the incredible liveries you create and share with the community!")
 
   im.Dummy(spacing)
-  local btnSize = im.ImVec2((im.GetContentRegionAvailWidth() - im.GetStyle().ItemSpacing.x * 1) / 2, 0)
-  if im.SmallButton("Thread [Link] (ToDo)", btnSize) then openWebBrowser("https://support.beamng.com/") end
-  im.SameLine()
-  if im.SmallButton("Support [Link] (ToDo)", btnSize) then openWebBrowser("https://support.beamng.com/") end
+  if im.Button("Dynamic Decals Thread [Link]", im.ImVec2(im.GetContentRegionAvailWidth(), 0)) then openWebBrowser("https://www.beamng.com/threads/experimental-dynamic-decals.95559/") end
   im.Dummy(spacing)
 
   im.TextUnformatted([[

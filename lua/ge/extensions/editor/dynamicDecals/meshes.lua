@@ -39,19 +39,6 @@ local function sectionGui(guiId)
     )
   end
   im.tooltip("Change Shape Path")
-
-  if im.Button("vivace_test.dae") then
-    setShapePath("/levels/test_level/art/shapes/vivace_test/vivace_test.dae")
-  end
-  if im.Button("vivace_test_b.dae") then
-    setShapePath("/levels/test_level/art/shapes/vivace_test/vivace_test_b.dae")
-  end
-  if im.Button("test_uvsphere.dae") then
-    setShapePath("/levels/test_level/art/shapes/test_uvsphere.dae")
-  end
-  if im.Button("test_sphere.dae") then
-    setShapePath("/levels/test_level/art/shapes/test_sphere.dae")
-  end
 end
 
 local function registerEditorPreferences(prefsRegistry)

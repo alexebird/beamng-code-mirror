@@ -179,7 +179,7 @@ local function textureFilesSortFn(a, b)
 end
 
 local function reloadTextureFiles()
-  textureFiles = FS:findFiles(texturesDirectoryPath, "*.png", -1, false, false)
+  textureFiles = FS:findFiles(texturesDirectoryPath, "*", -1, false, false)
   table.sort(textureFiles, textureFilesSortFn)
 end
 

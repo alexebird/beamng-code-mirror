@@ -318,7 +318,7 @@ function C:hasAnyVehicles(playerId)
   end
 
   local selfRadius = self.pos:distance(self.vertices[1])
-  for _, veh in ipairs(getAllVehiclesByType()) do
+  for _, veh in ipairs(getAllVehiclesByType({"Car", "Truck", "Automation", "Traffic", "Trailer"})) do
     local vehId = veh:getID()
     if veh:getActive() and (not playerId or playerId ~= vehId) then
       local oobb = veh:getSpawnWorldOOBB()

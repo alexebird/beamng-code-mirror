@@ -3,6 +3,7 @@
 
 !/.gitignore
 !/README.md
+!/licenses.txt
 
 # Allow traversal into directories
 !*/

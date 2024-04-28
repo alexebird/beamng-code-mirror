@@ -9,11 +9,11 @@
       <div v-if="mirrorsShown">
         <BngButton v-bng-disabled="!mirrorsEnabled" @click="toMirrors">{{ $t("ui.mirrors.name") }}</BngButton>
       </div>
-      <div v-for="(subCategories, category) in tuningStore.buckets" :key="category">
-        <h2>{{ category }}</h2>
-        <div v-for="(variables, subCategory) in subCategories" :key="subCategory">
-          <h3 v-if="subCategory !== 'Other'">{{ subCategory }}</h3>
-          <div v-for="varData in variables" :key="category + subCategory + varData.name">
+      <div v-for="category in tuningStore.buckets" :key="category.name">
+        <h2>{{ category.name }}</h2>
+        <div v-for="subCategory in category.items" :key="subCategory.name">
+          <h3 v-if="subCategory.name !== 'Other'">{{ subCategory.name }}</h3>
+          <div v-for="varData in subCategory.items" :key="category.name + subCategory.name + varData.name">
             <div class="variable-title">{{ varData.title }}</div>
             <div class="variable-box">
               <BngSlider
@@ -40,7 +40,7 @@
       <advancedWheelsDebug ref="awdApp" v-show="awdShow" />
       <!-- <Teleport :disabled="!buttonTarget" :to="buttonTarget"> -->
       <BngSwitch v-if="awdApp && awdApp.hasData" v-model="awdShow">{{ $t("ui.garage.tune.advWheel") }}</BngSwitch>
-      <BngSwitch v-model="autoApply">{{ $t("ui.garage.liveUpdates") }}</BngSwitch>
+      <BngSwitch v-model="autoApply" @valueChanged="applySettingChanged">{{ $t("ui.garage.liveUpdates") }}</BngSwitch>
       <BngButton :disabled="autoApply || !isChanged" @click="apply">{{ $t("ui.common.apply") }}</BngButton>
       <BngButton v-if="closeButton" @click="close" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />{{ $t("ui.common.close") }}</BngButton>
       <!-- </Teleport> -->
@@ -109,6 +109,11 @@ const applyDebounce = debounce(apply, 3000)
 function onChange() {
   autoApply.value && applyDebounce()
 }
+
+
+const applySettingChanged = val => localStorage.setItem("applyTuningChangesAutomatically", JSON.stringify(val))
+autoApply.value = localStorage.getItem("applyTuningChangesAutomatically")
+if (autoApply.value) autoApply.value = JSON.parse(autoApply.value) || false
 
 onBeforeMount(async () => {
   if (await lua.extensions.gameplay_garageMode.isActive()) mirrorsRoute = "garagemode.tuning.mirrors"

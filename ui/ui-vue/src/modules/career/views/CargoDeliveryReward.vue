@@ -65,8 +65,8 @@
 <script setup>
 import { LayoutSingle } from "@/common/layouts"
 import { BngButton, BngCard, BngCardHeading, BngDivider, BngProgressBar, BngBinding } from "@/common/components/base"
-import RewardsPills from "../components/branches/RewardsPills.vue"
-import UnlockCard from "../components/branches/UnlockCard.vue"
+import RewardsPills from "../components/progress/RewardsPills.vue"
+import UnlockCard from "../components/progress/UnlockCard.vue"
 import { CareerStatus } from "@/modules/career/components"
 import { onMounted, ref, onUnmounted } from "vue"
 import { lua } from "@/bridge"

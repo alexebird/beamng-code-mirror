@@ -22,11 +22,11 @@ import { vBngOnUiNav } from "@/common/directives"
 
 // import stuff
 import Pause from "@/modules/career/views/Pause.vue"
-import BranchLanding from "@/modules/career/views/BranchLanding.vue"
+import ProgressLanding from "@/modules/career/views/ProgressLanding.vue"
 
 const comps = {
   Pause,
-  BranchLanding,
+  ProgressLanding,
   Mirrors,
 }
 

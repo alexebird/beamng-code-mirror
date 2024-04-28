@@ -127,9 +127,9 @@ export default [
 
       //Branch Landing Page
       {
-        path: "branchLanding/",
-        name: "branchLanding",
-        component: views.BranchLanding,
+        path: "progressLanding/",
+        name: "progressLanding",
+        component: views.ProgressLanding,
       },
 
       //Branch Landing Page

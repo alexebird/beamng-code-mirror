@@ -442,27 +442,25 @@ local function displayMissionMarkers(level, dtSim, dtReal)
   local decalCount = 0
   local careerActive = (career_career and career_career.isActive())
   table.clear(interactableElements)
-  local showMissionMarkers = settings.getValue("showMissionMarkers")
+  local showMissionMarkers = careerActive or settings.getValue("showMissionMarkers")
   -- draw/show all visible markers.
+  --[[
   if not timeSincePlayerTeleport then
     timeSincePlayerTeleport = core_camera.objectTeleported(updateData.camPos, lastCamPos, playerVelLast, dtReal) and 0.5
   end
   if timeSincePlayerTeleport then
     timeSincePlayerTeleport = timeSincePlayerTeleport - dtReal
     if timeSincePlayerTeleport <= 0 then timeSincePlayerTeleport = nil end
-  end
-
+  end]]
+  --local testId = "parkingMarker#/levels/west_coast_usa/facilities/delivery/mechanics.sites.json#exhaustShop_parking"
   for i, cluster in ipairs(gameplay_playmodeMarkers.getPlaymodeClusters()) do
     local marker = gameplay_playmodeMarkers.getMarkerForCluster(cluster)
-    if nearbyIds[cluster.id] or marker.focus or timeSincePlayerTeleport then
+    if nearbyIds[cluster.id] or marker.focus then
       -- Check if the marker should be visible
-      local showMarker = not photoModeOpen and not editor.active
-      if marker.type == "missionMarker" then
-        showMarker = (showMissionMarkers or cluster.focus)
-      end
-      if showMarker or timeSincePlayerTeleport then
+      local showMarker = not photoModeOpen and not editor.active and (showMissionMarkers or cluster.focus)
+      if showMarker then
         -- debug drawing for testing
-        --debugDrawer:drawTextAdvanced(cluster.pos, String(tostring(id)), ColorF(1,1,1,1), true, false, ColorI(0,0,0,192))
+        --debugDrawer:drawTextAdvanced(marker.pos, String(tostring(cluster.id)), ColorF(1,1,1,1), true, false, ColorI(0,0,0,192))
         --debugDrawer:drawSphere(cluster.pos, cluster.radius, ColorF(0.91,0.05,0.48,0.2))
         marker:show()
         marker:update(updateData)

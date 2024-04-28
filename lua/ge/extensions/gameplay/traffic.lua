@@ -101,12 +101,12 @@ local function setMapData() -- updates all map related data
 end
 
 local function checkSpawnPos(pos, camRadius, plRadius, vehRadius) -- tests if the spawn point interferes with other vehicles
-  if pos:squaredDistance(core_camera.getPosition()) < square(min(40, camRadius or 80)) then
+  if pos:squaredDistance(core_camera.getPosition()) < square(camRadius or 80) then
     return false
   end
 
   vehRadius = vehRadius or 15
-  plRadius = min(40, plRadius or 80)
+  plRadius = plRadius or 80
 
   for _, v in ipairs(getAllVehicles()) do
     local vehId = v:getId()
@@ -1123,20 +1123,20 @@ local function doTraffic(dt, dtSim) -- various logic for traffic; also handles w
     player.camPos, player.camDirVec = vec3(), vec3()
   end
 
-  player.camPos:set(core_camera.getPosition())
-  player.camDirVec:set(core_camera.getForward())
+  player.camPos:set(core_camera.getPositionXYZ())
+  player.camDirVec:set(core_camera.getForwardXYZ())
   player.pos = map.objects[be:getPlayerVehicleID(0)] and map.objects[be:getPlayerVehicleID(0)].pos or player.camPos
 
   local vehCount = 0
+  local aiVehsListSize = #trafficAiVehsList
   for i, id in ipairs(trafficIdsSorted) do -- ensures consistent order of vehicles
     vehCount = vehCount + 1
     local veh = traffic[id]
     if veh then
-      local obj = be:getObjectByID(id)
       veh.playerData = player
       veh:onUpdate(dt, dtSim)
 
-      if veh.isAi and obj:getActive() then
+      if veh.isAi and be:getObjectActive(id) then
         if veh.state == 'reset' then
           veh:onRefresh()
 
@@ -1150,7 +1150,7 @@ local function doTraffic(dt, dtSim) -- various logic for traffic; also handles w
             forceTeleport(id, nil, nil, veh._teleportDist)
           else
             if veh.state == 'active' then
-              veh:tryRespawn(#trafficAiVehsList)
+              veh:tryRespawn(aiVehsListSize)
             elseif veh.state == 'queued' then
               processNextSpawn(id)
             end
@@ -1172,8 +1172,7 @@ local function doDebug() -- general debug visuals
   local linePoint = core_camera.getPosition() + core_camera.getForward()
   linePoint.z = linePoint.z - 1
   for id, veh in pairs(traffic) do
-    local obj = be:getObjectByID(id)
-    if obj:getActive() then
+    if be:getObjectActive(id) then
       local lineColor = veh.camVisible and debugColors.green or debugColors.white
       local txtColor = debugColors.white
       local bgColor = veh.isPlayerControlled and debugColors.greenAlt or debugColors.blackAlt

@@ -2,7 +2,7 @@
   <div class="condensed">
     <div v-if="milestone.claimable" class="animated-border claimable" @click="claimMilestone"></div>
     <div v-if="milestone.completed" class="complete"></div>
-    <AspectRatio class="image" :style="{ backgroundColor: milestone.color }">
+    <AspectRatio class="image" :style="{ backgroundColor: 'rgb(' + milestoneColor + ')' }" :ratio="'21:9'">
       <div v-if="milestone.completed" class="complete"></div>
       <div v-if="milestone.completed" class="complete-badge"><BngIcon class="glyph small" :type="icons.checkmark" /></div>
       <BngIcon class="glyph" :type="icons[milestone.icon]" />
@@ -20,26 +20,12 @@
         <RewardsPills :rewards="milestone.rewards" />
       </div>
 
-      <!-- TODO - please use bngProgressBar component, or discuss why not -->
-      <div v-if="milestone.completed" class="progress">
-        <div>
-          <div class="progressbar-container">
-            <div class="progressbar-label">Complete!</div>
-            <div class="progressbar-fill" :style="{ width: 100 + '%' }" style="background-color: gray"></div>
-          </div>
-        </div>
-      </div>
+      <BngProgressBar v-if="milestone.completed"  :value="1" :max="1" :min="0" :valueLabelFormat="'Complete!'" class="progress"/>
 
-      <!-- TODO - please use bngProgressBar component, or discuss why not -->
-      <div v-for="prog in milestone.progress" class="progress">
-        <div v-if="prog.type === 'progressBar'">
-          <div v-if="prog.type === 'progressBar'" class="progressbar-container">
-            <div class="progressbar-label">
-              {{ $ctx_t(prog.label) }}
-            </div>
-            <div class="progressbar-fill" :style="{ width: (prog.currValue > 0 ? (prog.currValue / (prog.maxValue - prog.minValue)) * 100 : 0) + '%' }"></div>
-          </div>
-        </div>
+      <div v-if="milestone.progress" class="progress">
+        <template v-for="prog in milestone.progress">
+          <BngProgressBar :value="prog.currValue" :max="prog.maxValue" :min="prog.minValue" :valueLabelFormat="$ctx_t(prog.label)"/>
+        </template>
       </div>
     </div>
   </div>
@@ -49,7 +35,10 @@
 import { AspectRatio } from "@/common/components/utility"
 import { BngIcon, icons } from "@/common/components/base"
 
-import RewardsPills from "../branches/RewardsPills.vue"
+import RewardsPills from "../progress/RewardsPills.vue"
+import BngProgressBar from "@/common/components/base/bngProgressBar"
+
+import { ref, computed } from "vue"
 
 const props = defineProps({
   milestone: Object,
@@ -65,6 +54,26 @@ const rewardUnitTypes = {
   money: "beambucks",
   beamXP: "xp",
 }
+
+const milestoneColor = computed(() => {
+  const color = props.milestone.color
+  if (!color) return ""
+  if (color.startsWith("#")) {
+    return hexToRgb(color)
+  } else if (color.startsWith("var(--")) {
+    return `${color}`
+  } else {
+    return "transparent"
+  }
+})
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `${r}, ${g}, ${b}`
+}
+
 </script>
 
 <style scoped lang="scss">
@@ -128,10 +137,10 @@ const rewardUnitTypes = {
   :deep(.image) {
     //background-image: url('/levels/west_coast_usa/spawns_quarry.jpg') !important;
     align-self: stretch;
-    .icon {
-      width: 2rem;
-      height: 2rem;
-    }
+    // .icon {
+    //   width: 2rem;
+    //   height: 2rem;
+    // }
 
     .glyph {
       font-size: 6em;
@@ -145,7 +154,7 @@ const rewardUnitTypes = {
       height: 2rem;
     }
     overflow-y: hidden;
-    height: 6em;
+    // height: 6em;
 
     .step {
       position: absolute;
@@ -159,7 +168,6 @@ const rewardUnitTypes = {
 
   .content {
     flex: 1 0 auto;
-
     padding: 0.75rem 0.75rem 0.75rem 0.75rem;
 
     .heading {
@@ -172,51 +180,23 @@ const rewardUnitTypes = {
       grid-column-end: -1;
     }
 
-    .progress {
-      grid-area: auto / 1 / auto / -1;
-
-      .progressbar-container {
-        display: flex;
-        position: relative;
-        align-self: stretch;
-        border-radius: var(--bng-corners-1);
-        background: rgba(var(--bng-cool-gray-700-rgb), 0.8);
-        padding: 0.25rem 0.5rem 0.1rem 0.5rem;
-      }
-      .progressbar-label {
-        position: relative;
-        font-size: 1em;
-        flex: 0 0 auto;
-        align-self: center;
-
-        z-index: 1;
-      }
-      .progressbar-fill {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-
-        align-self: stretch;
-
-        border-radius: var(--bng-corners-1);
-        box-sizing: content-box;
-
-        background-color: var(--bng-orange-500);
-
-        z-index: 0;
-      }
-    }
-
     color: white;
     display: grid;
-    gap: 0.2rem;
+    gap: 0.5rem 0.2rem;
     grid-template:
-      "heading heading heading heading" minmax(3rem, auto)
+      "heading heading heading heading" minmax(2rem, auto)
       "content content content content" 1fr
-      "progress progress progress progress" 2rem /
+      "progress progress progress progress" minmax(2rem, auto) /
       1fr 1fr 1fr 1fr;
     //align-content: space-between;
+
+    .progress {
+      grid-area: auto / 1 / auto / -1;
+      :deep(.progress-bar){
+        overflow: hidden;
+        border-radius: var(--bng-corners-1);
+      }
+    }
   }
 }
 

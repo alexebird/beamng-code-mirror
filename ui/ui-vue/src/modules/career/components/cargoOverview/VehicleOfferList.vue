@@ -24,6 +24,7 @@
           <th class="numberColumn">Distance</th>
           <th class="numberColumn">Reward</th>
           <th v-if="offerType != OFFER_TYPE.accepted">Availability</th>
+          <th></th>
           <th class="tableButtons"></th>
         </tr>
       </thead>
@@ -32,7 +33,7 @@
           <td><AspectRatio class="thumbnail" :image="offer.thumbnail"> </AspectRatio></td>
           <td style="padding-left: 0.5em">
             {{ offer.vehBrand }} {{ offer.vehName }}
-            <div v-if="offer.vehMileage > 0">Mileage: {{units.buildString('length', offer.vehMileage, 0)}}</div>
+            <div v-if="offer.vehMileage > 0">Mileage: {{ units.buildString("length", offer.vehMileage, 0) }}</div>
           </td>
           <td>{{ offer.task }}</td>
           <td class="numberColumn">{{ units.buildString("length", offer.distance, 0) }}</td>
@@ -44,41 +45,50 @@
 
           <td v-if="offerType != OFFER_TYPE.accepted">
             <div v-if="offer.remainingOfferTime > 0">
-
               <!-- TODO - use BngProgressBar here -->
               <div class="progressbar-wrapper">
                 <div class="progressbar-background">
                   <!-- The width of this is a percentage of 5em, because that is how wide the progressbar background is -->
                   <div
                     class="progressbar-fill"
-                    :style="{ width: (offer.remainingOfferTime > 0 ? (Math.min(offer.remainingOfferTime, 120) / 120) * 0.95 : 0) * 5 + 'em' }"
-                  ></div>
+                    :style="{ width: (offer.remainingOfferTime > 0 ? (Math.min(offer.remainingOfferTime, 120) / 120) * 0.95 : 0) * 5 + 'em' }"></div>
                 </div>
                 <div class="progress-label">{{ getNiceTime(offer.remainingOfferTime) }}</div>
               </div>
-
             </div>
             <div v-else>Expired</div>
           </td>
           <td>
+
+          </td>
+          <td>
             <BngButton
-              v-if="!offer.enabled && offerType != OFFER_TYPE.accepted"
+              v-if="offer.locked && offerType != OFFER_TYPE.accepted"
               class="cargoButton"
               v-bng-sound-class="'bng_click_hover_generic'"
               accent="secondary"
               :disabled="true"
-              @click="spawnOffer(offer.id)"
-            >
+              >
+              <BngIcon class="icon" :color="'#ffffff'" :type="icons.lockClosed" />
+              <BngIcon class="icon" :type="icons[offer.lockedReason.icon]" />
+              lvl {{offer.lockedReason.level}}
+            </BngButton>
+            <BngButton
+              v-else-if="!offer.enabled && offerType != OFFER_TYPE.accepted"
+              class="cargoButton"
+              v-bng-sound-class="'bng_click_hover_generic'"
+              accent="secondary"
+              :disabled="true"
+              @click="spawnOffer(offer.id)">
               {{ offer.disableReason }}
             </BngButton>
             <BngButton
-              v-if="offer.enabled && offerType != OFFER_TYPE.accepted"
+              v-else-if="offer.enabled && offerType != OFFER_TYPE.accepted"
               class="cargoButton"
               v-bng-sound-class="'bng_click_hover_generic'"
               accent="secondary"
               :disabled="offer.remainingOfferTime <= 0"
-              @click="spawnOffer(offer.id)"
-            >
+              @click="spawnOffer(offer.id)">
               Accept
             </BngButton>
           </td>
@@ -106,6 +116,7 @@ import { BngButton, BngUnit, BngCardHeading } from "@/common/components/base"
 import { useCargoOverviewStore } from "../../stores/cargoOverviewStore"
 import { vBngSoundClass } from "@/common/directives"
 import { AspectRatio } from "@/common/components/utility"
+import { BngIcon, icons } from "@/common/components/base"
 
 const { units } = useBridge()
 
@@ -150,7 +161,7 @@ const hoverOffer = offer => {
   }
 }
 
-const pad = n => (''+n).padStart(2,0)
+const pad = n => ("" + n).padStart(2, 0)
 </script>
 
 <style scoped lang="scss">
@@ -296,6 +307,11 @@ const pad = n => (''+n).padStart(2,0)
   // height: 1.5em;
   font-size: 1.5rem !important;
 }
+
+:deep(.icon) {
+  color: rgba(255,255,255,1) !important;
+}
+
 
 .progressbar-background {
   display: flex;

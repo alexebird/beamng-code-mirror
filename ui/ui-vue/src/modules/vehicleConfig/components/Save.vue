@@ -7,9 +7,7 @@
     v-bng-blur="withBackground">
     <div v-if="configList" class="saveload-static">
       <div class="saveload-row saveload-filename">
-        <!-- TODO: update with input's built-in icon -->
-        <BngIcon :type="icons.saveAs1" />
-        <BngInput v-model.trim="saveName" _:leading-icon="icons.saveAs1" :floating-label="$t('ui.vehicleconfig.filename')" />
+        <BngInput v-model.trim="saveName" :leading-icon="icons.saveAs1" :floating-label="$t('ui.vehicleconfig.filename')" />
         <BngButton :accent="configExists ? 'attention' : 'main'" v-bng-disabled="saveDisabled" @click="save(saveName)">{{
           configExists ? $t("ui.common.overwrite") : $t("ui.common.save")
         }}</BngButton>
@@ -17,7 +15,7 @@
     </div>
 
     <div class="saveload-list">
-      <div v-for="config in configList" class="saveload-list-item" @click="saveName = config.name" tabindex="1">
+      <div v-for="config in configFiltered" class="saveload-list-item" @click="saveName = config.name" tabindex="1">
         <BngIcon v-if="config.official" :type="icons.beamNG" v-bng-tooltip:top="$t('ui.vehicleconfig.sourceOfficial')" />
         <!-- person normal: icons.person filled: icons.personFilled -->
         <BngIcon v-else-if="config.player" :type="icons.person" v-bng-tooltip:top="$t('ui.vehicleconfig.sourceUser')" />
@@ -25,7 +23,7 @@
 
         <div class="saveload-list-item-label">{{ config.name }}</div>
 
-        <BngButton accent="outlined" @click="load(config.name)" v-bng-tooltip:top="$t('ui.vehicleconfig.loadTooltip')">
+        <BngButton accent="outlined" @click.stop="load(config.name)" v-bng-tooltip:top="$t('ui.vehicleconfig.loadTooltip')">
           <BngIcon :type="icons.BNGFolder" />
           {{ $t("ui.vehicleconfig.load") }}
         </BngButton>
@@ -34,8 +32,8 @@
           v-if="config.player"
           class="saveload-list-item-delete"
           accent="outlined"
-          @click="remove(config.name)"
-          v-bng-tooltip:top="$t('ui.vehicleconfig.deleteTooltip')">
+          @click.stop="remove(config.name)"
+          v-bng-tooltip:top="'Remove configuration'">
           <BngIcon :type="icons.trashBin2" color="#f00" />
         </BngButton>
       </div>
@@ -69,13 +67,14 @@ defineProps({
   buttonTarget: Object,
 })
 
-const saveThumbnail = true
+const saveThumbnail = ref(true)
 
 const configList = ref([])
+const configFiltered = computed(() => saveName.value ? configList.value.filter(itm => itm.name.toLowerCase().indexOf(saveName.value.toLowerCase()) > -1) : configList.value)
 
 const saveDisabled = computed(() => !saveName.value || /^\.|[<>:"/\\|?*]/.test(saveName.value))
 const saveName = ref("")
-const configExists = computed(() => !!configList.value.find(itm => itm.name === saveName.value))
+const configExists = computed(() => !!configList.value.some(itm => itm.name.toLowerCase() === saveName.value.toLowerCase()))
 
 async function openConfigFolderInExplorer() {
   await lua.extensions.core_vehicle_partmgmt.openConfigFolderInExplorer()
@@ -90,7 +89,7 @@ async function save(configName) {
     if (!res) return
   }
   await lua.extensions.core_vehicle_partmgmt.saveLocal(configName + ".pc")
-  saveThumbnail && api.engineLua(`extensions.load('util_createThumbnails'); util_createThumbnails.startWork("${configName}")`)
+  saveThumbnail.value && api.engineLua(`extensions.load('util_createThumbnails'); util_createThumbnails.startWork("${configName}")`)
 }
 
 async function load(configName) {

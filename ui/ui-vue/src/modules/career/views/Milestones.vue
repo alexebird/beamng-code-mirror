@@ -1,25 +1,27 @@
 <!-- Milestones -->
 <template>
-  <LayoutSingle class="layout-content-full flex-column layout-paddings" v-bng-blur>
-    <BngScreenHeading>Milestones</BngScreenHeading>
-    <div
-      bng-ui-scope="milestones"
-      class="career-milestones-wrapper"
-      v-bng-on-ui-nav:back,menu="exit"
-      v-bng-on-ui-nav:tab_l="selectOneFilters && selectOneFilters.focusPrevious"
-      v-bng-on-ui-nav:tab_r="selectOneFilters && selectOneFilters.focusNext">
-      <div class="career-milestones-container">
-        <div class="actions">
-          <BngButton class="exitButton" @click="exit" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
-          <CareerStatus class="career-page-status"  ref="careerStatusRef" />
-        </div>
-        <div class="filters">
-          <BngIcon class="career-filter-icon" :type="icons.filter" />
-          <BngPillFilters ref="selectOneFilters" selectOnFocus :options="FILTER_OPTIONS" @valueChanged="filterChanged" />
-        </div>
-        <div class="scrollable-container" bng-nav-scroll-force>
-          <div class="cards-container">
-            <MilestoneCard v-for="entry in entries" :milestone="entry" :isCondensed="true" @claim="claimMilestone" />
+  <LayoutSingle class="layout-content-full content-center layout-paddings" v-bng-blur>
+    <div class="milestones-wrapper">
+      <BngScreenHeading>Milestones</BngScreenHeading>
+      <div
+        bng-ui-scope="milestones"
+        class="career-milestones-card"
+        v-bng-on-ui-nav:back,menu="exit"
+        v-bng-on-ui-nav:tab_l="selectOneFilters && selectOneFilters.focusPrevious"
+        v-bng-on-ui-nav:tab_r="selectOneFilters && selectOneFilters.focusNext">
+        <div class="career-milestones-container">
+          <div class="actions">
+            <BngButton class="exitButton" @click="exit" accent="attention"><BngBinding ui-event="back" deviceMask="xinput" />Back</BngButton>
+            <CareerStatus class="career-page-status" ref="careerStatusRef" />
+          </div>
+          <div class="filters">
+            <BngIcon class="career-filter-icon" :type="icons.filter" />
+            <BngPillFilters ref="selectOneFilters" selectOnFocus :options="FILTER_OPTIONS" @valueChanged="filterChanged" />
+          </div>
+          <div class="scrollable-container" bng-nav-scroll-force>
+            <div class="cards-container">
+              <MilestoneCard v-for="entry in entries" :milestone="entry" :isCondensed="true" @claim="claimMilestone" />
+            </div>
           </div>
         </div>
       </div>
@@ -29,7 +31,7 @@
 
 <script setup>
 import { LayoutSingle } from "@/common/layouts"
-import { BngScreenHeading, BngPillFilters, BngBinding, BngButton, BngIcon, icons} from "@/common/components/base"
+import { BngScreenHeading, BngPillFilters, BngBinding, BngButton, BngIcon, icons } from "@/common/components/base"
 import { vBngBlur, vBngOnUiNav } from "@/common/directives"
 import MilestoneCard from "../components/milestones/MilestoneCard.vue"
 import { CareerStatus } from "@/modules/career/components"
@@ -46,12 +48,12 @@ const careerStatusRef = ref()
 let allEntries = []
 const entries = ref([])
 const selectOneFilters = ref("general")
-const filterOnlyAll = [{ value: 0, label: "All" }]
+//const filterOnlyAll = [{ value: 0, label: "All" }]
 //filteroptions should be computed in the setup function :(
 const FILTER_OPTIONS = [
   { value: "general", label: "General" },
   { value: "all", label: "All" },
-  { value: "mission", label: "Missions" },
+  { value: "mission", label: "Challenges" },
   { value: "branch", label: "Branches" },
   { value: "delivery", label: "Delivery" },
   { value: "money", label: "Money" },
@@ -147,7 +149,16 @@ hr {
   font-size: $fontsize;
 }
 
-.career-milestones-wrapper {
+.milestones-wrapper {
+  display: flex;
+  max-width: 80em;
+  flex-flow: column;
+  overflow: hidden;
+  align-self: stretch;
+  flex: 1 1 auto;
+}
+
+.career-milestones-card {
   display: flex;
   height: 100%;
   max-width: 80em;
@@ -183,7 +194,6 @@ hr {
   display: flex;
   flex-direction: row;
   width: fit-content;
-
 }
 
 .actions {

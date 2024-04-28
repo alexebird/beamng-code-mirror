@@ -1,6 +1,6 @@
 // All Main Career Views ----------------------------------------
 
-export { default as BranchLanding } from "./BranchLanding.vue"
+export { default as ProgressLanding } from "./ProgressLanding.vue"
 export { default as BranchPage } from "./BranchPage.vue"
 export { default as CargoDeliveryReward } from "./CargoDeliveryReward.vue"
 export { default as CargoOverview } from "./CargoOverviewMain.vue"

@@ -141,13 +141,23 @@ local function onSpeedTrapTriggered(speedTrapData, playerSpeed, overSpeed)
     saveData[velocityMilestone.id].maxVelocityReachedByPlayer = playerSpeed
   end
 
-  -- check if a new milestone has been reached
-  local maxVelocitySaveData = saveData[velocityMilestone.id]
-  local maxVelocity = maxVelocitySaveData.maxVelocityReachedByPlayer
-  local velocityTarget = velocityMilestone.getTarget(maxVelocitySaveData.notificationStep + 1)
-  if maxVelocity >= velocityTarget then
-    milestones.milestoneReached(velocityMilestone.getLabel(maxVelocitySaveData.notificationStep + 1))
-    maxVelocitySaveData.notificationStep = maxVelocitySaveData.notificationStep + 1
+  -- loop-check if a new milestone has been reached
+  local checkNext = true
+  while checkNext do
+    local maxVelocitySaveData = saveData[velocityMilestone.id]
+    local maxVelocity = maxVelocitySaveData.maxVelocityReachedByPlayer
+    local velocityTarget = velocityMilestone.getTarget(maxVelocitySaveData.notificationStep + 1)
+    if velocityTarget == nil then
+      -- no more steps
+      checkNext = false
+    else
+      if maxVelocity >= velocityTarget then
+        milestones.milestoneReached(velocityMilestone.getLabel(maxVelocitySaveData.notificationStep + 1))
+        maxVelocitySaveData.notificationStep = maxVelocitySaveData.notificationStep + 1
+      else
+        checkNext = false
+      end
+    end
   end
 
   -- all Traps milestone
@@ -163,10 +173,12 @@ local function onSpeedTrapTriggered(speedTrapData, playerSpeed, overSpeed)
   -- trigger counter milestone
   local milestoneSaveData = saveData[triggerCounterMilestone.id]
   local counterTarget = triggerCounterMilestone.getTarget(milestoneSaveData.notificationStep + 1)
-  milestoneSaveData.triggerCount = milestoneSaveData.triggerCount + 1
-  if milestoneSaveData.triggerCount >= counterTarget then
-    milestones.milestoneReached(triggerCounterMilestone.getLabel(milestoneSaveData.notificationStep + 1))
-    milestoneSaveData.notificationStep = milestoneSaveData.notificationStep + 1
+  if counterTarget then
+    milestoneSaveData.triggerCount = milestoneSaveData.triggerCount + 1
+    if milestoneSaveData.triggerCount >= counterTarget then
+      milestones.milestoneReached(triggerCounterMilestone.getLabel(milestoneSaveData.notificationStep + 1))
+      milestoneSaveData.notificationStep = milestoneSaveData.notificationStep + 1
+    end
   end
 end
 

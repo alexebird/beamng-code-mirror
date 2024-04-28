@@ -133,7 +133,7 @@ import { $content, $translate } from "@/services"
 
 import { lua } from "@/bridge"
 import { ref, computed, onMounted } from "vue"
-import RewardsPills from "../components/branches/RewardsPills.vue"
+import RewardsPills from "../components/progress/RewardsPills.vue"
 import { useUINavScope } from "@/services/uiNav"
 useUINavScope("logbook") // UI Nav events to fire from (or from focused element inside) element with attribute: bng-ui-scope="logbook"
 

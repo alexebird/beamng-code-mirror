@@ -89,6 +89,24 @@ M.onGeneralMilestonesCollect = function(milestonesList)
   table.insert(milestoneConfigs, deliverFromConfig)
 end
 
+
+M.onGeneralMilestonesSetupCallbacks = function()
+  for _, milestoneConfig in ipairs(milestoneConfigs) do
+    M.setNotificationTarget(milestoneConfig)
+  end
+end
+
+local function setNotificationTarget(milestoneConfig)
+  local step = milestones.saveData.general[milestoneConfig.id].notificationStep +1
+  -- check if milestone is completed
+  if milestoneConfig.maxStep and step > milestoneConfig.maxStep then return end
+  local target = milestoneConfig.getTarget(step)
+  if target then
+    milestoneConfig._target = target
+  end
+end
+M.setNotificationTarget = setNotificationTarget
+
 local function onDeliveryFacilityProgressStatsChanged()
   for _, milestoneConfig in ipairs(milestoneConfigs) do
     local step = milestones.saveData.general[milestoneConfig.id].notificationStep +1

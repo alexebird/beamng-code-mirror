@@ -42,7 +42,7 @@
               </template>
             </div>
             <template v-for="skill in skills">
-              <DeliveryProgressBar v-if="skills.length === 1 && skill.unlockInfo.length > 0"
+              <UnlockProgressBar v-if="skills.length === 1 && skill.unlockInfo.length > 0"
                 class="stat-progress-bar bng-progress-bar progress-bar"
                 :headerLeft="$ctx_t(skill.name)"
                 :headerRight="$ctx_t(skill.levelLabel)"
@@ -55,8 +55,8 @@
             </template>
           </div>
           <div class="cards-container">
-            <MissionCard class="clickable-card" v-for="mission in missions" :isFacility="false" :mission="mission" @goToBigMap="goToBigMap" />
-            <MissionCard class="clickable-card" v-for="fac in facilities" :isFacility="true" :mission="fac" @goToBigMap="goToBigMap" />
+            <BranchItemCard class="clickable-card" v-for="mission in missions" :isFacility="false" :mission="mission" @goToBigMap="goToBigMap" />
+            <BranchItemCard class="clickable-card" v-for="fac in facilities" :isFacility="true" :mission="fac" @goToBigMap="goToBigMap" />
           </div>
         </div>
         <!-- show skeleton while loading -->
@@ -79,7 +79,7 @@
             </div>
           </div>
           <div class="cards-container">
-            <MissionCard class="clickable-card" v-for="mission in ['', '', '']" :isSkeleton="true" />
+            <BranchItemCard class="clickable-card" v-for="mission in ['', '', '']" :isSkeleton="true" />
           </div>
         </div>
       </div>
@@ -91,12 +91,12 @@
 import { LayoutSingle } from "@/common/layouts"
 import { BngButton, BngScreenHeading, BngProgressBar, BngPillFilters, BngBinding, BngIcon, icons } from "@/common/components/base"
 import { vBngBlur, vBngOnUiNav } from "@/common/directives"
-import MissionCard from "../components/missions/MissionCard.vue"
+import BranchItemCard from "../components/progress/BranchItemCard.vue"
 import { lua } from "@/bridge"
 import { ref, computed } from "vue"
 import { onMounted } from "vue"
 import { useUINavScope } from "@/services/uiNav"
-import DeliveryProgressBar from "../components/branches/DeliveryProgressBar.vue"
+import UnlockProgressBar from "../components/progress/UnlockProgressBar.vue"
 import { $translate } from "@/services/translation"
 useUINavScope("branch") // UI Nav events to fire from (or from focused element inside) element with attribute: bng-ui-scope="branch"
 
@@ -172,7 +172,7 @@ const goToBigMap = mission => {
 }
 
 const close = () => {
-  window.bngVue.gotoGameState("branchLanding")
+  window.bngVue.gotoGameState("progressLanding")
 }
 
 onMounted(async () => {
@@ -180,7 +180,7 @@ onMounted(async () => {
   setup(await lua.career_modules_branches_landing.getBranchPageData(props.branchKey))
 })
 
-const exit = () => window.bngVue.gotoGameState("branchLanding")
+const exit = () => window.bngVue.gotoGameState("progressLanding")
 </script>
 
 <style lang="scss" scoped>

@@ -43,7 +43,7 @@ M.makeTaskLabel = makeTaskLabel
 local vehicleTags = {
   junkerVeh = {
     requirements = {
-      vehicleDelivery = 1
+      delivery = 2
     },
     labelPlural = "Junker Cars",
     labelSingular = "Junker Car",
@@ -120,8 +120,11 @@ local vehicleTags = {
     labelPlural = "Large Loaded Trailers",
     labelSingular = "Large Loaded Trailer",
   }
+}
 
-
+local skillIcons = {
+  delivery = "boxPickUp03",
+  vehicleDelivery = "keys1"
 }
 local function isVehicleTagUnlocked(tag)
   local unlocked = true
@@ -131,8 +134,8 @@ local function isVehicleTagUnlocked(tag)
   for skill, level in pairs(vehicleTags[tag].requirements or {}) do
     if career_branches.getBranchLevel(skill) < level then
       unlocked = false
-      reason = "(Lvl " ..level..")"
     end
+    reason = {icon = skillIcons[skill] or "noIcon", level = level}
   end
   return unlocked, reason
 end
@@ -294,14 +297,18 @@ local function spawnOffer(offerId, callback)
   }
   local sequence = {
     step.makeStepFadeToBlack(0.4),
-    step.makeStepSpawnVehicle(options, function(_, id) vehId = id end),
+    step.makeStepSpawnVehicle(options, function(_, id)
+      vehId = id end),
     step.makeStepReturnTrueFunction(function()
+      -- move vehicle to right spot
       local ps = dGenerator.getParkingSpotByPath(offer.spawnLocation.psPath)
       ps:moveResetVehicleTo(vehId, nil, true, nil, nil, true)
+      -- setup mileage
       local veh = be:getObjectByID(vehId)
       local mileage = offer.vehicle.mileage or 0
-      veh:queueLuaCommand(string.format("partCondition.initConditions(nil, %d, nil, %f)", mileage, career_modules_vehicleShopping.getVisualValueFromMileage(mileage))) -- TODO get mileage from offer
-
+      veh:queueLuaCommand(string.format("partCondition.initConditions(nil, %d, nil, %f)", mileage, career_modules_vehicleShopping.getVisualValueFromMileage(mileage)))
+      -- turn vehicle off
+      core_vehicleBridge.executeAction(veh,'setIgnitionLevel', 0)
       gameplay_rawPois.clear()
       return true
     end),
@@ -334,9 +341,9 @@ local function spawnOffer(offerId, callback)
         gameplay_walk.setRot(veh:getPosition() - getPlayerVehicle(0):getPosition())
       end
 
-      if offer.data.type == "trailer" then
-        gameplay_walk.addVehicleToBlacklist(vehId)
-      end
+      --if offer.data.type == "trailer" then
+      --  gameplay_walk.addVehicleToBlacklist(vehId)
+      --end
 
       --career_modules_vehicleDeletionService.flagForDeletion(vehId)
       dVehicleTasks.addVehicleTask(vehId, offer)

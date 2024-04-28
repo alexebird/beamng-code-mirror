@@ -105,6 +105,15 @@ local function createRoadFromProfile(profile)
     forceField = im.FloatPtr(1.0),                                                                  -- The value of the force field (when using non-rigid translation).
     isCivilEngRoads = im.BoolPtr(false),                                                            -- Indicates if this road is using civil engineering style or spline style.
 
+    isUseLampPosts = false,                                                                         -- Lamp Posts: Indicates if the road should include lamp posts or not.
+    lampPostLonSpacing = im.FloatPtr(10.0),                                                         -- Lamp Posts: Longitudinal spacing, in meters.
+    lampPostLatOffsetLeft = im.FloatPtr(1.0),                                                       -- Lamp Posts: Lateral offset of the left side lamp posts, in meters.
+    lampPostLatOffsetRight = im.FloatPtr(1.0),                                                      -- Lamp Posts: Lateral offset of the right side lamp posts, in meters.
+    lampPostLonOffset = im.FloatPtr(0.0),                                                           -- Lamp Posts: Longitudinal offset of the first lamp post, in meters.
+    lampPostVertOffset = im.FloatPtr(0.0),                                                          -- Lamp Posts: Vertical offset of the lamp posts, in meters.
+    lampPostLeftSide = im.BoolPtr(true),                                                            -- Lamp Posts: Indicates whether to include left side lamp posts, or not.
+    lampPostRightSide = im.BoolPtr(true),                                                           -- Lamp Posts: Indicates whether to include right side lamp posts, or not.
+
     radGran = im.IntPtr(15),                                                                        -- Tunnels: The radial granularity.
     radOffset = im.FloatPtr(0.0),                                                                   -- Tunnels: The radial offset.
     thickness = im.FloatPtr(1.0),                                                                   -- Tunnels: The wall thickness.
@@ -636,6 +645,14 @@ local function copyRoad(r)
   rCopy.protrudeE = im.FloatPtr(r.protrudeE[0])
   rCopy.extraS = im.IntPtr(r.extraS[0])
   rCopy.extraE = im.IntPtr(r.extraE[0])
+  rCopy.isUseLampPosts = r.isUseLampPosts
+  rCopy.lampPostLonSpacing = im.FloatPtr(r.lampPostLonSpacing[0])
+  rCopy.lampPostLatOffsetLeft = im.FloatPtr(r.lampPostLatOffsetLeft[0])
+  rCopy.lampPostLatOffsetRight = im.FloatPtr(r.lampPostLatOffsetRight[0])
+  rCopy.lampPostLonOffset = im.FloatPtr(r.lampPostLonOffset[0])
+  rCopy.lampPostVertOffset = im.FloatPtr(r.lampPostVertOffset[0])
+  rCopy.lampPostLeftSide = im.BoolPtr(r.lampPostLeftSide[0])
+  rCopy.lampPostRightSide = im.BoolPtr(r.lampPostRightSide[0])
 
   return rCopy
 end
@@ -713,6 +730,14 @@ local function splitRoad(rIdx, nIdx, link)
   roadA.protrudeE = im.FloatPtr(r.protrudeE[0])
   roadA.extraS = im.IntPtr(r.extraS[0])
   roadA.extraE = im.IntPtr(r.extraE[0])
+  roadA.isUseLampPosts = r.isUseLampPosts
+  roadA.lampPostLonSpacing = im.FloatPtr(r.lampPostLonSpacing[0])
+  roadA.lampPostLatOffsetLeft = im.FloatPtr(r.lampPostLatOffsetLeft[0])
+  roadA.lampPostLatOffsetRight = im.FloatPtr(r.lampPostLatOffsetRight[0])
+  roadA.lampPostLonOffset = im.FloatPtr(r.lampPostLonOffset[0])
+  roadA.lampPostVertOffset = im.FloatPtr(r.lampPostVertOffset[0])
+  roadA.lampPostLeftSide = im.BoolPtr(r.lampPostLeftSide[0])
+  roadA.lampPostRightSide = im.BoolPtr(r.lampPostRightSide[0])
 
   -- Create the second new road (road B).
   local copiedNodesB, numNodes, ctr = {}, #nodes, 1
@@ -762,6 +787,14 @@ local function splitRoad(rIdx, nIdx, link)
   roadB.protrudeE = im.FloatPtr(r.protrudeE[0])
   roadB.extraS = im.IntPtr(r.extraS[0])
   roadB.extraE = im.IntPtr(r.extraE[0])
+  roadB.isUseLampPosts = r.isUseLampPosts
+  roadB.lampPostLonSpacing = im.FloatPtr(r.lampPostLonSpacing[0])
+  roadB.lampPostLatOffsetLeft = im.FloatPtr(r.lampPostLatOffsetLeft[0])
+  roadB.lampPostLatOffsetRight = im.FloatPtr(r.lampPostLatOffsetRight[0])
+  roadB.lampPostLonOffset = im.FloatPtr(r.lampPostLonOffset[0])
+  roadB.lampPostVertOffset = im.FloatPtr(r.lampPostVertOffset[0])
+  roadB.lampPostLeftSide = im.BoolPtr(r.lampPostLeftSide[0])
+  roadB.lampPostRightSide = im.BoolPtr(r.lampPostRightSide[0])
 
   -- Repel the two split endpoints slightly.
   local np = nodes[nIdx].p
@@ -1007,7 +1040,15 @@ local function manageTempRoadSection(pIdx)
       protrudeS = im.FloatPtr(0.0),
       protrudeE = im.FloatPtr(0.0),
       extraS = im.IntPtr(2),
-      extraE = im.IntPtr(2) }
+      extraE = im.IntPtr(2),
+      isUseLampPosts = false,
+      lampPostLonSpacing = im.FloatPtr(10.0),
+      lampPostLatOffsetLeft = im.FloatPtr(1.0),
+      lampPostLatOffsetRight = im.FloatPtr(1.0),
+      lampPostLonOffset = im.FloatPtr(0.0),
+      lampPostVertOffset = im.FloatPtr(0.0),
+      lampPostLeftSide = im.BoolPtr(false),
+      lampPostRightSide = im.BoolPtr(false), }
 
     -- Recompute the road map.
     recomputeMap()
@@ -1199,7 +1240,7 @@ local function finalise()
     local r = roads[i]
     if #r.nodes > 1 then
       if r.isMesh then
-        meshMgr.createRoad(r.name, r.renderData, r.laneKeys, r.isDowelS, r.isDowelE)
+        meshMgr.createRoad(r)
       end
       if #r.tunnels > 0 then
         for j = 1, #r.tunnels do
@@ -1350,7 +1391,15 @@ local function serialiseRoad(r)
     protrudeS = r.protrudeS[0],
     protrudeE = r.protrudeE[0],
     extraS = r.extraS[0],
-    extraE = r.extraE[0] }
+    extraE = r.extraE[0],
+    isUseLampPosts = r.isUseLampPosts,
+    lampPostLonSpacing = r.lampPostLonSpacing[0],
+    lampPostLatOffsetLeft = r.lampPostLatOffsetLeft[0],
+    lampPostLatOffsetRight = r.lampPostLatOffsetRight[0],
+    lampPostLonOffset = r.lampPostLonOffset[0],
+    lampPostVertOffset = r.lampPostVertOffset[0],
+    lampPostLeftSide = r.lampPostLeftSide[0],
+    lampPostRightSide = r.lampPostRightSide[0] }
 end
 
 -- De-serialises a road.
@@ -1420,7 +1469,15 @@ local function deserialiseRoad(rSer)
     protrudeS = im.FloatPtr(rSer.protrudeS or 0.0),
     protrudeE = im.FloatPtr(rSer.protrudeE or 0.0),
     extraS = im.IntPtr(rSer.extraS or 2),
-    extraE = im.IntPtr(rSer.extraE or 2) }
+    extraE = im.IntPtr(rSer.extraE or 2),
+    isUseLampPosts = rSer.isUseLampPosts,
+    lampPostLonSpacing = im.FloatPtr(rSer.lampPostLonSpacing or 10.0),
+    lampPostLatOffsetLeft = im.FloatPtr(rSer.lampPostLatOffsetLeft or 1.0),
+    lampPostLatOffsetRight = im.FloatPtr(rSer.lampPostLatOffsetRight or 1.0),
+    lampPostLonOffset = im.FloatPtr(rSer.lampPostLonOffset or 0.0),
+    lampPostVertOffset = im.FloatPtr(rSer.lampPostVertOffset or 0.0),
+    lampPostLeftSide = im.BoolPtr(rSer.lampPostLeftSide or false),
+    lampPostRightSide = im.BoolPtr(rSer.lampPostRightSide or false) }
 end
 
 

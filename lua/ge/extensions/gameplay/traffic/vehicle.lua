@@ -17,6 +17,7 @@ local baseSightDirValue = 200
 local baseSightStrength = 500
 local lowSpeed = 2.5
 local tickTime = 0.25
+local tempVec = vec3()
 
 -- const vectors --
 local vecUp = vec3(0, 0, 1)
@@ -238,9 +239,7 @@ function C:getBrakingDistance(speed, accel) -- gets estimated braking distance
 end
 
 function C:checkCollisions() -- checks for contact with other tracked vehicles
-  local traffic = gameplay_traffic.getTrafficData()
-
-  for id, veh in pairs(traffic) do
+  for id, veh in pairs(map.objects) do
     if self.id ~= id then
       local isCurrentCollision = map.objects[id] and map.objects[id].objectCollisions[self.id] == 1
 
@@ -268,7 +267,7 @@ function C:checkCollisions() -- checks for contact with other tracked vehicles
           if self.enableTracking then self.tracking.collisions = self.tracking.collisions + 1 end
           self.role:onCollision(id, collision)
 
-          for otherId, otherVeh in pairs(traffic) do -- notify other traffic vehicles of collision
+          for otherId, otherVeh in pairs(gameplay_traffic.getTrafficData()) do -- notify other traffic vehicles of collision
             if not otherVeh.otherCollisionFlag and otherId ~= self.id and otherId ~= id then
               otherVeh.role:onOtherCollision(self.id, id, collision)
               otherVeh.otherCollisionFlag = true
@@ -276,11 +275,14 @@ function C:checkCollisions() -- checks for contact with other tracked vehicles
           end
         end
 
-        if self.isAi and veh.isPerson then
-          if isCurrentCollision and not self.role.flags.pullOver then
-            self.role:setAction('pullOver')
-          elseif not isCurrentCollision and self.role.flags.pullOver and dist > square(collision.vehDist + 3) then
-            self.role:resetAction()
+        if self.isAi then
+          veh = gameplay_traffic.getTrafficData()[id]
+          if veh and veh.isPerson then
+            if isCurrentCollision and not self.role.flags.pullOver then
+              self.role:setAction('pullOver')
+            elseif not isCurrentCollision and self.role.flags.pullOver and dist > square(collision.vehDist + 3) then
+              self.role:resetAction()
+            end
           end
         end
       end
@@ -293,7 +295,7 @@ end
 function C:trackCollision(otherId, dt) -- track and alter the state of the collision with other vehicle id
   otherId = otherId or 0
   local collision = self.collisions[otherId]
-  local otherVeh = gameplay_traffic.getTrafficData()[otherId]
+  local otherVeh = map.objects[otherId]
   if not collision or not otherVeh then return end
 
   local dist = self.pos:squaredDistance(otherVeh.pos)
@@ -327,9 +329,10 @@ end
 function C:checkRayCast(startPos, endPos) -- returns true if ray reaches position, or false if hit detected
   startPos = startPos or self.pos
   endPos = endPos or self.pos
-  local targetVec = endPos - startPos
-  local targetVecLen = targetVec:length()
-  return castRayStatic(startPos, targetVec / max(1e-12, targetVecLen), targetVecLen) >= targetVecLen
+  tempVec:setSub2(endPos, startPos)
+  local vecLen = tempVec:length()
+  tempVec:setScaled(1 / max(1e-12, vecLen))
+  return castRayStatic(startPos, tempVec, vecLen) >= vecLen
 end
 
 function C:tryRespawn(queueCoef) -- tests if the vehicle is out of sight and ready to respawn
@@ -339,10 +342,12 @@ function C:tryRespawn(queueCoef) -- tests if the vehicle is out of sight and rea
     return
   end
 
-  if be:getObjectByID(self.id):getActive() then
+  if be:getObjectActive(self.id) then
     queueCoef = queueCoef or 1 -- used as a coefficient if method is called on a cycle (not every frame)
-    local radius = clamp(self.respawn.finalRadius, 40, 200) -- base radius for active area
-    local dotDirVecFromCam = self.playerData.camDirVec:dot((self.pos - self.playerData.camPos):normalized()) -- directionality from camera
+    self.respawn.playerRadius = clamp(self.respawn.finalRadius, 40, 200) -- base radius for active area
+    tempVec:setSub2(self.pos, self.playerData.camPos)
+    tempVec:normalize()
+    local dotDirVecFromCam = self.playerData.camDirVec:dot(tempVec) -- directionality from camera
     local heightValue = max(0, square(self.playerData.camPos.z - self.pos.z) / 8 * dotDirVecFromCam) -- camera height augments final distance if generally looking at vehicle
 
     local sightCoef = -1 -- negative value reduces sight value until vehicle might respawn
@@ -351,11 +356,11 @@ function C:tryRespawn(queueCoef) -- tests if the vehicle is out of sight and rea
     end
 
     self.respawn.sightDirValue = lerp(self.respawn.sightDirValue, dotDirVecFromCam * 200, 0.01 * queueCoef) -- sight direction smoothing
-    self.respawn.sightStrength = max(-radius, self.respawn.sightStrength + sightCoef * queueCoef) -- updated sight strength value
-    local camRadius = radius + max(0, self.respawn.sightDirValue + self.respawn.sightStrength + heightValue) -- maximum radius to check if the vehicle should stay active
+    self.respawn.sightStrength = max(-self.respawn.playerRadius, self.respawn.sightStrength + sightCoef * queueCoef) -- updated sight strength value
+    self.respawn.camRadius = self.respawn.playerRadius + max(0, self.respawn.sightDirValue + self.respawn.sightStrength + heightValue) -- maximum radius to check if the vehicle should stay active
 
     -- player radius, camera sight virtual radius
-    if self.dist >= radius and self.distCam >= camRadius then
+    if self.dist >= self.respawn.playerRadius and self.distCam >= self.respawn.camRadius then
       self.state = 'fadeOut'
     end
   else
@@ -545,7 +550,7 @@ function C:checkOffenses() -- tests for vechicle offenses for police
     local validCollision = coll.dot >= 0.2 -- simple comparison to check if current vehicle is at fault for collision
     if veh.role.targetId ~= nil and veh.role.targetId ~= self.id then validCollision = false end -- ignore collision if other vehicle is targeting a different vehicle
     if self.isPerson then
-      local center = be:getObjectByID(id):getSpawnWorldOOBB():getCenter()
+      local center = vec3(be:getObjectOOBBCenterXYZ(id)) -- for accuracy
       validCollision = self.pos:z0():squaredDistance(center:z0()) < square(veh.width * 0.6) or coll.count >= 3 -- jumping on car, or multiple hits
     end
 
@@ -682,6 +687,8 @@ function C:onTrafficTick(tickTime)
   end
 
   if self.isAi then
+    self.camVisible = self:checkRayCast(self.playerData.camPos)
+
     local isDaytime = self:checkTimeOfDay()
     local terrainHeight = core_terrain.getTerrain() and core_terrain.getTerrainHeight(self.pos) or 0
     local terrainHeightDefault = core_terrain.getTerrain() and core_terrain.getTerrain():getPosition().z or 0
@@ -729,8 +736,8 @@ function C:onTrafficTick(tickTime)
 end
 
 function C:onUpdate(dt, dtSim)
-  local obj = be:getObjectByID(self.id)
-  if not obj or not map.objects[self.id] then return end
+  if not map.objects[self.id] then return end
+
   self.pos = map.objects[self.id].pos
   self.dirVec = map.objects[self.id].dirVec
   self.vel = map.objects[self.id].vel
@@ -738,24 +745,23 @@ function C:onUpdate(dt, dtSim)
 
   self.distCam = self.pos:distance(self.playerData.camPos)
   self.dist = self.playerData.pos ~= self.playerData.camPos and self.pos:distance(self.playerData.pos) or self.distCam
-  self.isPlayerControlled = obj:isPlayerControlled()
 
   if self.speed < 1 then
     self.driveVec = self.dirVec
   else
-    self.driveVec:set(self.vel / (self.speed + 1e-12))
+    self.driveVec:setScaled2(self.vel, 1 / (self.speed + 1e-12))
   end
-  self.focusPos:set(self.pos + self.driveVec * clamp(self.speed * 2, 20, 50)) -- virtual point ahead of vehicle trajectory, dependent on speed
+  self.focusPos:setScaled2(self.driveVec, clamp(self.speed * 2, 20, 50))
+  self.focusPos:setAdd2(self.pos, self.focusPos) -- virtual point ahead of vehicle trajectory, dependent on speed
 
-  if (not obj:getActive() or self.state == 'active') and not self.enableRespawn then
+  if (not be:getObjectActive(self.id) or self.state == 'active') and not self.enableRespawn then
     self.state = 'locked'
   elseif self.state == 'locked' and self.enableRespawn then
     self.state = 'reset'
   end
 
-  if obj:getActive() then
+  if be:getObjectActive(self.id) then
     self.damage = map.objects[self.id].damage
-    self.camVisible = self:checkRayCast(self.playerData.camPos)
 
     if self.isAi then
       if self.state == 'fadeOut' or self.state == 'fadeIn' then
@@ -814,7 +820,7 @@ function C:onUpdate(dt, dtSim)
         if not v.vLua then
           v.func(unpack(v.args))
         else
-          obj:queueLuaCommand(v.vLua)
+          be:getObjectByID(self.id):queueLuaCommand(v.vLua)
         end
         self.queuedFuncs[k] = nil
       end

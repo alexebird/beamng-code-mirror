@@ -165,6 +165,7 @@ end
 
 local function onUpdate(dtReal, dtSim, dtRaw)
   if not careerActive then return end
+  --debugMenu()
   if not shipping_build then
     if debugMenu() then
       return
@@ -507,7 +508,7 @@ local function getAdditionalMenuButtons()
     table.insert(ret, {label = "My Cargo", luaFun = "career_modules_delivery_cargoScreen.enterCargoOverviewScreen(nil, nil)"})
   end
   if not career_modules_linearTutorial.isLinearTutorialActive() and M.hasBoughtStarterVehicle() then
-    table.insert(ret, {label = "Progress", luaFun = "guihooks.trigger('ChangeState', {state = 'branchLanding'})"})
+    table.insert(ret, {label = "Progress", luaFun = "guihooks.trigger('ChangeState', {state = 'progressLanding'})"})
     table.insert(ret, {label = "Milestones", luaFun = "guihooks.trigger('ChangeState', {state = 'milestones'})"})
   end
   return ret

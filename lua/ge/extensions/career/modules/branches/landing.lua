@@ -213,6 +213,7 @@ local function getBranchPageData(branchId)
     branch.skillInfo = {
       name = branchData.name,
       icon = branchData.icon,
+      glyphIcon = branchData.glyphIcon,
       id = attKey,
       levelLabel = {txt='ui.career.lvlLabel', context={lvl=level}},
       min = min,
@@ -279,8 +280,9 @@ local function getBranchSkillCardData(branchId)
     name = br.name,
     id = br.id,
     levelLabel = {txt='ui.career.lvlLabel', context={lvl=level}},
-    cover = br.questCover,
+    cover = br.progressCover,
     icon = br.icon,
+    glyphIcon = br.glyphIcon,
     color = br.color,
     min = min,
     value = value,

@@ -48,7 +48,7 @@ local function onSpeedTrapTriggered(speedTrapData, playerSpeed, overSpeed)
   local highscore, leaderboard = gameplay_speedTrapLeaderboards.addRecord(speedTrapData, playerSpeed, overSpeed, veh)
   if not inventoryId or hasLicensePlate(inventoryId) then
     local fine = getFine(overSpeed)
-    career_modules_payment.pay(fine, {label="Fine for speeding"})
+    career_modules_payment.pay(fine, {label="Fine for speeding", tags={"fine"}})
     Engine.Audio.playOnce('AudioGui','event:>UI>Career>Speedcam_Snapshot')
     ui_message(string.format("Traffic Violation: \n - %q | Fine %d$\n - {{%f | unit: \"speed\":0}} | ({{%f | unit: \"speed\":0}})", core_vehicles.getVehicleLicenseText(veh), fine.money.amount, playerSpeed, speedTrapData.speedLimit), 10, "speedTrap")
   else
@@ -83,7 +83,7 @@ local function onRedLightCamTriggered(speedTrapData, playerSpeed)
   local veh = getPlayerVehicle(0)
   if not inventoryId or hasLicensePlate(inventoryId) then
     local fine = {money = {amount = 500, canBeNegative = true}}
-    career_modules_payment.pay(fine, {label="Fine for driving over a red light"})
+    career_modules_payment.pay(fine, {label="Fine for driving over a red light", tags={"fine"}})
     Engine.Audio.playOnce('AudioGui','event:>UI>Career>Speedcam_Snapshot')
     ui_message(string.format("Traffic Violation (Failure to stop at Red Light): \n - %q | Fine %d$", core_vehicles.getVehicleLicenseText(veh), fine.money.amount), 10, "speedTrap")
   else

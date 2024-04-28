@@ -1098,7 +1098,7 @@ local function makeVehicleLicenseText(veh, designPath)
     design = jsonReadFile(designPath)
   end
 
-  if settings.getValue("useSteamName") and core_gamestate.state.state == "freeeroam" and veh.autoEnterVehicle and SteamLicensePlateVehicleId == nil and Steam and Steam.isWorking and Steam.accountLoggedIn then
+  if settings.getValue("useSteamName") and core_gamestate.state.state == "freeroam" and veh.autoEnterVehicle and SteamLicensePlateVehicleId == nil and Steam and Steam.isWorking and Steam.accountLoggedIn then
     SteamLicensePlateVehicleId = veh:getId()
     txt = Steam.playerName
     txt = txt:gsub('"', "'") -- replace " with '

@@ -6,13 +6,18 @@ export const formatOptionName = (part, useName = false) => (part.isAuxiliary ? "
 export function formatOptions(element, opts = { showNames: false, showAux: false }) {
   const optionFilter = selected => opt => opt.val === selected || !opt.isAuxiliary || opts.showAux
 
+  const rgxWheel = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/i
+  const rgxNum = /(^| )(\d+)($| )/
+  const zeroFill = num => "00000".substring(num.length - 1) + num
   const cmpNames = (...ab) => {
     for (let i = 0; i < 2; i++) {
       if (typeof ab[i] !== "string") return 0
-      // parse wheel sizes: "4x12 wheel" translates to "00004x00012 wheel"
-      ab[i] = ab[i].replace(/^(\d+)x(\d+)/i,
-        (_, a, b) => [a, b].map(v => "00000".substring(v.length - 1) + v).join("x")
-      )
+      if (rgxWheel.test(ab[i])) {
+        // parse wheel sizes: "4x12 wheel" translates to "00004x00012 wheel"
+        ab[i] = ab[i].replace(rgxWheel, (_, a, b) => [a, b].map(zeroFill).join("x"))
+      } else if (rgxNum.test(ab[i])) {
+        ab[i] = ab[i].replace(rgxNum, (_, a, num, b) => a + zeroFill(num) + b)
+      }
     }
     return ab[0].localeCompare(ab[1])
   }

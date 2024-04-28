@@ -17,7 +17,12 @@
     <div v-if="showSearch" class="dropdown-search">
       <BngInput v-model.trim="search" floating-label="Search" />
     </div>
-    <div
+    <!-- TODO: should we show this when there are no elements at all, not just because of search? -->
+    <div v-if="search && itemsView.length === 0">
+      <!-- FIXME: move this to a common string -->
+      {{ $t("ui.repository.no_mods_found") }}
+    </div>
+    <div v-else
       v-for="(item, idx) in itemsView"
       class="dropdown-option"
       bng-nav-item
@@ -36,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import { BngDropdownContainer, BngInput } from "@/common/components/base"
 import { vBngHighlighter, vBngFocusIf, vBngOnUiNav } from "@/common/directives"
 
@@ -66,6 +71,9 @@ const opened = ref(false)
 
 const search = ref("")
 const searchTerm = computed(() => search.value.toLowerCase())
+
+// reset search on close
+watch(() => opened.value, val => !val && (search.value = ""))
 
 const itemsView = computed(() => (searchTerm.value ? props.items.filter(itm => itm.label.toLowerCase().indexOf(searchTerm.value) > -1) : props.items))
 const highlighter = computed(() => search.value || props.highlight)
@@ -101,6 +109,14 @@ const notifyListeners = value => {
   padding: 0.25em 0.5em;
   position: relative;
   cursor: pointer;
+
+  // override for focus frame
+  &::before {
+    top: 0px !important;
+    left: 0px !important;
+    right: 0px !important;
+    bottom: 0px !important;
+  }
 
   &.selected {
     background-color: var(--bng-orange-b400);

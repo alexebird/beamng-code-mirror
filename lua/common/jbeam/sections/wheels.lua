@@ -1281,7 +1281,7 @@ local function cleanupBeamOptions(options)
 end
 
 local function addPressTri(tris, presGroup, presPSI, n1, n2, n3, dCoef, tType, sDragCoef)
-  table.insert(tris, {
+  tableInsertC(tris, {
       id1 = n1, id2 = n2, id3 = n3,
       dragCoef = dCoef, triangleType = tType,
       pressureGroup = presGroup, pressurePSI = presPSI, skinDragCoef = sDragCoef
@@ -1289,7 +1289,7 @@ local function addPressTri(tris, presGroup, presPSI, n1, n2, n3, dCoef, tType, s
 end
 
 local function addTri(tris, n1, n2, n3, dCoef, tType)
-  table.insert(tris, {
+  tableInsertC(tris, {
       id1 = n1, id2 = n2, id3 = n3,
       dragCoef = dCoef, triangleType = tType
     })

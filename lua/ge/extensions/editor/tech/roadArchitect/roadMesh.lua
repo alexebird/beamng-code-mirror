@@ -13,24 +13,61 @@ local eps = 0.2                                                                 
 local M = {}
 
 
+-- External modules used.
+local profileMgr = require('editor/tech/roadArchitect/profiles')                                            -- Manages the profiles structure/handling profile calculations.
+
 -- Private constants.
-local min, max = math.min, math.max
+local floor, ceil, min, max = math.floor, math.ceil, math.min, math.max
 
 -- Module state.
 local meshes = {}                                                                                           -- The collection of road meshes.
+local lampPosts = {}
 local roadMeshIdx = 1                                                                                       -- An incrementable index which gives each road mesh a unique id number.
 
 -- Module constants.
 local uvs = { { u = 0.0, v = 0.0 }, { u = 0.0, v = 1.0 }, { u = 1.0, v = 0.0 }, { u = 1.0, v = 1.0 } }      -- Fixed uv-map corner points (used in all road meshes).
 local origin = vec3(0, 0, 0)                                                                                -- A vec3 used for representing the scene origin.
 local scaleVec = vec3(1, 1, 1)                                                                              -- A vec3 used for representing uniform scale.
+local orig = vec3(0, 1, 0)                                                                                  -- The rotation origin vector (vehicle forward in world space).
 local materials = {                                                                                         -- The materials to be used for each lane type.
   road_lane = 'm_asphalt_new_01',
   sidewalk = 'm_asphalt_new_01',
   cycle_lane = 'm_asphalt_new_01',
   concrete = 'm_asphalt_new_01',
   island = nil }
+local lampPostPath = 'levels/east_coast_usa/art/shapes/buildings/eca_lamppost.dae'                          -- The lamp post static mesh location.
 
+
+-- Computes the length of the given polyline.
+local function computePolylineLengths(poly)
+  local lens = { 0.0 }
+  for i = 2, #poly do
+    local iMinus1 = i - 1
+    lens[i] = lens[iMinus1] + poly[iMinus1]:distance(poly[i])
+  end
+  return lens
+end
+
+-- Linearly interpolates into a given polyline.
+local function polyLerp(pos, rot, lens, q)
+  local l, u = 1, #pos
+  for i = 2, #lens do
+    if lens[i - 1] <= q and lens[i] >= q then
+      l, u = i - 1, i
+      break
+    end
+  end
+  if q < lens[1] then
+    return nil, nil
+  end
+  if q > lens[#lens] then
+    return nil, nil
+  end
+  local rat = (q - lens[l]) / (lens[u] - lens[l])
+  local p = pos[l] + rat * (pos[u] - pos[l])
+  local r = rot[l]:nlerp(rot[u], rat)
+  return p, r
+end
 
 -- Expand the road geometry to make the procedural mesh slightly larger in appearance.
 local function expandRoadGeometry(rD, laneKeys)
@@ -78,15 +115,19 @@ local function expandRoadGeometry(rD, laneKeys)
 
   -- Expand the lateral width across the road.
   for i = 1, #rData do
-    for kk = 1, numLaneKeys do
-      local k = laneKeys[kk]
-      local lat = rData[i][k][6]
-      local latEps = lat * eps
-      rData[i][k][1] =  rData[i][k][1] - latEps
-      rData[i][k][4] =  rData[i][k][4] - latEps
-      rData[i][k][2] =  rData[i][k][2] + latEps
-      rData[i][k][3] =  rData[i][k][3] + latEps
-    end
+    local k = lMin
+    local lat = rData[i][k][6]
+    lat:normalize()
+    local latEps = lat * eps
+    rData[i][k][1] = rData[i][k][1] - latEps
+    rData[i][k][4] = rData[i][k][4] - latEps
+
+    local k = lMax
+    local lat = rData[i][k][6]
+    lat:normalize()
+    local latEps = lat * eps
+    rData[i][k][2] = rData[i][k][2] + latEps
+    rData[i][k][3] = rData[i][k][3] + latEps
   end
 
   return rData
@@ -94,14 +135,14 @@ end
 
 -- Creates a road mesh from the given rendering data.
 -- [The index of the road is used outside this module to reference the mesh later].
-local function createRoad(roadName, rDataRaw, laneKeys, isDowelS, isDowelE)
+local function createRoad(r)
 
   -- Expand the road data to make the mesh slightly larger.
   -- [This is done so that any decals being laid on top of them will let their raycasts hit the mesh rather than fall through].
-  local rData = expandRoadGeometry(rDataRaw, laneKeys)
+  local rData = expandRoadGeometry(r.renderData, r.laneKeys)
 
   -- Create the mesh.
-  local laneMeshes, lmCtr = {}, 1
+  local laneMeshes, lmCtr, laneKeys = {}, 1, r.laneKeys
   local numDivs, numLaneKeys = #rData, #laneKeys
   for k = 1, numLaneKeys do
     local laneKey = laneKeys[k]
@@ -175,7 +216,7 @@ local function createRoad(roadName, rDataRaw, laneKeys, isDowelS, isDowelE)
 
       -- Add the start dowel, if required.
       local b = rData[1][laneKey]
-      if isDowelS then
+      if r.isDowelS then
 
         -- Append the vertices.
         local prot = b[5]:cross(b[6]) * dowelLength
@@ -240,7 +281,7 @@ local function createRoad(roadName, rDataRaw, laneKeys, isDowelS, isDowelE)
       end
 
       -- Add the end dowel, if required.
-      if isDowelE then
+      if r.isDowelE then
 
         -- Append the vertices.
         local f = rData[numDivs][laneKey]
@@ -356,7 +397,7 @@ local function createRoad(roadName, rDataRaw, laneKeys, isDowelS, isDowelE)
     end
   end
 
-  -- Generate the procedural mesh.
+  -- Generate the procedural meshes for the road.
   local mesh = createObject('ProceduralMesh')
   mesh:registerObject('Road_Mesh_' .. tonumber(roadMeshIdx))
   roadMeshIdx = roadMeshIdx + 1
@@ -366,17 +407,89 @@ local function createRoad(roadName, rDataRaw, laneKeys, isDowelS, isDowelE)
   mesh:setPosition(origin)
   mesh.scale = scaleVec
 
-  meshes[roadName] = mesh
+  meshes[r.name] = mesh
+
+  -- Compute the position and rotation of lamp posts, at each div point.
+  if r.isUseLampPosts then
+    local lMin, lMax = profileMgr.getMinMaxLaneKeys(laneKeys)
+    lMin, lMax = laneKeys[lMin], laneKeys[lMax]
+    local posL, rotL, posR, rotR = {}, {}, {}, {}
+    local vOffset = vec3(0, 0, r.lampPostVertOffset[0])
+    for j = 1, numDivs do
+      local lData = rData[j][lMin]                                                                      -- Left side lamp posts.
+      local lat = lData[6]
+      posL[j] = lData[4] - lat * r.lampPostLatOffsetLeft[0] + vOffset
+      rotL[j] = orig:getRotationTo(-lat:cross(lData[5]))
+
+      local lData = rData[j][lMax]                                                                      -- Right side lamp posts.
+      local lat = lData[6]
+      posR[j] = lData[3] + lat * r.lampPostLatOffsetRight[0] + vOffset
+      rotR[j] = orig:getRotationTo(lat:cross(lData[5]))
+    end
+
+    local lensL = computePolylineLengths(posL)
+    local lensR = computePolylineLengths(posR)
+    local numLampsL, numLampsR = ceil(lensL[#lensL] / r.lampPostLonSpacing[0]), ceil(lensR[#lensR] / r.lampPostLonSpacing[0])
+
+    -- Create the static meshes for the lamp posts.
+    lampPosts[r.name] = {}
+    local lamps = lampPosts[r.name]
+    local ctr = 1
+    if r.lampPostLeftSide[0] then
+      local q = r.lampPostLonOffset[0]
+      for j = 1, numLampsL do
+        local static = createObject('TSStatic')                                                         -- Left side lamp post meshes.
+        static:setField('shapeName', 0, lampPostPath)
+        static:registerObject('Lamp post ' .. tostring(ctr))
+        local pos, rot = polyLerp(posL, rotL, lensL, q)
+        if pos then
+          static:setPosRot(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w)
+          static.scale = scaleVec
+          static.canSave = true
+          scenetree.MissionGroup:addObject(static.obj)
+          lamps[ctr] = static
+          q = q + r.lampPostLonSpacing[0]
+          ctr = ctr + 1
+        end
+      end
+    end
+    if r.lampPostRightSide[0] then
+      local q = r.lampPostLonOffset[0]
+      for j = 1, numLampsR do
+        local static = createObject('TSStatic')                                                         -- Right side lamp post meshes.
+        static:setField('shapeName', 0, lampPostPath)
+        static:registerObject('Lamp post ' .. tostring(ctr + 1))
+        local pos, rot = polyLerp(posR, rotR, lensR, q)
+        if pos then
+          static:setPosRot(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w)
+          static.scale = scaleVec
+          static.canSave = true
+          scenetree.MissionGroup:addObject(static.obj)
+          lamps[ctr] = static
+          q = q + r.lampPostLonSpacing[0]
+          ctr = ctr + 1
+        end
+      end
+    end
+  end
+
 end
 
--- Attempts to removes the given mesh from the scene (if it exists).
+-- Attempts to removes the meshes of the road with the given name, from the scene (if it exists).
 -- [This is done through road indices; the actual handling of the meshes structure should be private to this module].
 local function tryRemove(roadName)
   local mesh = meshes[roadName]
   if mesh then
     mesh:delete()
+    if lampPosts and lampPosts[roadName] then
+      local numLampPosts = #lampPosts[roadName] or 0
+      for i = 1, numLampPosts do
+        lampPosts[roadName][i]:delete()
+      end
+    end
   end
   meshes[roadName] = nil
+  lampPosts[roadName] = nil
 end
 
 

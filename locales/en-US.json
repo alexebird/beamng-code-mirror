@@ -3209,7 +3209,7 @@
     "scenarios.east_coast_usa.gm_racetest.title": "Racetest",
     "scenarios.east_coast_usa.gm_racetest.description": "A short series of small jumps",
     "scenarios.east_coast_usa.tanker_delivery.title": "Tanker Delivery",
-    "scenarios.east_coast_usa.tanker_delivery.description": "Deliver a tanker trailer with your Gavril T75 to the garage on the other side of town.",
+    "scenarios.east_coast_usa.tanker_delivery.description": "Deliver a tanker trailer with your Gavril T-Series to the garage on the other side of town.",
     "scenarios.east_coast_usa.tanker_delivery.distance.msg": "You lost the trailer!",
     "scenarios.east_coast_usa.tanker_delivery.damage.msg": "You damaged the trailer",
 
@@ -3223,7 +3223,7 @@
     "scenarios.east_coast_usa.hidden_jump_a.title": "Hidden Jump",
     "scenarios.east_coast_usa.hidden_jump_a.description": "Master a hidden jump through the trees in a Gavril Roamer. Careful control of speed and placement is required to survive the jump and make it to the checkpoint.",
     "scenarios.east_coast_usa.car_delivery_2.title": "Car Delivery 2",
-    "scenarios.east_coast_usa.car_delivery_2.description": "Use your Gavril T75 to deliver a couple of valuable classic supercars to a house in the town. Whatever you do, don't damage the vehicles.",
+    "scenarios.east_coast_usa.car_delivery_2.description": "Use your Gavril T-Series to deliver a couple of valuable classic supercars to a house in the town. Whatever you do, don't damage the vehicles.",
     "scenarios.east_coast_usa.car_delivery_2.distance.msg": "You lost the car!",
     "scenarios.east_coast_usa.car_delivery_2.damage.msg": "You damaged your vehicle",
     "scenarios.east_coast_usa.deliverytruck_takedown.title": "Delivery Truck Takedown",
@@ -3240,7 +3240,7 @@
     "scenarios.east_coast_usa.destroy_the_car.timeLimit.msg": "You ran out of time",
     "scenarios.east_coast_usa.destroy_the_car.damage.msg": "You destroyed the Moonhawk in {{timeStr}}",
     "scenarios.east_coast_usa.minimum_speed.title": "Broken Truck",
-    "scenarios.east_coast_usa.minimum_speed.description": "Use your old and broken Gavril T75 to deliver some concrete for the very last time.",
+    "scenarios.east_coast_usa.minimum_speed.description": "Use your old and broken Gavril T-Series to deliver some concrete for the very last time.",
     "scenarios.east_coast_usa.minimum_speed.fail.msg": "Your truck broke down",
     "scenarios.east_coast_usa.bank_robbery.distancebtwsceneobject.fail.msg": "The suspect reached the hideout",
     "scenarios.east_coast_usa.bank_robbery.title": "Bank Robbery",
@@ -3325,7 +3325,7 @@
     "scenarios.east_coast_usa.intro_road_race.title": "Road Race",
     "scenarios.east_coast_usa.intro_road_race.description": "A race through the countryside of the east coast of the United States.",
     "scenarios.east_coast_usa.car_delivery.title": "Car Delivery",
-    "scenarios.east_coast_usa.car_delivery.description": "You've got an expensive sports car loaded up on your Gavril T75, take it to the new owner in the countryside.",
+    "scenarios.east_coast_usa.car_delivery.description": "You've got an expensive sports car loaded up on your Gavril T-Series, take it to the new owner in the countryside.",
     "scenarios.east_coast_usa.car_delivery.distance.msg": "You lost the car!",
     "scenarios.east_coast_usa.car_delivery.damage.msg": "You damaged your car",
     "scenarios.east_coast_usa.dirt_hopper.title": "Dirt Hopper",
@@ -3911,7 +3911,7 @@
     "scenarios.jungle_rock_island.drag_race.fail.msg": "You lost the race",
     "scenarios.jungle_rock_island.drag_race.win.msg": "Well done! Your time: {{time}}",
     "scenarios.jungle_rock_island.jri_delivery.title": "Heavy Machinery Delivery",
-    "scenarios.jungle_rock_island.jri_delivery.description": "Deliver a new Gavril T75 Cement Mixer to the local port.",
+    "scenarios.jungle_rock_island.jri_delivery.description": "Deliver a new Gavril T-Series Cement Mixer to the local port.",
     "scenarios.jungle_rock_island.jri_shortcut.title": "Shortcut",
     "scenarios.jungle_rock_island.jri_shortcut.description": "Thrash your Gavril Grand Marshal up a muddy washout between roads, then turn around and come back. Remember, it's only a shortcut if you survive it.",
     "scenarios.jungle_rock_island.hypermiling.title": "Hypermiling",
@@ -4196,12 +4196,12 @@
     "missions.west_coast_usa.drift005.description": "You might wake up the whole neighborhood but well, who cares? 60 seconds, in and out.",
 
     "missions.west_coast_usa.drift006.title": "Circuit Drift",
-    "missions.west_coast_usa.drift006.description" : "Refine your drifting skills by following a course without crashing or spinning out.",
+    "missions.west_coast_usa.drift006.description": "Refine your drifting skills by following a course without crashing or spinning out.",
     "missions.west_coast_usa.drift006.goldText": "Well done! Now that you have managed to get the third star, I defy you to get the bonus star for this stage. Basically : Hold your drift throughout the entire lap.",
     "missions.west_coast_usa.drift006.platinium": "Very complicated star to reach, and yet you got it. I'm more than impressed.",
 
     "missions.west_coast_usa.drift007.title": "Gymkhana Bootcamp",
-    "missions.west_coast_usa.drift007.description" : "Get a feel for drifting in this beginner-friendly challenge.",
+    "missions.west_coast_usa.drift007.description": "Get a feel for drifting in this beginner-friendly challenge.",
 
     "missions.west_coast_usa.drift008.title": "Drift Basics",
     "missions.west_coast_usa.drift008.description": "One hand on the wheel while the other one is on the handbrake. Welcome to your first precision drifting session.",
@@ -7921,8 +7921,8 @@
     "ui.career.adventurer.derbies.name": "Crash Derbies",
     "ui.career.adventurer.derbies.description": "Coming soon: Rev up for a thrilling ride through destruction derby style rampage, where players climb the ranks from battling in basic arenas to mastering vehicular combat against larger, meaner opponents amidst a chaotic backdrop of jumps, hazards, and more. From honing collision tactics in Collision Course to surviving the ultimate Last Car Standing Championship, gear up for an adrenaline-pumping journey to earn trophy vehicles for Havoc Mode and more, where strategy, skill, and sheer will to survive dictate your path to victory.",
 
-    "ui.career.labourer.name": "Labourer",
-    "ui.career.labourer.description": "Whether you're interested in vehicle recovery, delivering heavy machinery, cargo, or people; the Labourer Branch offers a wide variety of fulfilling-yet-daunting task-oriented challenges to overcome.",
+    "ui.career.labourer.name": "Laborer",
+    "ui.career.labourer.description": "Whether you're interested in vehicle recovery, delivering heavy machinery, cargo, or people; the Laborer Branch offers a wide variety of fulfilling-yet-daunting task-oriented challenges to overcome.",
     "ui.career.labourer.delivery.name": "Cargo Delivery",
     "ui.career.labourer.delivery.description": "Progress through five levels of delivery gameplay, starting with small packages and advancing to complex fluid transport using large tanker trailers. Each level introduces new challenges, from navigating with trailers to managing hazardous materials.",
     "ui.career.labourer.vehicleDelivery.name": "Car Jockey",
@@ -7931,7 +7931,6 @@
     "ui.career.labourer.towing.description": "Coming soon: Embark on a journey from rescuing stranded vehicles to owning a thriving tow truck empire in the immersive Towing gameplay. Progress through levels, upgrading your fleet to handle everything from normal tows to the heavy-duty challenges of transporting tankers and hazardous materials, all while navigating procedural missions for endless engaging opportunities.",
     "ui.career.labourer.taxi.name": "Taxi",
     "ui.career.labourer.taxi.description": "Coming soon: Navigate the bustling streets, starting as a rookie driver learning the ropes of urban navigation to becoming a Taxi Mogul with your own fleet. Progress through levels mastering customer service, adapting to varied fare requests, and evading pursuers, all towards the ultimate goal of owning the taxi company. Along the way, enjoy the transition from fulfilling specific passenger needs to strategic company management, where you can earn 100% profit and hire any vehicle for taxi service, including your own, for passive income.",
-
 
     "ui.career.motorsport.name": "Motorsports",
     "ui.career.motorsport.description": "The passion of racing against the clock and opponents on the drag-strip, race track, city streets, and offroad is undeniably alluring. The Motorsports Branch tests your skills through various challenges.",
@@ -7955,7 +7954,6 @@
     "ui.career.specialized.criminal.description": "Now: Evade the police and reach your hideout in time. Coming soon: Step into the shadowy world of Criminal Activities gameplay, where you navigate the adrenaline-fueled life of a lawbreaker. From high-stakes getaway missions to audacious vehicle heists, test your skills in evading the police, mastering vehicle theft, and pulling off daring robberies, all while climbing the ranks to become the ultimate criminal mastermind.",
     "ui.career.specialized.police.name": "Police",
     "ui.career.specialized.police.description": "Chase after and stop criminals to preserve the rule of law.",
-
 
     "ui.career.specialized.enforcement.name": "Law Enforcement",
     "ui.career.specialized.enforcement.description": "Now: Chase after and stop criminals to preserve the rule of law. Coming soon: Beginning with EVOC training, players gain foundational police driving skills necessary for high-speed chases and emergency situations, advancing through more complex techniques and a broader selection of police vehicles with a mix of practical and theoretical learning. Progressing through Law Enforcement ranks unlocks further levels of EVOC training and access to an extensive vehicle lineup, eventually achieving the 'Bounty Hunter' status, which allows for personalized vehicle selection and more independent challenge engagement.",
@@ -8050,7 +8048,8 @@
     "ui.career.computer.functions.vehicleShop": "Vehicle Shop",
     "ui.career.computer.functions.partShop": "Part Shop",
     "ui.career.computer.functions.partInventory": "Part Inventory",
-
+    "ui.career.computer.bigmapLabel.garage": "Use this computer to manage vehicle and parts inventory, vehicle tuning, and more.",
+    "ui.career.computer.bigmapLabel.office": "Use this computer to browse and locate vehicles for sale.",
 
     "ui.career.milestones.claimedRewardsFor": "Claimed Rewards for Milestone {{milestoneName | contextTranslate}}",
     "ui.career.milestones.claimedRewardsForWithRewards": "{{milestoneName | contextTranslate}}<br>{{rewards}}",

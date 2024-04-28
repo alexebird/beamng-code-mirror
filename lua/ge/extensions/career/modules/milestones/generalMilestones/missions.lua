@@ -55,7 +55,7 @@ M.makeAllMissionStarMilestones = function(missions, milestonesList)
       hooks = {onAnyMissionChanged = true},
       maxStep = #stepPercent,
       icon = "star",
-      color="var(--bng-add-blue-500)",
+      color=career_modules_milestones_milestones.colorMissionBlue,
       getValue = function()
         local count = 0
         for _, m in ipairs(missions) do
@@ -86,7 +86,7 @@ M.makeAllMissionStarMilestones = function(missions, milestonesList)
       hooks = {onAnyMissionChanged = true},
       maxStep = #stepPercent,
       icon = "star",
-      color="var(--bng-add-blue-500)",
+      color=career_modules_milestones_milestones.colorMissionBlue,
       getValue = function()
         local count = 0
         for _, m in ipairs(missions) do
@@ -117,7 +117,7 @@ M.makeAllMissionStarMilestones = function(missions, milestonesList)
       hooks = {onAnyMissionChanged = true},
       maxStep = #stepPercent,
       icon = "star",
-      color="var(--bng-add-blue-500)",
+      color=career_modules_milestones_milestones.colorMissionBlue,
       getValue = function()
         local count = 0
         for _, m in ipairs(missions) do
@@ -161,7 +161,7 @@ M.makeBranchMissionStarMilestones = function(missions, branchKey, milestonesList
       hooks = {onAnyMissionChanged = true},
       maxStep = #stepPercent,
       icon="star",
-      color="var(--bng-add-blue-500)",
+      color=career_modules_milestones_milestones.colorMissionBlue,
       getValue = function()
         local count = 0
         for _, m in ipairs(missions) do
@@ -192,7 +192,7 @@ M.makeBranchMissionStarMilestones = function(missions, branchKey, milestonesList
       hooks = {onAnyMissionChanged = true},
       maxStep = #stepPercent,
       icon="star",
-      color="var(--bng-add-blue-500)",
+      color=career_modules_milestones_milestones.colorMissionBlue,
       getValue = function()
         local count = 0
         for _, m in ipairs(missions) do
@@ -223,7 +223,7 @@ M.makeBranchMissionStarMilestones = function(missions, branchKey, milestonesList
       hooks = {onAnyMissionChanged = true},
       maxStep = #stepPercent,
       icon="star",
-      color="var(--bng-add-blue-500)",
+      color=career_modules_milestones_milestones.colorMissionBlue,
       getValue = function()
         local count = 0
         for _, m in ipairs(missions) do
@@ -284,8 +284,9 @@ end
 -- branch related updates
 local function setNotificationTarget(milestone)
   local step = milestones.saveData.general[milestone.id].notificationStep +1
-  --if milestoneConfig.maxStep and step > milestoneConfig.maxStep then return end
+  if milestone.maxStep and step > milestone.maxStep then return end
   local target = milestone.getTarget(step)
+  -- check if completed
   if target then
     milestone._target = target
   end

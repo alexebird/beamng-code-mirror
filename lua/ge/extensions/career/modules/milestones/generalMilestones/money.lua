@@ -116,6 +116,7 @@ end
 -- branch related updates
 local function setNotificationTarget(milestoneConfig)
   local step = milestones.saveData.general[milestoneConfig.id].notificationStep +1
+  -- check if completed
   if milestoneConfig.maxStep and step > milestoneConfig.maxStep then return end
   local target = milestoneConfig.getTarget(step)
   if target then

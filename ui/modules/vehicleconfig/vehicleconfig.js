@@ -531,7 +531,10 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
       vm.searchResString = "Search term too short"
       return
     }
-    vm.partSearchQuery = queryArgs
+    vm.partSearchQuery = {
+      ...queryArgs,
+      highlight: queryArgs.description || queryArgs.name || null,
+    }
 
     // add to search history
     if (queryString.trim() !== '' && !vm.searchHistoryBrowsing) {
@@ -720,6 +723,17 @@ function ($filter, $scope, $window, RateLimiter, VehicleConfig) {
 
   $scope.$on('VehicleFocusChanged', () => bngApi.engineLua('extensions.core_vehicle_partmgmt.sendDataToUI()'))
   $scope.$on('VehicleConfigChange', (event, config) => calcTree(config))
+
+
+  let liveVariablesUpdate = localStorage.getItem('applyTuningChangesAutomatically')
+  if(liveVariablesUpdate !== null) {
+    vm.liveVariablesUpdate = JSON.parse(liveVariablesUpdate) || false
+  }
+
+  vm.applySettingChanged = function() {
+    localStorage.setItem('applyTuningChangesAutomatically', JSON.stringify(vm.liveVariablesUpdate))
+  }
+
 
   // advanced wheel debug
   vm.awdData = null

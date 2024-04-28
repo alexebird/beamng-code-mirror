@@ -99,7 +99,6 @@ local function registerStastisticCallback(milestone)
   M.clearStatisticCallback(milestone)
 
   local step = milestones.saveData.general[milestone.id].claimedStep + 1
-  print(milestone.id .. " ->  ".. step)
   if step < milestone.maxStep then
     local statCallback = function()
       log("I","",string.format("Milestone Reached: %s %0.2f!", milestone.getLabel(step), milestone.getTarget(step)))

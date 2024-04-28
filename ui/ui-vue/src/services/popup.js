@@ -62,15 +62,17 @@ export const PopupTypes = Object.freeze({
 })
 
 const PopupTypesBack = Object.freeze(Object.keys(PopupTypes).reduce((res, key) => ({ ...res, [String(PopupTypes[key])]: key }), {}))
-const PopupTypesPairs = Object.freeze(Object.keys(PopupTypes).map(key => [PopupTypes[key], key ]).sort((a, b) => a[0] - b[0]))
+const PopupTypesPairs = Object.freeze(
+  Object.keys(PopupTypes)
+    .map(key => [PopupTypes[key], key])
+    .sort((a, b) => a[0] - b[0])
+)
 
 function getPopupTypeName(type = PopupTypes.normal) {
   const strType = String(type)
-  if (strType in PopupTypesBack)
-    return PopupTypesBack[strType]
+  if (strType in PopupTypesBack) return PopupTypesBack[strType]
   for (const [ptype, pname] of PopupTypesPairs) {
-    if (type < ptype)
-      return pname
+    if (type < ptype) return pname
   }
   return PopupTypesPairs[PopupTypesPairs.length - 1][1]
 }
@@ -92,7 +94,7 @@ export const popupsView = reactive({
    * Viewed normal and priority popups, or null if there are none
    * @type {Array<PopupItem>|null}
    */
-  popups: computed(() => popupsFiltered.value.length > 0 ? popupsFiltered.value.slice(-popupLimit) : null),
+  popups: computed(() => (popupsFiltered.value.length > 0 ? popupsFiltered.value.slice(-popupLimit) : null)),
   /**
    * Accumulated wrapper settings to prevent blinking and such, when multiple popups are shown
    */
@@ -101,7 +103,7 @@ export const popupsView = reactive({
    * Viewed activity popups, or null if there are none
    * @type {Array<PopupItem>|null}
    */
-  activities: computed(() => activitiesFiltered.value.length > 0 ? activitiesFiltered.value.slice(-activityLimit) : null),
+  activities: computed(() => (activitiesFiltered.value.length > 0 ? activitiesFiltered.value.slice(-activityLimit) : null)),
   /**
    * Accumulated wrapper settings to prevent blinking and such, when multiple popups are shown
    */
@@ -110,12 +112,9 @@ export const popupsView = reactive({
 
 function accumulateWrapper(popups, wrapper) {
   for (const popup of popups) {
-    if (wrapper.fade !== popup.wrapper.fade)
-      wrapper.fade = popup.wrapper.fade
-    if (wrapper.blur !== popup.wrapper.blur)
-      wrapper.blur = popup.wrapper.blur
-    if (popup.wrapper.style)
-      wrapper.style.push(...popup.wrapper.style)
+    if (wrapper.fade !== popup.wrapper.fade) wrapper.fade = popup.wrapper.fade
+    if (wrapper.blur !== popup.wrapper.blur) wrapper.blur = popup.wrapper.blur
+    if (popup.wrapper.style) wrapper.style.push(...popup.wrapper.style)
   }
   return wrapper
 }
@@ -130,10 +129,7 @@ function accumulateWrapper(popups, wrapper) {
 export function addPopup(componentOrName, props = {}, type = PopupTypes.normal) {
   const component = typeof componentOrName === "string" ? components[componentOrName] : componentOrName
   if (!component) {
-    throw new Error(
-      `There is no popup base component named "${componentOrName}".` +
-      `Available components: "${Object.keys(components).join('", "')}"`
-    )
+    throw new Error(`There is no popup base component named "${componentOrName}".` + `Available components: "${Object.keys(components).join('", "')}"`)
   }
 
   /**
@@ -154,22 +150,16 @@ export function addPopup(componentOrName, props = {}, type = PopupTypes.normal) 
   }
 
   if (component.position) {
-    popup.position = Array.isArray(component.position)
-      ? component.position
-      : [component.position]
+    popup.position = Array.isArray(component.position) ? component.position : [component.position]
   }
   if (typeof component.animated === "boolean") {
     popup.animated = component.animated
   }
   if ("wrapper" in component) {
-    if (typeof component.wrapper.fade === "boolean")
-      popup.wrapper.fade = component.wrapper.fade
-    if (typeof component.wrapper.blur === "boolean")
-      popup.wrapper.blur = component.wrapper.blur
+    if (typeof component.wrapper.fade === "boolean") popup.wrapper.fade = component.wrapper.fade
+    if (typeof component.wrapper.blur === "boolean") popup.wrapper.blur = component.wrapper.blur
     if (component.wrapper.style) {
-      popup.wrapper.style = Array.isArray(component.wrapper.style)
-        ? component.wrapper.style
-        : [component.wrapper.style]
+      popup.wrapper.style = Array.isArray(component.wrapper.style) ? component.wrapper.style : [component.wrapper.style]
     }
   }
 
@@ -186,17 +176,14 @@ export function addPopup(componentOrName, props = {}, type = PopupTypes.normal) 
     for (let i = 0; i < popupsAll.length; i++) {
       if (popupsAll[i].id === popup.id) {
         popupsAll.splice(i, 1)
-        if (popupsAll.length > 0)
-          popupsAll[popupsAll.length - 1].active = true
+        if (popupsAll.length > 0) popupsAll[popupsAll.length - 1].active = true
         reportPopupState(popup, false)
         break
       }
     }
     // resolve the promise
-    if (typeof result !== "undefined")
-      popup._resolve(result)
-    else
-      popup._reject()
+    if (typeof result !== "undefined") popup._resolve(result)
+    else popup._reject()
   }
 
   // add to the promise for convenience in async code
@@ -214,8 +201,7 @@ export function addPopup(componentOrName, props = {}, type = PopupTypes.normal) 
   }
 
   // change active flag to a new popup
-  if (popupsAll.length > 0)
-    popupsAll[popupsAll.length - 1].active = false
+  if (popupsAll.length > 0) popupsAll[popupsAll.length - 1].active = false
   popup.active = true
   // append
   popupsAll.push(popup)
@@ -224,11 +210,9 @@ export function addPopup(componentOrName, props = {}, type = PopupTypes.normal) 
   return popup
 }
 
-
 export function registerListener() {
   // TODO: register a listener for incoming events from Lua
 }
-
 
 // expose basic functionality for easy access
 // and to cover possible base popup component modifications
@@ -251,11 +235,15 @@ export const openMessage = (title, message) =>
  * @param      {string}   [appearance='']  The appearance
  * @return     {Promise}  Result from button's value
  */
-export const openConfirmation = (title, message, buttons = [
-      { label: $translate.instant("ui.common.okay"), value: true },
-      { label: $translate.instant("ui.common.cancel"), value: false },
-    ], appearance = '') =>
-  addPopup("Confirmation", { title, message, buttons, appearance }).promise
+export const openConfirmation = (
+  title,
+  message,
+  buttons = [
+    { label: $translate.instant("ui.common.okay"), value: true },
+    { label: $translate.instant("ui.common.cancel"), value: false },
+  ],
+  appearance = ""
+) => addPopup("Confirmation", { title, message, buttons, appearance }).promise
 
 /**
  * Open a simple confirmation popup dialog with OK button only
@@ -264,20 +252,21 @@ export const openConfirmation = (title, message, buttons = [
  * @param {array} [buttons] Optional buttons. Default are []
  * @returns {Promise} Result from button's value
  */
-export const openExperimental = (title, message, buttons = [
-  { label: $translate.instant("ui.common.yes"), value: true },
-  { label: $translate.instant("ui.common.no"), value: false },
-]) =>
-  addPopup("Confirmation", { title, message, buttons, appearance: "experimental" }).promise
-
+export const openExperimental = (
+  title,
+  message,
+  buttons = [
+    { label: $translate.instant("ui.common.yes"), value: true },
+    { label: $translate.instant("ui.common.no"), value: false },
+  ]
+) => addPopup("Confirmation", { title, message, buttons, appearance: "experimental" }).promise
 
 /**
  * Open a full screen overlay view
  * @param {Object} [component] Component view to display
  * @returns
  */
-export const openScreenOverlay = (component) =>
-  addPopup("ScreenOverlay", { view: markRaw(component) }, PopupTypes.activity).promise
+export const openScreenOverlay = component => addPopup("ScreenOverlay", { view: markRaw(component) }, PopupTypes.activity).promise
 
 /**
  * Open a popup configured for forms

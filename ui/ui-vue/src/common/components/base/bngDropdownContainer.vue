@@ -139,26 +139,18 @@ onUnmounted(() => {
   align-items: center;
 
   position: relative;
-  padding: 0.25em 0.5em;
+  padding: 0.25em;
+  padding-right: 0.75em;
   border-radius: $rad;
   background: var(--bng-cool-gray-700);
   cursor: pointer;
   user-select: none;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
-  margin-left: 0.25rem;
-  margin-right: 0.25rem;
+  margin: 0.25rem;
   min-width: 6em;
-  // font-size: inherit;
-  // line-height: 1.25em;
-  padding-left: 1.5em;
   pointer-events: auto;
 
   & > .dropdown-arrow {
     font-size: 1.5em;
-    position: absolute;
-    left: 0;
-    top: calc(50% - 0.5em);
     transition: transform 100ms ease-in-out;
     &.opened {
       transform: rotate(90deg);
@@ -207,7 +199,7 @@ onUnmounted(() => {
   max-height: 20rem;
   overflow-y: auto;
   z-index: 10000;
-  padding: 0.25rem;
+  padding: 0.25rem 0;
   > :deep(*) {
     flex: 1 1 auto;
   }

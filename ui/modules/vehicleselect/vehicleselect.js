@@ -890,6 +890,8 @@ function ($scope, $state, $timeout, $stateParams, $rootScope, Settings, VehicleP
     // count how many configs per model we have, to display with the small 'folder' icon
     let configAmount = {};
     for (let model of vm.data.configs) {
+      if (!vm.showAuxiliary && model.isAuxiliary)
+        continue;
       let key = model.model_key;
       if (!configAmount.hasOwnProperty(key))
         configAmount[key] = 0;

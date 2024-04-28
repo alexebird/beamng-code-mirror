@@ -105,7 +105,6 @@ export default {
   },
 
   career_modules_branches_landing: {
-    getBranchLandingData: () => {},
     openBigMapWithMissionSelected: id => String,
     getBranchSkillCardData: id => String,
     getBranchPageData: id => String,

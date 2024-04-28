@@ -16,6 +16,7 @@
     v-else-if="(entry.parts && entry.val !== '') || (entry.options && entry.options.length > 0)"
     :static="flatEntry || !entry.parts"
     :class="{ 'item-changed': entry.changed }"
+    arrow-big
     navigable
     @mouseover.stop="select(entry)"
     @focus.stop="select(entry)">
@@ -99,14 +100,57 @@ const entryOpts = computed(() => props.entry.options.filter(opt => !opt.isAuxili
 
 <style lang="scss" scoped>
 .branch-category > :deep(.bng-accitem) {
-  &.bng-accitem-expanded > .bng-accitem-caption .bng-dropdown {
-    // make dropdown a bit darker in caption of expanded item
-    background-color: var(--bng-cool-gray-800);
+  > .bng-accitem-caption {
+    align-items: first baseline;
+    .bng-accitem-caption-expander {
+      margin-bottom: -0.2em;
+      align-self: unset;
+    }
+  }
+  // &:not(.bng-accitem-expanded) > .bng-accitem-caption > .bng-accitem-caption-content {
+  //   display: flex;
+  //   flex-flow: row nowrap;
+  //   align-items: center;
+  //   justify-content: stretch;
+  //   > {
+  //     flex: 0 1 auto;
+  //   }
+  //   &::after {
+  //     flex: 1 1 auto;
+  //     content: "";
+  //     display: inline-block;
+  //     height: 0px;
+  //     border-bottom: 1px dashed #666;
+  //   }
+  // }
+  > .bng-accitem-caption {
+    padding-right: 0.1em;
+    .bng-dropdown,
+    .visibility-toggle {
+      background-color: rgba(var(--bng-cool-gray-800-rgb), 0.75);
+    }
+  }
+  &.bng-accitem-expanded > .bng-accitem-caption {
+    // change backgrounds in expanded item
+    .bng-dropdown,
+    .visibility-toggle {
+      background-color: rgba(var(--bng-cool-gray-600-rgb), 0.8);
+    }
   }
   > .bng-accitem-caption,
   > .bng-accitem-content {
     padding-top: 0rem;
     padding-bottom: 0rem;
+  }
+  > .bng-accitem-content {
+    $pad: 0.25em;
+    background-image: linear-gradient(
+      to right,
+      transparent calc($pad - 0.15em),
+      #fff3 calc($pad - 0.15em) calc($pad + 0.1em),
+      #fff2 calc($pad + 0.1em),
+      #fff0 5em
+    );
   }
 }
 
@@ -115,12 +159,22 @@ const entryOpts = computed(() => props.entry.options.filter(opt => !opt.isAuxili
 }
 
 :deep(.bng-accitem-caption-controls) {
-  flex: 0 1 auto;
+  flex: 0 0 15em !important;
+  width: 15em;
+  display: flex;
+  flex-flow: row nowrap;
+  .bng-dropdown {
+    flex: 1 1 auto;
+  }
 }
 
 .visibility-toggle {
   min-width: unset !important;
   min-height: unset !important;
+  height: 2em;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
   > * {
     font-size: 1.5em !important;
     opacity: 0.8;

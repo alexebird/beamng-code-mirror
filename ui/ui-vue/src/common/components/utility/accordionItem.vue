@@ -26,8 +26,11 @@
       v-bng-on-ui-nav:focus_l,focus_r.focusRequired="navControls">
       <BngIcon
         v-if="!opts.static"
-        class="bng-accitem-caption-expander"
-        :type="icons.arrowSmallRight"
+        :class="{
+          'bng-accitem-caption-expander': true,
+          'bng-accitem-caption-expander-big': arrowBig,
+        }"
+        :type="icon"
         @click.stop="opts.expandClick"
         @keyup.space="opts.expandClick" />
       <span ref="elCaptionContent" class="bng-accitem-caption-content">
@@ -46,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, inject, provide, onMounted, onBeforeUnmount } from "vue"
+import { ref, reactive, computed, watch, inject, provide, onMounted, onBeforeUnmount } from "vue"
 import { vBngDisabled, vBngOnUiNav } from "@/common/directives"
 import { useUINavScope } from "@/services/uiNav"
 import { collectRects, navigate } from "@/services/crossfire"
@@ -67,11 +70,14 @@ const props = defineProps({
     type: [Boolean, Object],
     default: false,
   },
+  arrowBig: Boolean,
 })
 
 const elCaption = ref()
 const elCaptionContent = ref()
 const elCaptionControls = ref()
+
+const icon = computed(() => props.arrowBig ? icons.arrowLargeRight : icons.arrowSmallRight)
 
 const reg = inject("accordion-item-register")
 const unreg = inject("accordion-item-unregister")
@@ -210,6 +216,9 @@ onBeforeUnmount(() => unreg(opts))
       margin-top: -0.075em;
       transition: transform 200ms;
       cursor: pointer;
+    }
+    > .bng-accitem-caption-expander-big {
+      font-size: 1.25em;
     }
     > .bng-accitem-caption-content {
       flex: 1 1 auto;

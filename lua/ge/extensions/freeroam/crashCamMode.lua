@@ -14,7 +14,7 @@ local playerVehiclePointsInFrame = 0
 local playerVehiclePointsInFrameMaximum = 0
 
 local crashSpeedCutoff = 13 -- how many m/s difference between vehicles to trigger the crash cam
-local crashCamCooldown = 5 -- minimum time between two triggers of the crash cam
+local crashCamCooldown = 1 -- minimum time between two triggers of the crash cam
 local crashCamDuration = 4 -- duration of a crash cam slowmo in seconds
 local lookAheadTime = 0.2 -- time to look ahead for a crash
 local bbSizeFactor = 0.85 -- factor to decrease BB sizes of vehicles for vehicle-vehicle collisions
@@ -29,10 +29,10 @@ local outerPointsOffsetFromEdge = 0.1
 -- 2: camera is further away on the ground and rotates to keep the crash in view
 -- 3: time stops while the camera rotates around the crash until time continues
 local mode
-local modeProbabilities = {
-  20, -- mode 1
-  20, -- mode 2
-  10, -- mode 3
+local modeAttributes = {
+  {prob = 45}, -- mode 1
+  {prob = 45}, -- mode 2
+  {prob = 10, cooldown = 5}, -- mode 3
 }
 
 local startedPathCam = false
@@ -129,21 +129,29 @@ local function buildPath()
 end
 
 local function chooseModeBasedOnProb()
+  -- Build the mode table
+  local modesToChooseFrom = {}
+  for _, mode in ipairs(modeAttributes) do
+    if not mode.cooldown or timeSinceLastCrashCam > mode.cooldown then
+      table.insert(modesToChooseFrom, mode)
+    end
+  end
+
   -- Add all pops together
   local totalProb = 0
-  for _, modeProb in ipairs(modeProbabilities) do
-    totalProb = totalProb + modeProb
+  for _, mode in ipairs(modesToChooseFrom) do
+    totalProb = totalProb + mode.prob
   end
 
   if totalProb <= 0 then
-    return math.random(#modeProbabilities)
+    return math.random(#modeAttributes)
   end
 
   -- Choose one pop at random and count up until you reach it
   local chosenPop = math.random(totalProb)
   local probCounter = 0
-  for modeId, modeProb in ipairs(modeProbabilities) do
-    probCounter = probCounter + modeProb
+  for modeId, mode in ipairs(modesToChooseFrom) do
+    probCounter = probCounter + mode.prob
     if probCounter >= chosenPop then
       return modeId
     end
@@ -277,10 +285,13 @@ local function willCollideWithTraffic()
   playerBBHalfAxis2:setScaled(bbSizeFactor)
 
   for _, otherId in ipairs(otherVehicleIds) do
+    if not be:getObjectActive(otherId) then goto continue end
+
     otherVehPos:set(be:getObjectPositionXYZ(otherId))
-    if otherVehPos:distance(futurePlayerBBCenter) > 20 then goto continue end
+    if otherVehPos:distance(futurePlayerBBCenter) > 30 then goto continue end
 
     otherVel:set(be:getObjectVelocityXYZ(otherId))
+    if otherVel:length() > 300 then goto continue end -- dont check any traffic vehicle going over 300 m/s because that is probably a teleport
     if playerVel:distance(otherVel) < crashSpeedCutoff then goto continue end -- Only slowmo when velocity diff is great enough
 
     futureOtherBBCenter:set(push3(be:getObjectOOBBCenterXYZ(otherId)) + push3(otherVel) * lookAheadTime)
@@ -519,7 +530,7 @@ local function onUpdate(dtReal, dtSim)
       crashCheckBasedOnVelocity(dtSim)
       --rolloverCheck()
     end
-    timeSinceLastCrashCam = timeSinceLastCrashCam + dtReal
+    timeSinceLastCrashCam = timeSinceLastCrashCam + dtSim
   else
     -- crash cam is active
     crashCamTimer = crashCamTimer + dtReal
@@ -614,7 +625,9 @@ end
 
 -- stop the crash cam when the user changes the camera mode
 local function trackCamMode()
-  toggleActionCam(false)
+  if crashCamActive then
+    toggleActionCam(false)
+  end
 end
 
 local function onBeforeBigMapActivated()
@@ -622,7 +635,9 @@ local function onBeforeBigMapActivated()
 end
 
 local function onTogglePause()
-  toggleActionCam(false)
+  if crashCamActive then
+    toggleActionCam(false)
+  end
 end
 
 local function onVehicleSwitched(oldVehId)
@@ -640,6 +655,10 @@ local function onAnyMissionChanged(state)
   end
 end
 
+local function trackVehReset()
+  toggleActionCam(false)
+end
+
 M.onUpdate = onUpdate
 M.onVehicleResetted = onVehicleResetted
 M.onReplayStateChanged = onReplayStateChanged
@@ -654,5 +673,6 @@ M.onVehicleSwitched = onVehicleSwitched
 M.onAnyMissionChanged = onAnyMissionChanged
 M.onBeforeBigMapActivated = onBeforeBigMapActivated
 M.onTogglePause = onTogglePause
+M.trackVehReset = trackVehReset
 
 return M

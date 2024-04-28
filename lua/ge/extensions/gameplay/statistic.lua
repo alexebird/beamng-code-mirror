@@ -56,19 +56,34 @@ local function onInit()
   _loadData()
 end
 
+local function _save()
+  --log("E","_save","!!!!!!!!!!!!!!!!!!!!")
+  M.forceTimerUpdate()
+  _saveData()
+  if fileDataCareer then
+    local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
+    if saveSlot then
+      M.onSaveCurrentSaveSlot(savePath)
+    else
+      log("E","_save","could not save career")
+      dump(saveSlot,savePathsavePath)
+    end
+  end
+end
+
 local function onExit()
   if currentActivity then
     M.onClientEndMission()
   end
-  _saveData()
+  _save()
 end
 
 local function onExtensionUnloaded()
-  _saveData()
+  _save()
 end
 
 local function onSerialize()
-  _saveData()
+  _save()
   local data = {}
   data.currentActivity = currentActivity
   data.currentLevel = currentLevel
@@ -87,6 +102,9 @@ local function onDeserialized(data)
   if data.simtimer then simtimer = data.simtimer end
   if data.windowOpen ~= nil then windowOpen[0] = data.windowOpen end
   if data.currentLevel then M.onClientStartMission() end
+  if fileDataCareer then
+    M.onGameStateUpdate()
+  end
 end
 
 local function addSchedule(fn)
@@ -255,15 +273,15 @@ local function timerStart(name, increment, aggregate, useSimTime)
     log("W","timerStart", "Timer "..dumps(name).." already started. will be ignored")
     return
   end
-  timers[name] = {sim=useSimTime,increment=increment,start= (useSimTime and simtimer or realtimer)}
+  timers[name] = {sim=useSimTime,increment=increment,start= (useSimTime and simtimer or realtimer),aggregate=aggregate}
 end
 
 local function _timerSave(name)
   local value = (timers[name].sim and simtimer or realtimer) - timers[name].start
   if timers[name].increment then
-    metricAdd(name, value, aggregate)
+    metricAdd(name, value, timers[name].aggregate)
   else
-    metricSet(name, value, aggregate)
+    metricSet(name, value, timers[name].aggregate)
   end
   timers[name].start = (timers[name].sim and simtimer or realtimer)
   return value
@@ -492,6 +510,9 @@ local function onScenarioRestarted(scenario)
 end
 
 local function onGameStateUpdate(newState)
+  if realtimer == 0 and fileDataCareer then
+    return--fix start before onSerialize only in career
+  end
   startActivity()
 end
 
@@ -612,6 +633,7 @@ end
 
 local function onSaveCurrentSaveSlot(currentSavePath)
   -- save local career data into the saveslot folder
+  M.forceTimerUpdate()
   local careerSaveFilePath = currentSavePath .. "/career/gameplay_stat.json"
   if not career_saveSystem.jsonWriteFileSafe(careerSaveFilePath,fileDataCareer) then
     log("E","save","failed to write career json!")
@@ -630,7 +652,10 @@ local function onCareerActive(active)
       fileDataCareer = {version=1, entries={}}
     end
   else
-  -- if career is deactivated, remove local career data.
+    if fileDataCareer then
+      _save()
+    end
+    -- if career is deactivated, remove local career data.
     fileDataCareer = nil
   end
 end

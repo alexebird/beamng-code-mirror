@@ -6,3 +6,9 @@
     <!--</div>-->
 	</div>
 </template>
+
+<style>
+.content-center {
+  justify-content: center;
+}
+</style>

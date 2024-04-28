@@ -65,6 +65,7 @@ end
 local function setNotificationTarget(attKey)
   local milestoneConfig = attKeyToMilestone[attKey]
   local step = milestones.saveData.general[milestoneConfig.id].notificationStep +1
+  -- check if milestone is completed
   if milestoneConfig.maxStep and step > milestoneConfig.maxStep then return end
   local target = milestoneConfig.getTarget(step)
   if target then

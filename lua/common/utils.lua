@@ -643,6 +643,14 @@ function tableEndC(tbl)
   return (tbl[0] == nil and next(tbl) == nil) and 0 or #tbl + 1
 end
 
+function tableInsertC(tbl, data)
+  if tbl[0] == nil then
+    tbl[0] = data
+  else
+    table.insert(tbl, data)
+  end
+end
+
 -- finds the key of a certain value. Non-recursive
 function tableFindKey(t, element)
   for k, v in pairs(t) do

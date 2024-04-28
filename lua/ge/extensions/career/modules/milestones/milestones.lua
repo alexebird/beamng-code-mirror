@@ -124,15 +124,10 @@ M.onExtensionLoaded = onExtensionLoaded
 M.minorLinear = function(step) return {{attributeKey="money",rewardAmount=100*(step+1)}, {attributeKey="beamXP",rewardAmount=5*(step+1)}} end
 M.majorLinear = function(step) return {{attributeKey="money",rewardAmount=250*(step+1)}, {attributeKey="beamXP",rewardAmount=10*(step+1)}} end
 
-M.colorGeneralGray = "var(--bng-cool-gray-700)"
-M.colorMissionBlue = "var(--bng-add-blue-500)"
+M.colorGeneralGray = "var(--bng-cool-gray-700-rgb)"
+M.colorMissionBlue = "var(--bng-add-blue-500-rgb)"
 
-M.colorOrange = "var(--bng-orange-500)"
-
-M.colorBlue = "var(--bng-add-blue-600)"
-M.colorGreen = "var(--bng-add-green-600)"
-M.colorRed = "var(--bng-add-red-600)"
-M.colorPurple = "#d515dc" -- fixme?
+M.colorOrange = "var(--bng-orange-500-rgb)"
 
 
 

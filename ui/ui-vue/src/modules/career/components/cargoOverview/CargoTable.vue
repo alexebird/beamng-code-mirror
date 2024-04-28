@@ -78,7 +78,18 @@
         <td v-if="cargoAttributes.move || cargoAttributes.route || cargoAttributes.routeOrigin" class="tableButtons">
           <div class="buttonsWrapper">
             <BngButton
-              v-if="cargoOverviewStore.dropDownData[cargo.ids.at(-1)].items.length < 1 || (isFacility && !cargo.enabled)"
+              v-if="cargo.locked "
+              class="cargoButton"
+              v-bng-sound-class="'bng_click_hover_generic'"
+              accent="secondary"
+              :disabled="true"
+              >
+              <BngIcon class="icon" :color="'#ffffff'" :type="icons.lockClosed" />
+              <BngIcon class="icon" :type="icons[cargo.lockedReason.icon]" />
+              lvl {{cargo.lockedReason.level}}
+            </BngButton>
+            <BngButton
+              v-else-if="cargoOverviewStore.dropDownData[cargo.ids.at(-1)].items.length < 1 || (isFacility && !cargo.enabled)"
               class="cargoButton"
               v-bng-sound-class="'bng_click_hover_generic'"
               accent="secondary"

@@ -62,23 +62,6 @@
           </BngCard>
         </div>
       </Tab>
-
-      <!--This code should be deleted after is ported to the progress page-->
-
-      <!-- <Tab :heading="TAB_HEADINGS.progress" :active="false" :load-on-demand="true" v-bng-blur>
-        <BngCard v-if="progress" class="cargoCard facilityCargo page-stats-wrapper">
-          <BngProgressBar
-            class="main-stat-progress-bar"
-            :headerLeft="$ctx_t(progress.branch.name)"
-            :headerRight="$ctx_t(progress.branch.levelLabel)"
-            :min="progress.branch.min"
-            :value="progress.branch.value"
-            :max="progress.branch.max" />
-          <div v-for="skill in progress.skills">
-            <DeliverySystemUnlockInfo v-if="progress" :info="progress" :skillKey="skill.id" />
-          </div>
-        </BngCard>
-      </Tab> -->
     </Tabs>
 
     <Teleport v-if="acceptedVehiclesTarget" :to="acceptedVehiclesTarget">
@@ -118,8 +101,6 @@ import { vBngOnUiNav, vBngBlur } from "@/common/directives"
 import { useUINavScope } from "@/services/uiNav"
 import CargoList from "../components/cargoOverview/CargoList.vue"
 import VehicleOfferList from "../components/cargoOverview/VehicleOfferList.vue"
-// import BranchUnlockInfo from "../components/branches/BranchUnlockInfo.vue"
-import DeliverySystemUnlockInfo from "../components/branches/DeliverySystemUnlockInfo.vue"
 import { LayoutSingle } from "@/common/layouts"
 
 useUINavScope("cargoOverview")

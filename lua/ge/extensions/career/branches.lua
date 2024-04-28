@@ -47,7 +47,7 @@ local function sanitizeBranch(branch, filePath)
   branch.description = branch.description or "No Description for this branch."
   branch.attributeKey = branch.attributeKey or branch.id
   branch.order = branch.order or (10000 + #(sortedBranches or {}))
-  branch.questCover = branch.dir .. "questCover.jpg"
+  branch.progressCover = branch.dir .. "progressCover.jpg"
   branch.isInDevelopment = branch.isInDevelopment or false
 end
 

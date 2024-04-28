@@ -9,34 +9,13 @@ import { watch, provide, inject, nextTick } from "vue"
 import { vBngDisabled } from "@/common/directives"
 
 const props = defineProps({
-  singular: { // mode for a single expanded item
-    type: Boolean,
-    default: false,
-  },
-  expanded: { // expand all items
-    type: Boolean,
-    default: false,
-  },
-  disabled: { // disable all items
-    type: Boolean,
-    default: false,
-  },
-  animated: { // animate all items
-    type: Boolean,
-    default: false,
-  },
-  selectable: { // enable items selection
-    type: [Boolean, Object],
-    default: false,
-  },
-  selected: { // select all
-    type: Boolean,
-    default: false,
-  },
-  provideParent: { // for AccordionTree
-    type: Boolean,
-    default: false,
-  },
+  singular: Boolean, // mode for a single expanded item
+  expanded: Boolean, // expand all items
+  disabled: Boolean, // disable all items
+  animated: Boolean, // animate all items
+  selectable: [Boolean, Object], // enable items selection
+  selected: Boolean, // select all
+  provideParent: Boolean, // for AccordionTree
 })
 
 let counter = 0

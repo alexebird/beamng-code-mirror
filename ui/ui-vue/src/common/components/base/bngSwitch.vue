@@ -132,6 +132,8 @@ $default-background-color: transparent;
   }
 
   &[disabled] {
+    pointer-events: none;
+
     > .bng-switch-wrapper > .bng-switch {
       @extend %switch-disabled;
     }

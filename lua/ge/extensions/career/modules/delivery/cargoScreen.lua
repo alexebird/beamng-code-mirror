@@ -148,7 +148,9 @@ local function formatCargoGroup(group, playerCargoContainers, longLabel, showFir
   local lockedBecauseOfMods, minTier = dParcelMods.lockedBecauseOfMods(modifierKeys)
   if lockedBecauseOfMods then
     ret.enabled = false
+    ret.locked = true
     ret.disableReason = "Locked (Lvl "..minTier..")"
+    ret.lockedReason = {icon = "boxPickUp03", level = minTier}
   end
 
   ret.id = ret.ids[#ret.ids]
@@ -272,9 +274,11 @@ local function formatVehicleOfferForUi(offers, typeUnlocked)
     item.enabled = enabled
     item.disableReason = reason
 
-    if not typeUnlocked then
+    if not enabled then
+      item.locked = true
+      item.lockedReason = reason
       item.enabled = false
-      item.disableReason = "Locked" .. (item.disableReason or "(Lvl 1)")
+      item.disableReason = "Locked"
     end
 
     if item.enabled then

@@ -40,6 +40,8 @@ end
 
 local function onInsuranceRepairClaim()
   local step = milestones.saveData.general[id].notificationStep + 1
+    -- check if milestone is completed
+  if currMilestone.maxStep and step > currMilestone.maxStep then return end
   if getRepairClaimsNumber() >= currMilestone.getTarget(step) then
     milestones.milestoneReached(currMilestone.getLabel(step))
     milestones.saveData.general[id].notificationStep = step

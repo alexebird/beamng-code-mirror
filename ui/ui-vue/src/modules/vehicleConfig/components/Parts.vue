@@ -114,8 +114,11 @@
       </div>
     </div>
 
-    <div class="parts-options">
-      <div v-show="showOptions" class="flex-column">
+    <div :class="{
+      'parts-options': true,
+      'parts-options-shown': showOptions,
+    }">
+      <div class="flex-column">
         <BngSwitch v-model="opts.showAux">
           <!-- <md-icon class="material-icons">report</md-icon> -->
           {{ $t("ui.showAuxiliary") }}
@@ -132,7 +135,7 @@
           {{ $t("ui.vehicleconfig.subparts") }}
         </BngSwitch>
       </div>
-      <div v-show="showOptions" class="license-plate" v-bng-disabled="skipLicGen">
+      <div class="license-plate" v-bng-disabled="skipLicGen">
         <BngButton :icon="icons.sync" accent="outlined" @click="applyRandomLicensePlate()" v-bng-tooltip:top="$t('ui.vehicleconfig.licensePlateGen')" />
         <BngInput
           v-model="licensePlate"
@@ -152,13 +155,13 @@
         <BngSwitch v-model="showOptions">
           {{ $t("ui.garage.optionsSwitch") }}
         </BngSwitch>
-        <BngSwitch v-bng-disabled="partsChanged" v-model="opts.applyPartChangesAutomatically" @change="applySettingChanged()">
+        <BngSwitch :disabled="partsChanged" v-model="opts.applyPartChangesAutomatically" @valueChanged="applySettingChanged">
           {{ $t("ui.garage.liveUpdates") }}
         </BngSwitch>
       </div>
       <div class="buttons">
-        <BngButton :icon="icons.undo" @click="reset()" v-bng-disabled="partsList.length === 0" v-bng-tooltip="$t('ui.common.reset')" />
-        <BngButton :icon="icons.checkmark" @click="write()" v-bng-disabled="opts.applyPartChangesAutomatically || !partsChanged">
+        <BngButton :icon="icons.undo" @click="reset()" :disabled="partsList.length === 0" v-bng-tooltip="$t('ui.common.reset')" />
+        <BngButton :icon="icons.checkmark" @click="write()" :disabled="opts.applyPartChangesAutomatically || !partsChanged">
           {{ $t("ui.common.apply") }}
         </BngButton>
       </div>
@@ -169,7 +172,7 @@
 <script setup>
 import { ref, reactive, onUnmounted, nextTick } from "vue"
 import { useBridge } from "@/bridge"
-import { BngSwitch, BngButton, BngInput, BngIcon, icons } from "@/common/components/base"
+import { BngSwitch, BngButton, BngInput, icons } from "@/common/components/base"
 import { vBngBlur, vBngTooltip, vBngDisabled } from "@/common/directives"
 import { debounce } from "@/utils/rateLimit"
 import PartsBranch from "./PartsBranch.vue"
@@ -328,10 +331,7 @@ events.on("VehicleConfigChange", calcTree)
 lua.extensions.core_vehicle_partmgmt.sendDataToUI()
 search.loadSearchHistory()
 
-function applySettingChanged() {
-  localStorage.setItem("applyPartChangesAutomatically", JSON.stringify(opts.applyPartChangesAutomatically))
-}
-
+const applySettingChanged = val => localStorage.setItem("applyPartChangesAutomatically", JSON.stringify(val))
 opts.applyPartChangesAutomatically = localStorage.getItem("applyPartChangesAutomatically")
 if (opts.applyPartChangesAutomatically) opts.applyPartChangesAutomatically = JSON.parse(opts.applyPartChangesAutomatically) || false
 
@@ -386,7 +386,7 @@ onUnmounted(() => {
   flex: 1 1 auto;
   overflow-y: scroll;
   > * {
-    margin: 0 -0.5rem;
+    margin: 0 -0.65rem;
   }
 }
 
@@ -396,8 +396,8 @@ onUnmounted(() => {
   align-items: center;
   flex-flow: row nowrap;
   border-top: solid 2px var(--bng-orange);
-  padding-top: 0px;
-  padding-bottom: 0.5em;
+  padding-top: 0rem;
+  padding-bottom: 0.5rem;
   > * {
     flex: 1 1 auto;
     width: auto;
@@ -423,6 +423,13 @@ onUnmounted(() => {
       }
     }
   }
+
+  &.parts-options-shown {
+    padding-top: 0.5rem;
+  }
+  &:not(.parts-options-shown) > * {
+    display: none;
+  }
 }
 
 .parts-controls {
@@ -430,8 +437,17 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   flex-flow: row wrap;
+  padding-top: 0.25rem;
+  padding-bottom: 0.5rem;
   > * {
     flex: 1 0 auto;
+    // display: flex;
+    // align-items: baseline;
+    > * {
+      margin-top: 0.1rem;
+      margin-bottom: 0.1rem;
+      height: calc(100% - 0.5rem);
+    }
   }
   > .buttons {
     text-align: right;
@@ -560,6 +576,14 @@ onUnmounted(() => {
     font-size: 1.1em;
     font-weight: bold;
     color: rgb(255, 102, 0);
+  }
+}
+
+:deep(.bng-labeled-switch) {
+  margin: 0.1rem;
+  // padding: 0.15rem 0.9rem 0.15rem 0.4rem;
+  &.switch-on {
+    background-color: rgba(var(--bng-cool-gray-600-rgb), 0.8);
   }
 }
 </style>

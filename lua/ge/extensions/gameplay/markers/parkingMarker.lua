@@ -316,9 +316,9 @@ function C:hide()
 
   if self.iconRendererId then
     iconRendererObj = scenetree.findObject(self.iconRendererId)
-    if iconRendererObj and iconInfo then
+    if iconRendererObj and self.iconInfo then
       playModeColorI.alpha = 0
-      iconInfo.color = playModeColorI
+      self.iconInfo.color = playModeColorI
     end
   end
 end

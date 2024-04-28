@@ -66,20 +66,41 @@ export const useTuningStore = defineStore("tuning", () => {
     delete data["$fuel_R"]
     delete data["$fuel_L"]
 
-    buckets.value = {}
+    /* buckets structure:
+      [
+        {
+          name: "category",
+          items: [
+            {
+              name: "subcategory",
+              items: [
+                ...variables data as objects...
+              ],
+            },
+            ...
+          ],
+        },
+        ...
+      ]
+    */
+    buckets.value = []
     tuningVariables.value = {}
 
     for (const varData of Object.values(data)) {
-      // skip cargo box weight sliders
-      if (varData.category === "Cargo")
+      // skip cargo box weight or otherwise hidden sliders
+      if (varData.category === "Cargo" || varData.hideInUI)
         continue
 
       if (!varData.category) varData.category = "Other"
       if (!varData.subCategory) varData.subCategory = "Other"
 
       // create the buckets and put the variable data in
-      const cat = buckets.value[varData.category] || (buckets.value[varData.category] = {})
-      const list = cat[varData.subCategory] || (cat[varData.subCategory] = [])
+      const cat = (
+        buckets.value.find(cat => cat.name === varData.category) || (buckets.value[buckets.value.push({ name: varData.category, items: [] }) - 1])
+      ).items
+      const list = (
+        cat.find(sub => sub.name === varData.subCategory) || (cat[cat.push({ name: varData.subCategory, items: [] }) - 1])
+      ).items
 
       // TODO: same object as the one in tuningData. might be better to clone this
       // if data manipulation is needed and only copy needed properties by template
@@ -91,6 +112,16 @@ export const useTuningStore = defineStore("tuning", () => {
         maxDis: varData.maxDis,
         min: varData.min,
         max: varData.max,
+      }
+    }
+
+    // sort everything
+    const sorter = (a, b) => a.name.localeCompare(b.name)
+    buckets.value.sort(sorter)
+    for (const cat of buckets.value) {
+      cat.items.sort(sorter)
+      for (const sub of cat.items) {
+        sub.items.sort(sorter)
       }
     }
   }

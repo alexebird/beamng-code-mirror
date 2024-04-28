@@ -66,7 +66,7 @@
         </md-tooltip md-no-ink>
         {{:: 'ui.vehicleconfig.liveWheelData' | translate}}
       </md-checkbox>
-      <md-checkbox bng-sound-class="bng_checkbox_generic" flex ng-model="vehConf_tuning.liveVariablesUpdate">
+      <md-checkbox bng-sound-class="bng_checkbox_generic" flex ng-model="vehConf_tuning.liveVariablesUpdate"  ng-change="vehConf_tuning.applySettingChanged()">
         <md-tooltip md-direction="right">
           {{:: 'ui.vehicleconfig.applyPartChangesAutomaticallyTooltip' | translate}}
         </md-tooltip md-no-ink>

@@ -1,6 +1,6 @@
 // bng UI color palette
 $colors: (
-  /* BeamNG Palette color palette */
+  /* BeamNG-Palette-v.19.04 color palette */
 
   /* bng-orange */
   "bng-orange-50": #fcd4c3,
@@ -9,9 +9,13 @@ $colors: (
   "bng-orange-300": #ff8955,
   "bng-orange-b400": #ff6600,
   "bng-orange-500": #da5706,
+  "bng-orange-550": #c24b00,
   "bng-orange-600": #a54106,
+  "bng-orange-650": #903600,
   "bng-orange-700": #6c2f13,
+  "bng-orange-750": #622608,
   "bng-orange-800": #451f0e,
+  "bng-orange-850": #3b1605,
   "bng-orange-900": #291006,
 
   /* bng-add-indigoblue */
@@ -21,9 +25,13 @@ $colors: (
   "bng-add-indigoblue-300": #91aafa,
   "bng-add-indigoblue-400": #7995fd,
   "bng-add-indigoblue-500": #487df9,
-  "bng-add-indigoblue-600": #1b52e6,
+  "bng-add-indigoblue-550": #396ce6,
+  "bng-add-indigoblue-600": #1a51e5,
+  "bng-add-indigoblue-650": #0c3fd3,
   "bng-add-indigoblue-700": #042db1,
+  "bng-add-indigoblue-750": #001fa4,
   "bng-add-indigoblue-800": #021d76,
+  "bng-add-indigoblue-850": #001266,
   "bng-add-indigoblue-900": #041341,
 
   /* bng-add-blue */
@@ -33,9 +41,13 @@ $colors: (
   "bng-add-blue-300": #71b3f7,
   "bng-add-blue-400": #45a2f9,
   "bng-add-blue-500": #0089ea,
-  "bng-add-blue-600": #0369b5,
+  "bng-add-blue-550": #0078cf,
+  "bng-add-blue-600": #0067b2,
+  "bng-add-blue-650": #00589a,
   "bng-add-blue-700": #02477e,
+  "bng-add-blue-750": #003c6c,
   "bng-add-blue-800": #002d53,
+  "bng-add-blue-850": #002343,
   "bng-add-blue-900": #001933,
 
   /* bng-add-babyblue */
@@ -45,9 +57,13 @@ $colors: (
   "bng-add-babyblue-300": #56bedb,
   "bng-add-babyblue-400": #2eadce,
   "bng-add-babyblue-500": #2393b8,
-  "bng-add-babyblue-600": #1e6e8f,
+  "bng-add-babyblue-550": #0082a6,
+  "bng-add-babyblue-600": #1d6d8e,
+  "bng-add-babyblue-650": #025f7f,
   "bng-add-babyblue-700": #104b62,
+  "bng-add-babyblue-750": #004157,
   "bng-add-babyblue-800": #11303e,
+  "bng-add-babyblue-850": #062633,
   "bng-add-babyblue-900": #051c26,
 
   /* bng-ter-blue-gray */
@@ -57,58 +73,46 @@ $colors: (
   "bng-ter-blue-gray-300": #91b4cb,
   "bng-ter-blue-gray-400": #7d9fb5,
   "bng-ter-blue-gray-500": #6a8ba1,
-  "bng-ter-blue-gray-600": #4d697c,
-  "bng-ter-blue-gray-700": #2f4757,
-  "bng-ter-blue-gray-800": #1c2d38,
-  "bng-ter-blue-gray-900": #0c1a23,
+  "bng-ter-blue-gray-550": #5a7b90,
+  "bng-ter-blue-gray-600": #4a697e,
+  "bng-ter-blue-gray-650": #3c5b6f,
+  "bng-ter-blue-gray-700": #2b475d,
+  "bng-ter-blue-gray-750": #213e53,
+  "bng-ter-blue-gray-800": #172d40,
+  "bng-ter-blue-gray-850": #0e2437,
+  "bng-ter-blue-gray-900": #08192a,
 
   /* bng-cool-gray */
   "bng-cool-gray-50": #dadee8,
-  "bng-cool-gray-100": #cbced5,
-  "bng-cool-gray-200": #b9bdc8,
-  "bng-cool-gray-300": #aaaeb8,
-  "bng-cool-gray-400": #989daa,
-  "bng-cool-gray-500": #818693,
+  "bng-cool-gray-100": #c8cedc,
+  "bng-cool-gray-200": #b6bdcf,
+  "bng-cool-gray-300": #a7aebf,
+  "bng-cool-gray-400": #979dad,
+  "bng-cool-gray-500": #808696,
+  "bng-cool-gray-550": #707686,
   "bng-cool-gray-600": #606570,
-  "bng-cool-gray-700": #3f434e,
+  "bng-cool-gray-650": #525761,
+  "bng-cool-gray-700": #424651,
+  "bng-cool-gray-750": #363a45,
   "bng-cool-gray-800": #282b33,
+  "bng-cool-gray-850": #1f222a,
   "bng-cool-gray-900": #151820,
 
-  /* bng-add-green */
-  "bng-add-green-50": #96fcb7,
-  "bng-add-green-100": #65ed98,
-  "bng-add-green-200": #42de84,
-  "bng-add-green-300": #2cce75,
-  "bng-add-green-400": #1ab966,
-  "bng-add-green-500": #1b9f59,
-  "bng-add-green-600": #187842,
-  "bng-add-green-700": #0f512c,
-  "bng-add-green-800": #07341b,
-  "bng-add-green-900": #0a1d11,
-
-  /* bng-ter-yellow */
-  "bng-ter-yellow-50": #f9e03e,
-  "bng-ter-yellow-100": #e7cf30,
-  "bng-ter-yellow-200": #dac434,
-  "bng-ter-yellow-300": #c7b22d,
-  "bng-ter-yellow-400": #b19e22,
-  "bng-ter-yellow-500": #97871c,
-  "bng-ter-yellow-600": #726618,
-  "bng-ter-yellow-700": #4c4307,
-  "bng-ter-yellow-800": #322c05,
-  "bng-ter-yellow-900": #1b1804,
-
-  /* bng-ter-peach */
-  "bng-ter-peach-50": #f0dcb6,
-  "bng-ter-peach-100": #e6ca96,
-  "bng-ter-peach-200": #dbb875,
-  "bng-ter-peach-300": #cda961,
-  "bng-ter-peach-400": #b99448,
-  "bng-ter-peach-500": #a38038,
-  "bng-ter-peach-600": #7c6023,
-  "bng-ter-peach-700": #55400f,
-  "bng-ter-peach-800": #38290a,
-  "bng-ter-peach-900": #211602,
+  /* bng-add-magenta */
+  "bng-add-magenta-50": #f1d6f0,
+  "bng-add-magenta-100": #f1b7f1,
+  "bng-add-magenta-200": #f494f5,
+  "bng-add-magenta-300": #f76cfa,
+  "bng-add-magenta-400": #f237f9,
+  "bng-add-magenta-500": #d515dc,
+  "bng-add-magenta-550": #bd00c4,
+  "bng-add-magenta-600": #9e1da3,
+  "bng-add-magenta-650": #8d0092,
+  "bng-add-magenta-700": #6f1873,
+  "bng-add-magenta-750": #610265,
+  "bng-add-magenta-800": #461147,
+  "bng-add-magenta-850": #3a053c,
+  "bng-add-magenta-900": #280929,
 
   /* bng-add-red */
   "bng-add-red-50": #fad4cc,
@@ -117,10 +121,62 @@ $colors: (
   "bng-add-red-300": #f88b79,
   "bng-add-red-400": #fb6752,
   "bng-add-red-500": #ed3823,
+  "bng-add-red-550": #d91e06,
   "bng-add-red-600": #b12e1f,
+  "bng-add-red-650": #a01a0c,
   "bng-add-red-700": #781f14,
+  "bng-add-red-750": #6d1409,
   "bng-add-red-800": #4d160f,
+  "bng-add-red-850": #420b06,
   "bng-add-red-900": #24130f,
+
+  /* bng-ter-peach */
+  "bng-ter-peach-50": #f0dcb6,
+  "bng-ter-peach-100": #e6ca96,
+  "bng-ter-peach-200": #dbb875,
+  "bng-ter-peach-300": #cda961,
+  "bng-ter-peach-400": #b99448,
+  "bng-ter-peach-500": #a38038,
+  "bng-ter-peach-550": #927026,
+  "bng-ter-peach-600": #7c6023,
+  "bng-ter-peach-650": #6d5211,
+  "bng-ter-peach-700": #55400f,
+  "bng-ter-peach-750": #4c3703,
+  "bng-ter-peach-800": #38290a,
+  "bng-ter-peach-850": #2e1f01,
+  "bng-ter-peach-900": #211602,
+
+  /* bng-ter-yellow */
+  "bng-ter-yellow-50": #f9e03e,
+  "bng-ter-yellow-100": #e7cf30,
+  "bng-ter-yellow-200": #dac434,
+  "bng-ter-yellow-300": #c7b22d,
+  "bng-ter-yellow-400": #b19e22,
+  "bng-ter-yellow-500": #97871c,
+  "bng-ter-yellow-550": #867700,
+  "bng-ter-yellow-600": #716517,
+  "bng-ter-yellow-650": #635700,
+  "bng-ter-yellow-700": #4c4307,
+  "bng-ter-yellow-750": #443b00,
+  "bng-ter-yellow-800": #322c05,
+  "bng-ter-yellow-850": #282200,
+  "bng-ter-yellow-900": #1b1804,
+
+  /* bng-add-green */
+  "bng-add-green-50": #a0f9bc,
+  "bng-add-green-100": #73eb9d,
+  "bng-add-green-200": #4fdc88,
+  "bng-add-green-300": #4fca7e,
+  "bng-add-green-400": #49b672,
+  "bng-add-green-500": #3d9c61,
+  "bng-add-green-550": #348955,
+  "bng-add-green-600": #2a7547,
+  "bng-add-green-650": #2b643f,
+  "bng-add-green-700": #214d31,
+  "bng-add-green-750": #1f432c,
+  "bng-add-green-800": #1a3422,
+  "bng-add-green-850": #0e2818,
+  "bng-add-green-900": #0f1c13,
 );
 
 :deep() {
@@ -135,4 +191,5 @@ $colors: (
 --bng-black-o6: rgba(0, 0, 0, 0.6);
 --bng-black-o4: rgba(0, 0, 0, 0.4);
 --bng-black-o2: rgba(0, 0, 0, 0.2);
+--bng-orange-400: var(--bng-orange-b400);
 }

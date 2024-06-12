@@ -1,6 +1,8 @@
 BEAMNG-CODE-MIRROR
 ===
 
+This code belongs to BeamNG.
+
 When there is a steam update, cd to steam folder:
 
 ```
